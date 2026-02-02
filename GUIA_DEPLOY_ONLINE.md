@@ -68,3 +68,23 @@ O Render vai instalar tudo e iniciar seu site. Em alguns minutos, você terá um
 ---
 **Precisa de ajuda com o Banco de Dados?**
 Posso ajustar o código para aceitar PostgreSQL automaticamente se você decidir ir pelo caminho profissional.
+
+---
+
+## 🔄 Como Atualizar seu Site no Futuro
+
+O processo para atualizar seu site é automático agora! Sempre que você quiser mudar algo (texto, código, preços):
+
+1.  **Faça as alterações** aqui no VS Code.
+2.  **Teste Localmente**: Rode `python3 app.py` e verifique se tudo funciona em `localhost:8002`.
+3.  **Envie para o GitHub**:
+    Abra o terminal e digite:
+    ```bash
+    git add .
+    git commit -m "Descrição do que você mudou"
+    git push
+    ```
+
+**Pronto!** O Render detecta o novo código no GitHub e atualiza seu site sozinho em 2-3 minutos.
+
+> **Nota sobre Banco de Dados:** Se você adicionar novas colunas ou tabelas, lembre-se de rodar o comando de atualização na aba "Shell" do Render, ou configurar migrações automáticas.

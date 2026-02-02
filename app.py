@@ -3668,10 +3668,14 @@ def deletar_cliente(cliente_id):
     
     try:
         # Verificar se o cliente tem vendas associadas
-        vendas = Venda.query.filter_by(cliente_id=cliente.id).first()
-        if vendas:
-            flash('Não é possível excluir este cliente pois existem vendas associadas a ele.', 'danger')
+        venda = Venda.query.filter_by(cliente_id=cliente.id).first()
+        if venda:
+            flash(f'Não é possível excluir o cliente "{cliente.nome}" pois existe a Venda #{venda.id} associada a ele. Exclua a venda primeiro.', 'warning')
             return redirect(url_for('clientes'))
+        
+        # Desvincular lançamentos órfãos antes de deletar
+        # (Lançamentos manuais que não vieram de vendas mas estão ligados ao cliente)
+        Lancamento.query.filter_by(cliente_id=cliente.id).update({Lancamento.cliente_id: None})
         
         db.session.delete(cliente)
         db.session.commit()
@@ -3679,6 +3683,7 @@ def deletar_cliente(cliente_id):
         
     except Exception as e:
         db.session.rollback()
+        app.logger.error(f"Erro ao excluir cliente {cliente_id}: {str(e)}")
         flash(f'Erro ao excluir cliente: {str(e)}', 'danger')
     
     return redirect(url_for('clientes'))
@@ -12876,6 +12881,9 @@ def api_excluir_clientes_lote():
         # Excluir clientes
         count = 0
         for cliente in clientes:
+            # Desvincular lançamentos órfãos primeiro
+            Lancamento.query.filter_by(cliente_id=cliente.id).update({Lancamento.cliente_id: None})
+            
             db.session.delete(cliente)
             count += 1
         
