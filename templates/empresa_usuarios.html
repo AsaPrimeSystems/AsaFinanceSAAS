@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+
+{% block title %}Usuários da Empresa - Sistema de Gestão Financeira{% endblock %}
+
+{% block page_title %}Usuários da Empresa{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Usuários da Empresa</h5>
+                <a href="{{ url_for('novo_usuario_empresa') }}" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Novo Usuário
+                </a>
+            </div>
+            <div class="card-body">
+                {% if usuarios %}
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Nome</th>
+                                <th>Usuário</th>
+                                <th>Email</th>
+                                <th>Telefone</th>
+                                <th>Tipo</th>
+                                <th>Status</th>
+                                <th>Data de Criação</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for usuario in usuarios %}
+                            <tr>
+                                <td>{{ usuario.nome }}</td>
+                                <td><code>{{ usuario.usuario }}</code></td>
+                                <td>{{ usuario.email }}</td>
+                                <td>{{ usuario.telefone or '-' }}</td>
+                                <td>
+                                    {% if usuario.tipo == 'usuario_principal' %}
+                                        <span class="badge bg-primary">Usuário Principal</span>
+                                    {% elif usuario.tipo == 'admin' %}
+                                        <span class="badge bg-danger">Administrador</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Usuário</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if usuario.ativo %}
+                                        <span class="badge bg-success">Ativo</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">Inativo</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ usuario.data_criacao.strftime('%d/%m/%Y %H:%M') }}</td>
+                                <td>
+                                    <div class="btn-group" role="group">
+                                        <a href="{{ url_for('editar_usuario_empresa', user_id=usuario.id) }}" 
+                                           class="btn btn-sm btn-outline-primary" title="Editar">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        
+                                        <a href="{{ url_for('gerenciar_permissoes_usuario', user_id=usuario.id) }}" 
+                                           class="btn btn-sm btn-outline-info" title="Gerenciar Permissões">
+                                            <i class="fas fa-key"></i>
+                                        </a>
+                                        
+                                        {% if usuario.id != session.usuario_id %}
+                                        <a href="{{ url_for('toggle_usuario_empresa_status', user_id=usuario.id) }}" 
+                                           class="btn btn-sm btn-outline-warning" title="{% if usuario.ativo %}Desativar{% else %}Ativar{% endif %}">
+                                            <i class="fas fa-{% if usuario.ativo %}pause{% else %}play{% endif %}"></i>
+                                        </a>
+                                        
+                                        {% if usuario.tipo != 'usuario_principal' %}
+                                        <button class="btn btn-sm btn-outline-danger" title="Deletar"
+                                           onclick="confirmarExclusaoUsuarioEmpresa({{ usuario.id }}, '{{ usuario.nome }}')">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                        {% endif %}
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i>
+                    Nenhum usuário encontrado.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Confirmação de Exclusão -->
+<div class="modal fade" id="modalConfirmacaoExclusao" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-exclamation-triangle me-2"></i>Confirmar Exclusão</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p id="mensagemConfirmacao">Tem certeza que deseja excluir este usuário? Esta ação não pode ser desfeita.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-danger" id="btnConfirmarExclusao">Excluir</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function confirmarExclusaoUsuarioEmpresa(userId, userName) {
+    // Prevenir comportamento padrão
+    event.preventDefault();
+    event.stopPropagation();
+    
+    const modalElement = document.getElementById('modalConfirmacaoExclusao');
+    const mensagem = document.getElementById('mensagemConfirmacao');
+    const btnConfirmar = document.getElementById('btnConfirmarExclusao');
+    
+    // Limpar eventos anteriores do botão
+    const newBtnConfirmar = btnConfirmar.cloneNode(true);
+    btnConfirmar.parentNode.replaceChild(newBtnConfirmar, btnConfirmar);
+    
+    mensagem.textContent = `Tem certeza que deseja excluir o usuário "${userName}"? Esta ação não pode ser desfeita.`;
+    
+    // Adicionar evento ao novo botão
+    newBtnConfirmar.onclick = function() {
+        // Fechar o modal primeiro
+        const modal = bootstrap.Modal.getInstance(modalElement);
+        if (modal) {
+            modal.hide();
+        }
+        // Redirecionar após um pequeno delay
+        setTimeout(function() {
+            window.location.href = `/empresa/usuarios/${userId}/deletar`;
+        }, 300);
+    };
+    
+    // Criar e mostrar o modal
+    const modal = new bootstrap.Modal(modalElement);
+    modal.show();
+    
+    return false;
+}
+</script>
+{% endblock %} 

@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block title %}Novo Produto - Sistema de Gestão Financeira{% endblock %}
+
+{% block page_title %}Novo Produto{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-box me-2"></i>Novo Produto
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="nome" class="form-label">Nome do Produto</label>
+                            <input type="text" class="form-control" id="nome" name="nome" required>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="estoque" class="form-label">Quantidade em Estoque</label>
+                            <input type="number" class="form-control" id="estoque" name="estoque" min="0" value="0" required>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="preco_custo" class="form-label">Preço de Custo</label>
+                            <div class="input-group">
+                                <span class="input-group-text">R$</span>
+                                <input type="number" class="form-control" id="preco_custo" name="preco_custo" step="0.01" min="0" value="0" required>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="preco_venda" class="form-label">Preço de Venda</label>
+                            <div class="input-group">
+                                <span class="input-group-text">R$</span>
+                                <input type="number" class="form-control" id="preco_venda" name="preco_venda" step="0.01" min="0" value="0" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <label for="descricao" class="form-label">Descrição</label>
+                            <textarea class="form-control" id="descricao" name="descricao" rows="3" placeholder="Descrição detalhada do produto"></textarea>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                <strong>Dica:</strong> O preço de venda deve ser maior que o preço de custo para obter lucro.
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i>Salvar Produto
+                        </button>
+                        <a href="{{ url_for('estoque') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Voltar
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const precoCusto = document.getElementById('preco_custo');
+    const precoVenda = document.getElementById('preco_venda');
+    
+    // Calcular margem quando os preços mudarem
+    function calcularMargem() {
+        const custo = parseFloat(precoCusto.value) || 0;
+        const venda = parseFloat(precoVenda.value) || 0;
+        
+        if (custo > 0 && venda > 0) {
+            const margem = ((venda - custo) / custo * 100).toFixed(1);
+            const alerta = document.querySelector('.alert-info');
+            alerta.innerHTML = `
+                <i class="fas fa-info-circle me-2"></i>
+                <strong>Margem de Lucro:</strong> ${margem}% 
+                <span class="text-${margem > 0 ? 'success' : 'danger'}">
+                    (${margem > 0 ? 'Lucro' : 'Prejuízo'})
+                </span>
+            `;
+        }
+    }
+    
+    precoCusto.addEventListener('input', calcularMargem);
+    precoVenda.addEventListener('input', calcularMargem);
+});
+</script>
+{% endblock %} 

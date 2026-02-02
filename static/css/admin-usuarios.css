@@ -1,0 +1,262 @@
+/* CSS Customizado para Painel de Administração de Usuários */
+
+/* Melhorias nos cards de estatísticas */
+.stats-card {
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.stats-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.15);
+}
+
+/* Melhorias no accordion */
+.accordion-item {
+    border: 1px solid #e0e0e0;
+    border-radius: 10px !important;
+    overflow: hidden;
+    margin-bottom: 1rem !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.accordion-button {
+    background-color: #f8f9fa;
+    border: none;
+    padding: 1.25rem 1.5rem;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+
+.accordion-button:not(.collapsed) {
+    background-color: #e7f1ff;
+    color: #0d6efd;
+    box-shadow: none;
+}
+
+.accordion-button:focus {
+    box-shadow: none;
+    border-color: transparent;
+}
+
+.accordion-button::after {
+    flex-shrink: 0;
+    margin-left: 1rem;
+}
+
+/* Corrigir layout interno do accordion button */
+.accordion-button > div {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    gap: 1rem;
+}
+
+.accordion-button .btn-group {
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
+/* Melhorias no corpo do accordion */
+.accordion-body {
+    padding: 1.5rem;
+    background-color: #ffffff;
+}
+
+/* Card de informações da conta */
+.account-info-card {
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.account-info-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.account-info-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #495057;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.account-info-value {
+    font-size: 1rem;
+    color: #212529;
+}
+
+/* Melhorias na tabela de usuários */
+.users-table-container {
+    background-color: #ffffff;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.users-table {
+    margin-bottom: 0;
+}
+
+.users-table thead {
+    background-color: #f1f3f5;
+}
+
+.users-table thead th {
+    font-weight: 600;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #495057;
+    border-bottom: 2px solid #dee2e6;
+    padding: 1rem 0.75rem;
+}
+
+.users-table tbody tr {
+    transition: background-color 0.2s;
+}
+
+.users-table tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+.users-table tbody td {
+    padding: 1rem 0.75rem;
+    vertical-align: middle;
+    font-size: 0.9375rem;
+}
+
+/* Badges melhorados */
+.badge {
+    padding: 0.4rem 0.75rem;
+    font-weight: 500;
+    font-size: 0.8125rem;
+    letter-spacing: 0.3px;
+}
+
+/* Botões de ação melhorados */
+.btn-group-sm .btn {
+    padding: 0.4rem 0.75rem;
+    font-size: 0.875rem;
+}
+
+.btn-group .btn {
+    transition: all 0.2s;
+}
+
+.btn-group .btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Código de usuário estilizado */
+.user-code {
+    background-color: #e9ecef;
+    padding: 0.35rem 0.65rem;
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.875rem;
+    color: #495057;
+    font-weight: 500;
+}
+
+/* Seção de título de usuários vinculados */
+.users-section-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #212529;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid #e9ecef;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    .accordion-button {
+        flex-direction: column;
+        align-items: flex-start !important;
+    }
+    
+    .btn-group {
+        margin-top: 0.5rem;
+    }
+    
+    .account-info-card {
+        padding: 0.75rem;
+    }
+    
+    .users-table {
+        font-size: 0.875rem;
+    }
+}
+
+/* Animações suaves */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.accordion-item {
+    animation: fadeIn 0.3s ease-out;
+}
+
+/* Melhorias no header do card principal */
+.card-header {
+    background-color: #f8f9fa;
+    border-bottom: 2px solid #e9ecef;
+    padding: 1.25rem 1.5rem;
+}
+
+.card-header h5 {
+    font-weight: 600;
+    font-size: 1.25rem;
+    margin-bottom: 0;
+}
+
+/* Espaçamento entre badges */
+.badge + .badge {
+    margin-left: 0.35rem;
+}
+
+/* Alert customizado */
+.alert {
+    border-radius: 8px;
+    border: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+/* Divider estilizado */
+hr {
+    border-top: 1px solid #e9ecef;
+    opacity: 1;
+}
+
+/* Botões de ação melhorados */
+.btn-sm {
+    font-size: 0.875rem;
+    padding: 0.5rem 1rem;
+    font-weight: 500;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+.btn-sm:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.btn-sm i {
+    font-size: 0.875rem;
+}

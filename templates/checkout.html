@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Checkout - {{ plano.nome }} - Asa Finance</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .checkout-card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 600px;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        .checkout-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .checkout-header h1 {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .checkout-body {
+            padding: 40px;
+        }
+
+        .plano-resumo {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+
+        .plano-nome {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .plano-preco {
+            font-size: 3rem;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .plano-preco small {
+            font-size: 1rem;
+            color: #666;
+        }
+
+        .plano-detalhes {
+            list-style: none;
+            padding: 0;
+            margin: 20px 0;
+        }
+
+        .plano-detalhes li {
+            padding: 10px 0;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            align-items: center;
+        }
+
+        .plano-detalhes li:last-child {
+            border-bottom: none;
+        }
+
+        .plano-detalhes i {
+            color: #198754;
+            margin-right: 10px;
+            font-size: 1.2rem;
+        }
+
+        .btn-mercadopago {
+            background: #009ee3;
+            color: white;
+            padding: 15px 40px;
+            font-size: 1.2rem;
+            border: none;
+            border-radius: 10px;
+            width: 100%;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+
+        .btn-mercadopago:hover {
+            background: #0082bf;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,158,227,0.3);
+        }
+
+        .btn-mercadopago i {
+            margin-right: 10px;
+        }
+
+        .security-badge {
+            text-align: center;
+            color: #666;
+            margin-top: 20px;
+            font-size: 0.9rem;
+        }
+
+        .security-badge i {
+            color: #198754;
+            margin-right: 5px;
+        }
+
+        .voltar-link {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .voltar-link a {
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        .voltar-link a:hover {
+            text-decoration: underline;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .loading.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="checkout-card">
+        <div class="checkout-header">
+            <i class="fas fa-dove fa-3x mb-3"></i>
+            <h1>Asa Finance</h1>
+            <p>Finalize sua assinatura</p>
+        </div>
+
+        <div class="checkout-body">
+            <div class="plano-resumo">
+                <div class="plano-nome">
+                    <i class="fas fa-star me-2"></i>{{ plano.nome }}
+                </div>
+
+                <div class="plano-preco">
+                    R$ {{ "%.2f"|format(plano.valor) }}
+                    <small>/ {{ plano.dias_assinatura }} dias</small>
+                </div>
+
+                <ul class="plano-detalhes">
+                    <li>
+                        <i class="fas fa-calendar-check"></i>
+                        <strong>{{ plano.dias_assinatura }} dias de acesso completo</strong>
+                    </li>
+                    <li>
+                        <i class="fas fa-check"></i>
+                        {{ plano.descricao or 'Acesso a todas as funcionalidades' }}
+                    </li>
+                    <li>
+                        <i class="fas fa-users"></i>
+                        Múltiplos usuários
+                    </li>
+                    <li>
+                        <i class="fas fa-chart-line"></i>
+                        Relatórios ilimitados
+                    </li>
+                    <li>
+                        <i class="fas fa-headset"></i>
+                        Suporte técnico
+                    </li>
+                </ul>
+            </div>
+
+            <form method="POST" action="{{ url_for('criar_preferencia') }}" id="checkoutForm">
+                <input type="hidden" name="plano_id" value="{{ plano.id }}">
+
+                <div class="mb-3">
+                    <label class="form-label"><strong>Nome Completo / Razão Social</strong></label>
+                    <input type="text" class="form-control" name="nome" required
+                           placeholder="Digite seu nome ou da empresa">
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label"><strong>Email</strong></label>
+                    <input type="email" class="form-control" name="email" required
+                           placeholder="seu@email.com">
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label"><strong>CPF ou CNPJ</strong></label>
+                    <input type="text" class="form-control" name="documento" required
+                           placeholder="000.000.000-00 ou 00.000.000/0000-00">
+                </div>
+
+                <div id="normalView">
+                    <button type="submit" class="btn btn-mercadopago">
+                        <i class="fas fa-credit-card"></i>
+                        Pagar com Mercado Pago
+                    </button>
+
+                    <div class="security-badge">
+                        <i class="fas fa-lock"></i>
+                        Pagamento 100% seguro via Mercado Pago
+                    </div>
+                </div>
+
+                <div class="loading" id="loadingView">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Carregando...</span>
+                    </div>
+                    <p class="mt-3">Redirecionando para o Mercado Pago...</p>
+                </div>
+            </form>
+
+            <div class="voltar-link">
+                <a href="{{ url_for('precos') }}">
+                    <i class="fas fa-arrow-left me-2"></i>Voltar para planos
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.getElementById('checkoutForm').addEventListener('submit', function() {
+            document.getElementById('normalView').style.display = 'none';
+            document.getElementById('loadingView').classList.add('active');
+        });
+
+        // Máscara para CPF/CNPJ
+        document.querySelector('input[name="documento"]').addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, '');
+
+            if (value.length <= 11) {
+                // CPF
+                value = value.replace(/(\d{3})(\d)/, '$1.$2');
+                value = value.replace(/(\d{3})(\d)/, '$1.$2');
+                value = value.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+            } else {
+                // CNPJ
+                value = value.replace(/^(\d{2})(\d)/, '$1.$2');
+                value = value.replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3');
+                value = value.replace(/\.(\d{3})(\d)/, '.$1/$2');
+                value = value.replace(/(\d{4})(\d)/, '$1-$2');
+            }
+
+            e.target.value = value;
+        });
+    </script>
+</body>
+</html>

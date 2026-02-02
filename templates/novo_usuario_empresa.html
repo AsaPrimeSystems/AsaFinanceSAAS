@@ -1,0 +1,190 @@
+{% extends "base.html" %}
+
+{% block title %}Novo Usuário - Sistema de Gestão Financeira{% endblock %}
+
+{% block page_title %}Novo Usuário da Empresa{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-user-plus me-2"></i>
+                    Adicionar Novo Usuário
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="nome" class="form-label">Nome Completo *</label>
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="fas fa-user"></i>
+                                </span>
+                                <input type="text" class="form-control" id="nome" name="nome" required>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="usuario" class="form-label">Nome de Usuário *</label>
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="fas fa-user-circle"></i>
+                                </span>
+                                <input type="text" class="form-control" id="usuario" name="usuario" 
+                                       placeholder="Digite um nome de usuário" required>
+                            </div>
+                            <div class="form-text">Este será o nome de usuário para login</div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="email" class="form-label">Email *</label>
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="fas fa-envelope"></i>
+                                </span>
+                                <input type="email" class="form-control" id="email" name="email" required>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="telefone" class="form-label">Telefone</label>
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="fas fa-phone"></i>
+                                </span>
+                                <input type="text" class="form-control" id="telefone" name="telefone" placeholder="(00) 00000-0000">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="senha" class="form-label">Senha *</label>
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="fas fa-lock"></i>
+                                </span>
+                                <input type="password" class="form-control" id="senha" name="senha" required>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="tipo" class="form-label">Tipo de Usuário *</label>
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="fas fa-user-tag"></i>
+                                </span>
+                                <select class="form-select" id="tipo" name="tipo" required onchange="toggleCategoriaSelect()">
+                                    <option value="">Selecione...</option>
+                                    <option value="usuario">Usuário Padrão</option>
+                                    <option value="usuario_principal">Usuário Principal</option>
+                                    <option value="categoria_personalizada">Categoria Personalizada</option>
+                                </select>
+                            </div>
+                            <div class="form-text">
+                                <strong>Usuário Padrão:</strong> Acesso limitado conforme permissões definidas<br>
+                                <strong>Usuário Principal:</strong> Acesso total a todos os módulos<br>
+                                <strong>Categoria Personalizada:</strong> Acesso conforme categoria selecionada
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row" id="categoria-row" style="display: none;">
+                        <div class="col-md-6 mb-3">
+                            <label for="categoria_id" class="form-label">Categoria Personalizada *</label>
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="fas fa-tags"></i>
+                                </span>
+                                <select class="form-select" id="categoria_id" name="categoria_id">
+                                    <option value="">Selecione uma categoria...</option>
+                                    <!-- As categorias serão carregadas via JavaScript ou backend -->
+                                </select>
+                            </div>
+                            <div class="form-text">
+                                Selecione uma categoria personalizada criada anteriormente.
+                                <a href="{{ url_for('categorias_usuarios') }}" target="_blank">Gerenciar categorias</a>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between mt-4">
+                        <a href="{{ url_for('empresa_usuarios') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Voltar
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Criar Usuário
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const telefoneInput = document.getElementById('telefone');
+    
+    // Máscara para telefone
+    telefoneInput.addEventListener('input', function(e) {
+        let value = e.target.value.replace(/\D/g, '');
+        
+        if (value.length <= 11) {
+            if (value.length <= 10) {
+                value = value.replace(/^(\d{2})(\d)/, '($1) $2');
+                value = value.replace(/(\d{4})(\d)/, '$1-$2');
+            } else {
+                value = value.replace(/^(\d{2})(\d)/, '($1) $2');
+                value = value.replace(/(\d{5})(\d)/, '$1-$2');
+            }
+        }
+        
+        e.target.value = value;
+    });
+    
+    // Carregar categorias disponíveis
+    carregarCategorias();
+});
+
+function toggleCategoriaSelect() {
+    const tipoSelect = document.getElementById('tipo');
+    const categoriaRow = document.getElementById('categoria-row');
+    const categoriaSelect = document.getElementById('categoria_id');
+    
+    if (tipoSelect.value === 'categoria_personalizada') {
+        categoriaRow.style.display = 'block';
+        categoriaSelect.required = true;
+    } else {
+        categoriaRow.style.display = 'none';
+        categoriaSelect.required = false;
+        categoriaSelect.value = '';
+    }
+}
+
+function carregarCategorias() {
+    // Fazer requisição para obter categorias disponíveis
+    fetch('/api/categorias-usuarios')
+        .then(response => response.json())
+        .then(data => {
+            const categoriaSelect = document.getElementById('categoria_id');
+            categoriaSelect.innerHTML = '<option value="">Selecione uma categoria...</option>';
+            
+            data.categorias.forEach(categoria => {
+                const option = document.createElement('option');
+                option.value = categoria.id;
+                option.textContent = categoria.nome;
+                categoriaSelect.appendChild(option);
+            });
+        })
+        .catch(error => {
+            console.error('Erro ao carregar categorias:', error);
+        });
+}
+</script>
+{% endblock %} 

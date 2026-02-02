@@ -1,0 +1,281 @@
+{% extends "base.html" %}
+
+{% block title %}Painel Administrador - Gestão de Contas{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2><i class="fas fa-shield-alt me-2"></i>Painel do Administrador</h2>
+            <p class="text-muted">Gestão completa de todas as contas do sistema</p>
+        </div>
+    </div>
+
+    <!-- Estatísticas -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="fas fa-building me-2"></i>Empresas</h5>
+                    <h2>{{ stats.empresas }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="fas fa-user me-2"></i>Pessoas Físicas</h5>
+                    <h2>{{ stats.pessoas_fisicas }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="fas fa-calculator me-2"></i>Contadores/BPO</h5>
+                    <h2>{{ stats.contadores }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="fas fa-users me-2"></i>Total de Contas</h5>
+                    <h2>{{ stats.total }}</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('admin_painel_completo') }}">
+                <div class="row">
+                    <div class="col-md-3">
+                        <label class="form-label">Tipo de Conta</label>
+                        <select name="tipo_conta" class="form-select">
+                            <option value="">Todos</option>
+                            <option value="empresa" {% if filtro_tipo == 'empresa' %}selected{% endif %}>Empresa</option>
+                            <option value="pessoa_fisica" {% if filtro_tipo == 'pessoa_fisica' %}selected{% endif %}>Pessoa Física</option>
+                            <option value="contador_bpo" {% if filtro_tipo == 'contador_bpo' %}selected{% endif %}>Contador/BPO</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Status</label>
+                        <select name="status" class="form-select">
+                            <option value="">Todos</option>
+                            <option value="ativo" {% if filtro_status == 'ativo' %}selected{% endif %}>Ativo</option>
+                            <option value="inativo" {% if filtro_status == 'inativo' %}selected{% endif %}>Inativo</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Buscar</label>
+                        <input type="text" name="busca" class="form-control" placeholder="Nome, CPF ou CNPJ" value="{{ busca }}">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">&nbsp;</label>
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-search me-2"></i>Filtrar
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Tabela de Contas -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-list me-2"></i>Listagem de Contas</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nome</th>
+                            <th>Tipo de Conta</th>
+                            <th>CPF/CNPJ</th>
+                            <th>Status</th>
+                            <th>Dias Restantes</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for conta in contas %}
+                        <tr>
+                            <td>{{ conta.id }}</td>
+                            <td>
+                                <strong>{{ conta.razao_social }}</strong>
+                                {% if conta.nome_fantasia %}
+                                <br><small class="text-muted">{{ conta.nome_fantasia }}</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if conta.tipo_conta == 'empresa' %}
+                                <span class="badge bg-primary"><i class="fas fa-building me-1"></i>Empresa</span>
+                                {% elif conta.tipo_conta == 'pessoa_fisica' %}
+                                <span class="badge bg-success"><i class="fas fa-user me-1"></i>Pessoa Física</span>
+                                {% elif conta.tipo_conta == 'contador_bpo' %}
+                                <span class="badge bg-info"><i class="fas fa-calculator me-1"></i>Contador/BPO</span>
+                                {% else %}
+                                <span class="badge bg-secondary">Não definido</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if conta.cpf %}
+                                <small>CPF: {{ conta.cpf }}</small>
+                                {% elif conta.cnpj %}
+                                <small>CNPJ: {{ conta.cnpj }}</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if conta.ativo %}
+                                <span class="badge bg-success">Ativo</span>
+                                {% else %}
+                                <span class="badge bg-danger">Inativo</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if conta.tipo_conta in ['empresa', 'pessoa_fisica', 'contador_bpo'] %}
+                                    {% if conta.dias_assinatura > 30 %}
+                                    <span class="badge bg-success fs-6">
+                                        <i class="fas fa-calendar-check me-1"></i>{{ conta.dias_assinatura }} dias
+                                    </span>
+                                    {% elif conta.dias_assinatura > 7 %}
+                                    <span class="badge bg-warning fs-6">
+                                        <i class="fas fa-calendar-minus me-1"></i>{{ conta.dias_assinatura }} dias
+                                    </span>
+                                    {% elif conta.dias_assinatura > 0 %}
+                                    <span class="badge bg-danger fs-6">
+                                        <i class="fas fa-calendar-times me-1"></i>{{ conta.dias_assinatura }} dias
+                                    </span>
+                                    {% else %}
+                                    <span class="badge bg-dark fs-6">
+                                        <i class="fas fa-ban me-1"></i>Expirado
+                                    </span>
+                                    {% endif %}
+                                    <br>
+                                    <small class="text-muted">
+                                        <button type="button" class="btn btn-link btn-sm p-0 text-primary" 
+                                                onclick="editarDias({{ conta.id }}, {{ conta.dias_assinatura }})"
+                                                style="font-size: 0.75rem; text-decoration: none;">
+                                            <i class="fas fa-edit me-1"></i>Editar
+                                        </button>
+                                    </small>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <button type="button" class="btn btn-primary" onclick="editarDias({{ conta.id }}, {{ conta.dias_assinatura }})" 
+                                            title="Editar Dias de Assinatura">
+                                        <i class="fas fa-calendar-alt me-1"></i>Dias
+                                    </button>
+                                    <button type="button" class="btn btn-outline-info" onclick="editarConta({{ conta.id }})" 
+                                            title="Editar Dados da Conta">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    {% if conta.ativo %}
+                                    <button type="button" class="btn btn-outline-warning" onclick="toggleStatus({{ conta.id }}, false)" 
+                                            title="Desativar Conta">
+                                        <i class="fas fa-pause"></i>
+                                    </button>
+                                    {% else %}
+                                    <button type="button" class="btn btn-outline-success" onclick="toggleStatus({{ conta.id }}, true)" 
+                                            title="Ativar Conta">
+                                        <i class="fas fa-play"></i>
+                                    </button>
+                                    {% endif %}
+                                    <button type="button" class="btn btn-outline-danger" onclick="excluirConta({{ conta.id }})" 
+                                            title="Excluir Conta">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para editar dias de assinatura -->
+<div class="modal fade" id="modalEditarDias" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Editar Dias de Assinatura</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('admin_editar_dias') }}">
+                <div class="modal-body">
+                    <input type="hidden" name="conta_id" id="edit_conta_id">
+                    <div class="mb-3">
+                        <label class="form-label">Dias de Assinatura</label>
+                        <input type="number" name="dias_assinatura" id="edit_dias_assinatura" class="form-control" min="0" required>
+                        <div class="form-text">Digite 0 para bloquear o acesso</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function editarDias(contaId, diasAtuais) {
+    document.getElementById('edit_conta_id').value = contaId;
+    document.getElementById('edit_dias_assinatura').value = diasAtuais;
+    new bootstrap.Modal(document.getElementById('modalEditarDias')).show();
+}
+
+function editarConta(contaId) {
+    window.location.href = '/admin/editar-conta/' + contaId;
+}
+
+function toggleStatus(contaId, ativar) {
+    if (confirm('Tem certeza que deseja ' + (ativar ? 'ativar' : 'desativar') + ' esta conta?')) {
+        fetch('/admin/toggle-status/' + contaId, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ ativo: ativar })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Erro ao alterar status: ' + data.message);
+            }
+        });
+    }
+}
+
+function excluirConta(contaId) {
+    if (confirm('Tem certeza que deseja EXCLUIR esta conta? Esta ação não pode ser desfeita!')) {
+        fetch('/admin/excluir-conta/' + contaId, {
+            method: 'POST'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Erro ao excluir conta: ' + data.message);
+            }
+        });
+    }
+}
+</script>
+{% endblock %}

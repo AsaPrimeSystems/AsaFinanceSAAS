@@ -1,0 +1,707 @@
+/* ===== MELHORIAS VISUAIS PROFISSIONAIS - VERSÃO 3.0 ===== */
+/* Menu lateral moderno, minimalista e dinâmico */
+
+/* ===== MENU LATERAL MODERNO ===== */
+
+/* Menu com gradiente roxo/violeta e bordas arredondadas */
+.menu {
+    background: linear-gradient(180deg, #667eea 0%, #764ba2 100%) !important;
+    box-shadow: 2px 0 20px rgba(102, 126, 234, 0.4) !important;
+    border-radius: 0 20px 20px 0 !important;
+    width: 80px !important;
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    height: 100vh !important;
+    padding-top: 0 !important;
+    margin-top: 0 !important;
+    z-index: 999 !important;
+}
+
+/* Pseudo-elemento para estender a barra roxa até o topo (atrás de tudo) */
+.menu::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+    border-radius: 0 20px 20px 0;
+    z-index: -1;
+    pointer-events: none;
+}
+
+/* Menu expandido ao hover - gradiente translúcido sutil */
+.menu:hover {
+    width: 260px !important;
+    box-shadow: 4px 0 30px rgba(102, 126, 234, 0.5) !important;
+    background: linear-gradient(180deg,
+        rgba(102, 126, 234, 0.92) 0%,
+        rgba(118, 75, 162, 0.95) 50%,
+        rgba(118, 75, 162, 0.92) 100%) !important;
+    backdrop-filter: blur(10px);
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+}
+
+/* Navegação do menu - manter opções na posição original */
+.menu-nav {
+    padding: 75px 0 20px 0 !important;
+}
+
+/* Garantir que os itens do menu fiquem em coluna única */
+.menu-nav .nav-pills {
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+}
+
+.menu-nav .nav-pills > li {
+    display: block !important;
+    width: 100% !important;
+    float: none !important;
+}
+
+/* Links do menu - modo minimalista */
+.menu-nav .nav-pills > li > a,
+.link-menu {
+    color: rgba(255, 255, 255, 0.9) !important;
+    border-radius: 12px !important;
+    padding: 16px 8px !important;
+    margin: 8px 8px !important;
+    transition: background-color 0.2s ease, color 0.2s ease !important;
+    display: flex !important;
+    align-items: center !important;
+    position: relative !important;
+    overflow: hidden !important;
+    white-space: nowrap !important;
+    will-change: background-color !important;
+    justify-content: center !important;
+}
+
+/* Expandir link quando menu está expandido */
+.menu:hover .link-menu,
+.menu:hover .menu-nav .nav-pills > li > a {
+    justify-content: flex-start !important;
+    padding-left: 12px !important;
+}
+
+/* Ícone centralizado quando menu está recolhido */
+.link-menu .icon {
+    margin-right: 0 !important;
+    text-align: center !important;
+    font-size: 20px !important;
+    transition: margin-right 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    flex-shrink: 0 !important;
+    display: inline-block !important;
+    min-width: 20px !important;
+}
+
+/* Texto do menu - oculto por padrão */
+.link-menu .aux-js {
+    max-width: 0 !important;
+    opacity: 0 !important;
+    overflow: hidden !important;
+    white-space: nowrap !important;
+    font-weight: 500 !important;
+    font-size: 15px !important;
+    transition: max-width 0s 0s, opacity 0s 0s !important;
+    display: inline-block !important;
+}
+
+/* Mostrar texto quando menu está expandido */
+.menu:hover .link-menu .aux-js {
+    max-width: 200px !important;
+    opacity: 1 !important;
+    transition: max-width 0s 0.2s, opacity 0.3s ease 0.2s !important;
+}
+
+/* Ajustar ícone quando menu expandido */
+.menu:hover .link-menu .icon {
+    margin-right: 12px !important;
+}
+
+/* Hover nos itens do menu */
+.menu-nav .nav-pills > li > a:hover,
+.link-menu:hover {
+    background: rgba(255, 255, 255, 0.15) !important;
+    color: #ffffff !important;
+}
+
+/* Item ativo do menu */
+.menu-nav .nav-pills > li > a.active {
+    background: rgba(255, 255, 255, 0.25) !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+    font-weight: 600 !important;
+}
+
+/* Submenu items */
+.submenu-item {
+    margin-left: 0 !important;
+    border-left: none !important;
+    padding-left: 0 !important;
+}
+
+.submenu-item .link-menu {
+    padding-left: 12px !important;
+    font-size: 14px !important;
+}
+
+.menu:hover .submenu-item .link-menu {
+    padding-left: 48px !important;
+}
+
+.submenu-item .icon {
+    font-size: 16px !important;
+}
+
+/* Logo do menu - ajuste para modo minimalista */
+.menu .header-logo {
+    display: none !important;
+}
+
+/* ===== AJUSTE DO CONTEÚDO PRINCIPAL ===== */
+
+/* Ajustar margem do conteúdo para o menu minimalista */
+.all {
+    margin-top: 0 !important;
+}
+
+.conteudo {
+    margin-left: 80px !important;
+    transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    height: 100vh !important;
+    padding-top: 92px !important;
+    position: relative !important;
+    z-index: 1 !important;
+    pointer-events: auto !important;
+}
+
+/* Garantir que elementos dentro do conteúdo não interfiram com o menu */
+.conteudo > * {
+    pointer-events: auto !important;
+}
+
+/* Garantir que modals e seus backdrops fiquem acima de tudo */
+.modal {
+    z-index: 1060 !important;
+}
+
+.modal-backdrop {
+    z-index: 1055 !important;
+}
+
+.modal-dialog {
+    z-index: 1061 !important;
+}
+
+.modal-content {
+    z-index: 1062 !important;
+}
+
+/* ===== HEADER SEM SOBREPOSIÇÃO ===== */
+
+/* Garantir que o header fique no topo */
+.modern-header {
+    z-index: 1050 !important;
+    position: fixed !important;
+    left: 0 !important;
+    right: 0 !important;
+}
+
+/* Logo sem sobreposição - movida para a direita para não sobrepor o menu */
+.header-logo {
+    z-index: 1051 !important;
+    position: relative !important;
+    margin-left: 90px !important;
+}
+
+/* ===== TOOLTIP PARA ITENS DO MENU (opcional) ===== */
+
+/* Criar efeito de tooltip ao passar mouse nos ícones */
+.link-menu::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    left: 80px;
+    background: rgba(0, 0, 0, 0.9);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+    z-index: 1060;
+}
+
+.menu:not(:hover) .link-menu:hover::after {
+    opacity: 1;
+}
+
+.menu:hover .link-menu::after {
+    opacity: 0;
+}
+
+/* ===== SCROLLBAR DO MENU ===== */
+
+.menu::-webkit-scrollbar {
+    width: 8px;
+}
+
+.menu::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 10px;
+    margin: 10px 0;
+}
+
+.menu::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.4);
+    border-radius: 10px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+}
+
+.menu::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.6);
+    background-clip: padding-box;
+}
+
+/* Scrollbar para Firefox */
+.menu {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.4) rgba(255, 255, 255, 0.15);
+}
+
+/* ===== DIAS RESTANTES DE ASSINATURA ===== */
+
+/* Ajustar card de dias restantes para menu minimalista */
+.menu .alert {
+    margin: 12px 8px !important;
+    padding: 12px 8px !important;
+    font-size: 11px !important;
+    text-align: center !important;
+    border-radius: 10px !important;
+}
+
+.menu:hover .alert {
+    padding: 12px !important;
+    font-size: 12px !important;
+}
+
+/* ===== AJUSTES SUTIS DE CARDS ===== */
+
+.card {
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    margin-bottom: 20px;
+    transition: box-shadow 0.3s ease, transform 0.3s ease;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.card:hover {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    transform: translateY(-2px);
+}
+
+/* ===== TÍTULOS DE CARDS - CONTRASTE FORTE ===== */
+
+/* Todos os títulos de cards com fundo gradiente */
+.card-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    color: #ffffff !important;
+    border: none !important;
+}
+
+/* Título do card sempre branco e visível */
+.card-title,
+.card-header h5,
+.card-header h6,
+.card-header .card-title {
+    color: #ffffff !important;
+    font-weight: 600 !important;
+    margin: 0 !important;
+}
+
+/* Cards com backgrounds coloridos específicos */
+.card-header.bg-info {
+    background: linear-gradient(135deg, #17a2b8 0%, #138496 100%) !important;
+    color: #ffffff !important;
+}
+
+.card-header.bg-success {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%) !important;
+    color: #ffffff !important;
+}
+
+.card-header.bg-danger {
+    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%) !important;
+    color: #ffffff !important;
+}
+
+.card-header.bg-warning {
+    background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%) !important;
+    color: #212529 !important;
+}
+
+.card-header.bg-warning .card-title,
+.card-header.bg-warning h5 {
+    color: #212529 !important;
+}
+
+/* Cards com bordas coloridas */
+.card.border-info .card-header {
+    background: linear-gradient(135deg, #17a2b8 0%, #138496 100%) !important;
+}
+
+.card.border-success .card-header {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%) !important;
+}
+
+.card.border-danger .card-header {
+    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%) !important;
+}
+
+.card.border-warning .card-header {
+    background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%) !important;
+}
+
+/* Garantir que ícones nos títulos também sejam brancos */
+.card-header i,
+.card-title i {
+    color: inherit !important;
+}
+
+/* ===== TABELAS - MELHORIAS SUTIS ===== */
+
+.table thead th {
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 14px;
+    background: linear-gradient(to bottom, #f8f9fa 0%, #e9ecef 100%);
+}
+
+.table tbody td {
+    padding: 12px 14px;
+    vertical-align: middle;
+}
+
+.table tbody tr:hover {
+    background-color: rgba(102, 126, 234, 0.05);
+    transition: background-color 0.2s ease;
+}
+
+/* ===== BOTÕES - MELHORIAS SUTIS ===== */
+
+.btn {
+    transition: all 0.2s ease;
+    border-radius: 8px;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+}
+
+.btn:active {
+    transform: translateY(0);
+}
+
+/* ===== FORMULÁRIOS - AJUSTES MÍNIMOS ===== */
+
+.form-control:focus,
+.form-select:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.2);
+}
+
+/* ===== SCROLLBARS PERSONALIZADAS (GERAL) ===== */
+
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* ===== ALERTAS ===== */
+
+.alert {
+    border-radius: 10px;
+    border-left-width: 4px;
+}
+
+/* ===== BADGES ===== */
+
+.badge {
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-weight: 600;
+}
+
+/* ===== MODERN PANEL ===== */
+
+.modern-panel {
+    margin-left: auto;
+    margin-right: auto;
+    border-radius: 12px;
+}
+
+/* ===== ANIMAÇÕES SUAVES ===== */
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.menu:hover .link-menu .aux-js {
+    animation: slideIn 0.3s ease;
+}
+
+/* ===== RESPONSIVIDADE ===== */
+
+@media (max-width: 768px) {
+    .menu {
+        width: 70px !important;
+        border-radius: 0 15px 15px 0 !important;
+    }
+
+    .menu:hover {
+        width: 240px !important;
+    }
+
+    .conteudo {
+        margin-left: 70px !important;
+    }
+
+    .card {
+        margin-bottom: 15px;
+    }
+}
+
+@media (max-width: 576px) {
+    .menu {
+        width: 60px !important;
+        border-radius: 0 12px 12px 0 !important;
+    }
+
+    .menu:hover {
+        width: 220px !important;
+    }
+
+    .conteudo {
+        margin-left: 60px !important;
+    }
+}
+
+/* ===== BADGE DE ASSINATURA NO HEADER ===== */
+
+/* Container do badge de assinatura */
+.company-subscription {
+    display: flex;
+    align-items: center;
+    margin-left: 20px;
+    padding-left: 20px;
+    border-left: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+/* Badge de assinatura */
+.subscription-badge {
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    border-radius: 10px;
+    padding: 8px 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    backdrop-filter: blur(10px);
+    transition: all 0.3s ease;
+}
+
+.subscription-badge:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(1.05);
+}
+
+/* Ícone do badge */
+.subscription-badge i {
+    font-size: 16px;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+/* Número de dias */
+.subscription-days {
+    font-size: 20px;
+    font-weight: 700;
+    color: #ffffff;
+    line-height: 1;
+    min-width: 30px;
+    text-align: center;
+    margin-right: 6px;
+}
+
+/* Texto "dias restantes de assinatura" */
+.subscription-text {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.95);
+    font-weight: 500;
+    line-height: 1.3;
+    white-space: nowrap;
+}
+
+/* Label "dias" (manter para compatibilidade) */
+.subscription-label {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.8);
+    text-transform: lowercase;
+    font-weight: 500;
+}
+
+/* Alertas para assinatura próxima do vencimento */
+.subscription-badge.warning {
+    background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
+    border-color: #ffb74d;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+.subscription-badge.danger {
+    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+    border-color: #ef5350;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.7);
+    }
+    50% {
+        box-shadow: 0 0 0 8px rgba(255, 193, 7, 0);
+    }
+}
+
+/* Responsividade do badge */
+@media (max-width: 1200px) {
+    .company-subscription {
+        margin-left: 12px;
+        padding-left: 12px;
+    }
+
+    .subscription-badge {
+        padding: 6px 10px;
+    }
+
+    .subscription-days {
+        font-size: 18px;
+        min-width: 25px;
+    }
+
+    .subscription-label {
+        font-size: 10px;
+    }
+}
+
+@media (max-width: 992px) {
+    .company-subscription {
+        margin-left: 0;
+        padding-left: 0;
+        border-left: none;
+        margin-top: 8px;
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 768px) {
+    .subscription-badge {
+        padding: 8px 12px;
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* ===== OCULTAR CARDS VAZIOS ===== */
+
+/* Ocultar card de lançamentos agendados quando vazio */
+#lancamentos-agendados-container:has(#lancamentos-agendados-lista:empty) {
+    display: none !important;
+}
+
+/* Se o navegador não suportar :has, usar JavaScript como fallback */
+#lancamentos-agendados-lista:empty {
+    min-height: 0;
+}
+
+#lancamentos-agendados-container {
+    transition: opacity 0.3s ease, height 0.3s ease;
+}
+
+/* ===== CARDS CONTAS A RECEBER E PAGAR - ALTURA UNIFORME ===== */
+
+/* Garantir que os cards de contas a receber e pagar tenham altura uniforme */
+.card.border-success,
+.card.border-danger {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Card body com altura mínima e ajuste automático */
+.card.border-success .card-body,
+.card.border-danger .card-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 400px;
+}
+
+/* Tabela responsiva ocupa todo o espaço disponível */
+.card.border-success .table-responsive,
+.card.border-danger .table-responsive {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Tabela com altura completa */
+.card.border-success .table,
+.card.border-danger .table {
+    margin-bottom: 0;
+    height: 100%;
+}
+
+/* Mensagem centralizada quando não há dados */
+.card.border-success .card-body > p.text-muted,
+.card.border-danger .card-body > p.text-muted {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+}
+
+/* ===== FIM DAS MELHORIAS PROFISSIONAIS ===== */

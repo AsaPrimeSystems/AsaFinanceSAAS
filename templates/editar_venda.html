@@ -1,0 +1,1273 @@
+{% extends "base.html" %}
+
+{% block title %}Editar Venda - Sistema de Gestão Financeira{% endblock %}
+
+{% block page_title %}Editar Venda{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0 d-flex align-items-center justify-content-between flex-wrap">
+                    <span>
+                        Editar Venda
+                        <span class="badge bg-success ms-2">ID: {{ venda.id }}</span>
+                    </span>
+                    {% if lancamentos_vinculados_ids and lancamentos_vinculados_ids|length > 0 %}
+                    <span class="badge bg-primary">
+                        <i class="fas fa-link me-1"></i>Lançamentos Vinculados:
+                        {% for lanc_id in lancamentos_vinculados_ids %}
+                            {{ lanc_id }}{% if not loop.last %}, {% endif %}
+                        {% endfor %}
+                    </span>
+                    {% endif %}
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('editar_venda', venda_id=venda.id) }}">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="cliente_id" class="form-label">Cliente *</label>
+                                <div class="autocomplete-container">
+                                    <input type="text" class="form-control" id="cliente_search" name="cliente_search" 
+                                           placeholder="Digite o nome do cliente..." autocomplete="off" required
+                                           value="{{ venda.cliente.nome if venda.cliente else '' }}">
+                                    <input type="hidden" id="cliente_id" name="cliente_id" required
+                                           value="{{ venda.cliente_id }}">
+                                    <div class="autocomplete-suggestions" id="cliente_suggestions"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="data_prevista" class="form-label">Data Prevista *</label>
+                                <input type="text" class="form-control" id="data_prevista" name="data_prevista" 
+                                       value="{{ venda.data_prevista.strftime('%d/%m/%Y') }}" 
+                                       placeholder="__/__/____" pattern="\d{2}/\d{2}/\d{4}" 
+                                       title="Formato: DD/MM/AAAA" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="data_realizada" class="form-label">Data de Realização (opcional)</label>
+                                <input type="text" class="form-control" id="data_realizada" name="data_realizada" 
+                                       value="{{ venda.data_realizada.strftime('%d/%m/%Y') if venda.data_realizada else '' }}" 
+                                       placeholder="__/__/____" pattern="\d{2}/\d{2}/\d{4}" 
+                                       title="Formato: DD/MM/AAAA">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card carrinho-card mb-3">
+                        <div class="card-header">
+                            <h6 class="mb-0">Carrinho</h6>
+                        </div>
+                        <div class="card-body">
+                            <table class="carrinho-table" id="tabela-itens-venda">
+                                <thead>
+                                    <tr>
+                                        <th>Tipo</th>
+                                        <th>Produto ou serviço</th>
+                                        <th>Preço unitário</th>
+                                        <th>Quantidade</th>
+                                        <th>Desconto</th>
+                                        <th>Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="itens-body-venda">
+                                    <!-- Preenchido via JavaScript com dados existentes -->
+                                </tbody>
+                                <tfoot>
+                                    <tr>
+                                        <td colspan="3"></td>
+                                        <td class="text-end"><strong>Itens:</strong></td>
+                                        <td class="text-center"><strong id="itens-contagem-venda">0</strong></td>
+                                        <td class="text-end">
+                                            <input type="text" class="form-control form-control-sm text-end" id="carrinho_total_venda" value="0,00" readonly style="background-color: #f8f9fa; font-weight: 600;">
+                                        </td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                            <div style="padding: 1rem;">
+                                <button type="button" id="btn-adicionar-item-venda" class="btn-adicionar-item" title="Adicionar novo produto/serviço ao carrinho" data-bs-toggle="tooltip">
+                                    <i class="fas fa-plus me-1"></i> Adicionar item
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Campos para pagamento -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="tipo_pagamento" class="form-label">Tipo de Pagamento *</label>
+                                <select class="form-select" id="tipo_pagamento" name="tipo_pagamento" required>
+                                    <option value="a_vista" {% if venda.tipo_pagamento == 'a_vista' %}selected{% endif %}>À Vista</option>
+                                    <option value="parcelado" {% if venda.tipo_pagamento == 'parcelado' %}selected{% endif %}>Parcelado</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="numero_parcelas" class="form-label">Número de Parcelas *</label>
+                                <input type="number" min="1" max="24" class="form-control" id="numero_parcelas" name="numero_parcelas" value="{{ venda.numero_parcelas or 1 }}" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Configuração de vencimentos das parcelas -->
+                    <div id="config_parcelas" style="display: none;">
+                        <div class="card border-primary">
+                            <div class="card-header bg-primary text-white">
+                                <h6 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>Configuração de Vencimentos das Parcelas</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="primeira_parcela" class="form-label">Data da Primeira Parcela</label>
+                                            <input type="text" class="form-control" id="primeira_parcela" name="primeira_parcela" 
+                                                   placeholder="__/__/____" pattern="\d{2}/\d{2}/\d{4}" 
+                                                   title="Formato: DD/MM/AAAA">
+                                            <small class="form-text text-muted">Data de vencimento da primeira parcela</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="intervalo_parcelas" class="form-label">Periodicidade das Parcelas</label>
+                                            <select class="form-select" id="intervalo_parcelas" name="intervalo_parcelas">
+                                                <option value="mensal" selected>Mensal (30 dias)</option>
+                                                <option value="quinzenal">Quinzenal (15 dias)</option>
+                                                <option value="semestral">Semestral (180 dias)</option>
+                                                <option value="anual">Anual (365 dias)</option>
+                                                <option value="personalizado">Personalizado</option>
+                                            </select>
+                                            <small class="form-text text-muted">Baseado em 365 dias no ano</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Campo para intervalo personalizado -->
+                                <div id="campo_intervalo_personalizado" style="display: none;" class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="intervalo_dias" class="form-label">Intervalo em Dias</label>
+                                            <input type="number" class="form-control" id="intervalo_dias" name="intervalo_dias" 
+                                                   min="1" max="365" value="30" placeholder="Ex: 30">
+                                            <small class="form-text text-muted">Digite o número de dias entre as parcelas (1 a 365)</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Tabela de parcelas com vencimentos -->
+                                <div id="tabela_parcelas" class="mt-3">
+                                    <h6 class="mb-2">Detalhamento das Parcelas:</h6>
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-bordered">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th>Parcela</th>
+                                                    <th>Vencimento</th>
+                                                    <th>Valor</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="parcelas_body">
+                                                <!-- Preenchido via JavaScript -->
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Campo totalizador automático -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Total da Operação</label>
+                                    <input type="text" class="form-control" id="total_operacao" readonly style="background-color: #f8f9fa; font-weight: bold; color: #495057;">
+                                <small class="form-text text-muted">Calculado automaticamente: (Quantidade × Valor) - Desconto</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Valor por Parcela</label>
+                                    <input type="text" class="form-control" id="valor_parcela" readonly style="background-color: #f8f9fa; color: #6c757d;">
+                                <small class="form-text text-muted">Valor dividido pelo número de parcelas</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Campo para seleção de conta caixa -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="conta_caixa_id" class="form-label">Conta Caixa (opcional)</label>
+                                <select class="form-select" id="conta_caixa_id" name="conta_caixa_id">
+                                    <option value="">Selecione uma conta caixa (opcional)</option>
+                                    {% for conta in contas_caixa %}
+                                    <option value="{{ conta.id }}" {% if venda.lancamento_financeiro and venda.lancamento_financeiro.conta_caixa_id == conta.id %}selected{% endif %}>{{ conta.nome }} - {{ conta.tipo|title }}</option>
+                                    {% endfor %}
+                                </select>
+                                <small class="form-text text-muted">Selecione a conta caixa onde o lançamento será registrado. Se não selecionar, o lançamento será criado sem conta específica.</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="observacoes" class="form-label">Observações</label>
+                        <textarea class="form-control" id="observacoes" name="observacoes" rows="3">{{ venda.observacoes or '' }}</textarea>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('vendas') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Voltar
+                        </a>
+                        <button type="submit" class="btn btn-primary" id="btn-salvar-venda">
+                            <i class="fas fa-save"></i> Salvar Alterações
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.autocomplete-container {
+    position: relative;
+}
+
+.autocomplete-suggestions {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #ced4da;
+    border-top: none;
+    border-radius: 0 0 0.375rem 0.375rem;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 1000;
+    display: none;
+}
+
+.autocomplete-suggestion {
+    padding: 8px 12px;
+    cursor: pointer;
+    border-bottom: 1px solid #f8f9fa;
+}
+
+.autocomplete-suggestion:hover {
+    background-color: #f8f9fa;
+}
+
+.autocomplete-suggestion:last-child {
+    border-bottom: none;
+}
+
+.autocomplete-suggestion.selected {
+    background-color: #007bff;
+    color: white;
+}
+
+.autocomplete-suggestion.create-new {
+    background-color: #e3f2fd;
+    border-left: 3px solid #2196f3;
+    font-style: italic;
+}
+
+.autocomplete-suggestion.create-new:hover {
+    background-color: #bbdefb;
+}
+
+.autocomplete-suggestion.create-new.selected {
+    background-color: #2196f3;
+    color: white;
+}
+
+.modal-backdrop {
+    z-index: 1040;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Página carregada - iniciando JavaScript');
+    
+    // Autocomplete para clientes
+    const clienteSearchInput = document.getElementById('cliente_search');
+    const clienteIdInput = document.getElementById('cliente_id');
+    const clienteSuggestions = document.getElementById('cliente_suggestions');
+    
+    let searchTimeout;
+    let selectedIndex = -1;
+    
+    // Função para buscar clientes
+    function buscarClientes(query) {
+        if (query.length < 2) {
+            clienteSuggestions.style.display = 'none';
+            return;
+        }
+        
+        fetch(`/api/clientes/buscar?q=${encodeURIComponent(query)}`)
+            .then(response => response.json())
+            .then(data => {
+                mostrarSugestoes(data.clientes || [], query);
+            })
+            .catch(error => {
+                console.error('Erro ao buscar clientes:', error);
+                // Mesmo com erro, mostrar opção de criar se há texto
+                mostrarSugestoes([], query);
+            });
+    }
+    
+    // Função para mostrar sugestões
+    function mostrarSugestoes(clientes, query) {
+        clienteSuggestions.innerHTML = '';
+        
+        // Adicionar clientes encontrados
+        clientes.forEach((cliente, index) => {
+            const div = document.createElement('div');
+            div.className = 'autocomplete-suggestion';
+            div.innerHTML = `
+                <strong>${cliente.nome}</strong>
+                ${cliente.email ? `<br><small class="text-muted">${cliente.email}</small>` : ''}
+                ${cliente.telefone ? `<br><small class="text-muted">${cliente.telefone}</small>` : ''}
+            `;
+            
+            div.addEventListener('click', () => {
+                selecionarCliente(cliente);
+            });
+            
+            clienteSuggestions.appendChild(div);
+        });
+        
+        // Se não encontrou clientes ou encontrou poucos, mostrar opção de criar
+        if (clientes.length === 0 || clientes.length < 5) {
+            const createDiv = document.createElement('div');
+            createDiv.className = 'autocomplete-suggestion create-new';
+            createDiv.innerHTML = `
+                <i class="fas fa-plus me-2"></i>
+                <strong>Criar novo cliente: "${query}"</strong>
+                <br><small class="text-muted">Clique para criar um novo cliente</small>
+            `;
+            
+            createDiv.addEventListener('click', () => {
+                criarNovoCliente(query);
+            });
+            
+            clienteSuggestions.appendChild(createDiv);
+        }
+        
+        clienteSuggestions.style.display = 'block';
+        selectedIndex = -1;
+    }
+    
+    // Função para selecionar cliente
+    function selecionarCliente(cliente) {
+        clienteSearchInput.value = cliente.nome;
+        clienteIdInput.value = cliente.id;
+        clienteSuggestions.style.display = 'none';
+        clienteSearchInput.classList.remove('is-invalid');
+    }
+    
+    // Event listeners para autocomplete
+    clienteSearchInput.addEventListener('input', function() {
+        const query = this.value.trim();
+        
+        // Limpar seleção se o usuário apagar o texto
+        if (query === '') {
+            clienteIdInput.value = '';
+            clienteSuggestions.style.display = 'none';
+            return;
+        }
+        
+        // Debounce da busca
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+            buscarClientes(query);
+        }, 300);
+    });
+    
+    // Event listener para teclado
+    clienteSearchInput.addEventListener('keydown', function(e) {
+        const suggestions = clienteSuggestions.querySelectorAll('.autocomplete-suggestion');
+        
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            selectedIndex = Math.min(selectedIndex + 1, suggestions.length - 1);
+            atualizarSelecao(suggestions);
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            selectedIndex = Math.max(selectedIndex - 1, -1);
+            atualizarSelecao(suggestions);
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            if (selectedIndex >= 0 && suggestions[selectedIndex]) {
+                suggestions[selectedIndex].click();
+            }
+        } else if (e.key === 'Escape') {
+            clienteSuggestions.style.display = 'none';
+            selectedIndex = -1;
+        }
+    });
+    
+    // Função para atualizar seleção visual
+    function atualizarSelecao(suggestions) {
+        suggestions.forEach((suggestion, index) => {
+            suggestion.classList.toggle('selected', index === selectedIndex);
+        });
+    }
+    
+    // Função para criar novo cliente
+    function criarNovoCliente(nome) {
+        // Mostrar loading na sugestão
+        const createDiv = clienteSuggestions.querySelector('.create-new');
+        if (createDiv) {
+            createDiv.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Criando cliente...';
+            createDiv.style.pointerEvents = 'none';
+        }
+        
+        fetch('/api/clientes/criar', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                nome: nome,
+                email: '',
+                telefone: '',
+                cpf_cnpj: '',
+                endereco: ''
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                selecionarCliente(data.cliente);
+                // Mostrar feedback visual de sucesso
+                clienteSearchInput.style.borderColor = '#28a745';
+                setTimeout(() => {
+                    clienteSearchInput.style.borderColor = '';
+                }, 2000);
+            } else {
+                alert('Erro ao criar cliente: ' + data.error);
+                clienteSuggestions.style.display = 'none';
+            }
+        })
+        .catch(error => {
+            console.error('Erro ao criar cliente:', error);
+            alert('Erro ao criar cliente. Tente novamente.');
+            clienteSuggestions.style.display = 'none';
+        });
+    }
+    
+    // Ocultar sugestões ao clicar fora
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.autocomplete-container')) {
+            clienteSuggestions.style.display = 'none';
+        }
+    });
+    
+    // Dados da venda existente para preencher o carrinho
+    var vendaData = {
+        produto: '{{ venda.produto|e }}',
+        valor: {{ venda.valor }},
+        quantidade: {{ venda.quantidade or 1 }},
+        tipo_venda: '{{ venda.tipo_venda }}',
+        desconto: {{ venda.desconto or 0.0 }},
+        valor_final: {{ venda.valor_final or venda.valor }}
+    };
+    
+    // Carrinho
+    var itensBody = document.getElementById('itens-body-venda');
+    var btnAddItem = document.getElementById('btn-adicionar-item-venda');
+    var totalCarrinhoDiv = document.getElementById('carrinho_total_venda');
+    var itensContagem = document.getElementById('itens-contagem-venda');
+    var tipoPagamentoSelect = document.getElementById('tipo_pagamento');
+    var numeroParcelasInput = document.getElementById('numero_parcelas');
+    var configParcelasDiv = document.getElementById('config_parcelas');
+    var primeiraParcelaInput = document.getElementById('primeira_parcela');
+    var intervaloParcelasSelect = document.getElementById('intervalo_parcelas');
+    var parcelasBody = document.getElementById('parcelas_body');
+    var form = document.querySelector('form');
+    
+    console.log('Elementos encontrados:', { form: !!form });
+    
+    // Função para calcular valores
+    function calcularValores() {
+        // Soma do carrinho (total por linha já considera desconto): soma(item_preco*item_qtd - item_desconto)
+        var soma = 0;
+        if (itensBody) {
+            itensBody.querySelectorAll('.vendas_linhaItem').forEach(function(row){
+                var p = parseFloat((row.querySelector('input[name="item_preco[]"]')?.value || '0').replace(',', '.'));
+                var q = parseFloat((row.querySelector('input[name="item_qtd[]"]')?.value || '0').replace(',', '.'));
+                var d = parseFloat((row.querySelector('input[name="item_desconto[]"]')?.value || '0').replace(',', '.'));
+                var t = Math.max((p || 0) * (q || 0) - (d || 0), 0);
+                var totalHidden = row.querySelector('input[name="item_total[]"]');
+                var totalDiv = row.querySelector('.vendas_totalLinha') || row.querySelector('input[name="item_total[]"]').previousElementSibling;
+                if (totalHidden) totalHidden.value = t.toFixed(2);
+                if (totalDiv && totalDiv.tagName === 'INPUT') {
+                    totalDiv.value = t.toFixed(2).replace('.', ',');
+                } else if (totalDiv) {
+                    totalDiv.textContent = 'R$ ' + t.toFixed(2).replace('.', ',');
+                }
+                soma += t;
+            });
+        }
+        if (totalCarrinhoDiv) totalCarrinhoDiv.value = soma.toFixed(2).replace('.', ',');
+        var numeroParcelas = parseInt(numeroParcelasInput ? numeroParcelasInput.value : 1);
+        var totalOperacaoInput = document.getElementById('total_operacao');
+        var valorParcelaInput = document.getElementById('valor_parcela');
+        if (totalOperacaoInput) {
+            totalOperacaoInput.value = soma.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+        if (valorParcelaInput) {
+            var valorParcela = numeroParcelas > 0 ? soma / numeroParcelas : soma;
+            valorParcelaInput.value = valorParcela.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+        gerarTabelaParcelas();
+    }
+    
+    // Função para gerar tabela de parcelas
+    function gerarTabelaParcelas() {
+        if (!parcelasBody) return;
+        
+        const numeroParcelas = parseInt(numeroParcelasInput.value) || 1;
+        const primeiraParcela = primeiraParcelaInput.value;
+        const intervalo = intervaloParcelasSelect.value;
+        
+        if (!primeiraParcela || numeroParcelas <= 1) {
+            parcelasBody.innerHTML = '';
+            return;
+        }
+        
+        // Usa o total calculado no carrinho (total_operacao)
+        const totalOperacaoInput = document.getElementById('total_operacao');
+        const totalOperacao = totalOperacaoInput && totalOperacaoInput.value
+            ? parseFloat(totalOperacaoInput.value.replace(/\./g, '').replace(',', '.'))
+            : 0;
+        const valorParcela = numeroParcelas > 0 ? (totalOperacao / numeroParcelas) : totalOperacao;
+        let html = '';
+        
+        for (let i = 1; i <= numeroParcelas; i++) {
+            const dataVencimento = calcularDataVencimento(primeiraParcela, i, intervalo);
+            html += `
+                <tr>
+                    <td>${i}ª</td>
+                    <td>${formatarData(dataVencimento)}</td>
+                    <td>R$ ${valorParcela.toFixed(2)}</td>
+                </tr>
+            `;
+        }
+        
+        parcelasBody.innerHTML = html;
+    }
+    
+    // Função para calcular data de vencimento
+    function calcularDataVencimento(dataBase, numeroParcela, intervalo) {
+        // Converter data do formato brasileiro (dd/mm/aaaa) para objeto Date
+        let data;
+        if (typeof dataBase === 'string') {
+            const partes = dataBase.split('/');
+            if (partes.length === 3) {
+                // Formato brasileiro: dd/mm/aaaa -> mm/dd/aaaa para o JavaScript
+                data = new Date(partes[2], partes[1] - 1, partes[0]);
+            } else {
+                data = new Date(dataBase);
+            }
+        } else {
+            data = new Date(dataBase);
+        }
+        
+        // Se é a primeira parcela, retornar a data base sem modificação
+        if (numeroParcela === 1) {
+            return data;
+        }
+        
+        switch (intervalo) {
+            case 'quinzenal':
+                data.setDate(data.getDate() + (15 * (numeroParcela - 1)));
+                break;
+            case 'mensal':
+                // Usar cálculo baseado em 365 dias por ano (30.42 dias por mês)
+                const diasPorMes = 365 / 12;
+                data.setDate(data.getDate() + (diasPorMes * (numeroParcela - 1)));
+                break;
+            case 'semestral':
+                data.setDate(data.getDate() + (182 * (numeroParcela - 1))); // 365/2
+                break;
+            case 'anual':
+                data.setDate(data.getDate() + (365 * (numeroParcela - 1)));
+                break;
+            case 'personalizado':
+                const intervaloDias = parseInt(document.getElementById('intervalo_dias').value) || 30;
+                data.setDate(data.getDate() + (intervaloDias * (numeroParcela - 1)));
+                break;
+            default:
+                // Usar cálculo baseado em 365 dias por ano (30.42 dias por mês)
+                const diasPorMesDefault = 365 / 12;
+                data.setDate(data.getDate() + (diasPorMesDefault * (numeroParcela - 1)));
+                break;
+        }
+        
+        return data;
+    }
+    
+    // Função para formatar data
+    function formatarData(data) {
+        return data.toLocaleDateString('pt-BR');
+    }
+    
+    // Função para mostrar/ocultar configuração de parcelas
+    function toggleConfigParcelas() {
+        const isParcelado = tipoPagamentoSelect.value === 'parcelado';
+        const numeroParcelas = parseInt(numeroParcelasInput.value) || 1;
+        
+        if (isParcelado && numeroParcelas > 1) {
+            configParcelasDiv.style.display = 'block';
+            if (!primeiraParcelaInput.value) {
+                // Definir data padrão como data atual
+                const hoje = new Date();
+                const dia = String(hoje.getDate()).padStart(2, '0');
+                const mes = String(hoje.getMonth() + 1).padStart(2, '0');
+                const ano = hoje.getFullYear();
+                primeiraParcelaInput.value = `${dia}/${mes}/${ano}`;
+            }
+            gerarTabelaParcelas();
+        } else {
+            configParcelasDiv.style.display = 'none';
+        }
+    }
+    
+    // Função para carregar itens do JSON do lançamento
+    function carregarItensDoJSON(itens) {
+        itens.forEach(function(item, index) {
+            var idx = index + 1;
+            var tipoItem = item.tipo || 'produto';
+            var icon = 'fa-cubes';
+            var label = 'Produto';
+            if (tipoItem === 'servico') { icon = 'fa-wrench'; label = 'Serviço'; }
+            else if (tipoItem === 'frete') { icon = 'fa-truck'; label = 'Frete'; }
+            else if (tipoItem === 'despesa') { icon = 'fa-money'; label = 'Outras despesas'; }
+
+            var tr = document.createElement('tr');
+            tr.className = 'vendas_linhaItem item-row-venda';
+            tr.setAttribute('linha', String(idx));
+            tr.setAttribute('comitem', 'sim');
+            tr.innerHTML = `
+                <td>
+                    <div class="btn-group">
+                        <button type="button" class="vendas_btnSelTipo btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" linha="${idx}" valor="${tipoItem}">
+                            <i class="fa ${icon}"></i> ${label}
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item vendas_selTipo" href="#" linha="${idx}" value="produto"><i class="fa fa-cubes"></i> Produto</a></li>
+                            <li><a class="dropdown-item vendas_selTipo" href="#" linha="${idx}" value="servico"><i class="fa fa-wrench"></i> Serviço</a></li>
+                            <li><a class="dropdown-item vendas_selTipo" href="#" linha="${idx}" value="frete"><i class="fa fa-truck"></i> Frete</a></li>
+                            <li><a class="dropdown-item vendas_selTipo" href="#" linha="${idx}" value="despesa"><i class="fa fa-money"></i> Outras despesas</a></li>
+                        </ul>
+                    </div>
+                    <input type="hidden" name="item_tipo[]" value="${tipoItem}">
+                </td>
+                <td>
+                    <div class="d-flex align-items-start gap-2">
+                        <div class="autocomplete-container flex-grow-1">
+                            <input type="text" class="form-control form-control-sm item-nome" value="${item.nome || ''}" autocomplete="off" name="item_nome[]" placeholder="Digite o nome do produto">
+                            <div class="autocomplete-suggestions item-suggestions" style="display:none;"></div>
+                        </div>
+                        <button type="button" class="btn btn-outline-secondary btn-sm input-clear-btn btn-clear-nome" title="Limpar campo" data-bs-toggle="tooltip">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <small class="text-muted d-block mt-1">Observações adicionais (opcional)</small>
+                    <input type="text" class="form-control form-control-sm mt-1" name="item_obs[]" placeholder="">
+                </td>
+                <td class="text-end">
+                    <input type="number" step="0.01" min="0" class="form-control form-control-sm text-end" name="item_preco[]" value="${(item.preco || 0).toFixed(2)}" inputmode="decimal">
+                </td>
+                <td class="text-center">
+                    <input type="number" min="1" class="form-control form-control-sm text-center" name="item_qtd[]" value="${item.qtd || 1}">
+                </td>
+                <td class="text-end">
+                    <input type="number" step="0.01" min="0" class="form-control form-control-sm text-end" name="item_desconto[]" value="${(item.desconto || 0).toFixed(2)}">
+                </td>
+                <td class="text-end">
+                    <input type="text" class="form-control form-control-sm text-end vendas_totalLinha" value="0,00" readonly style="background-color: #f8f9fa; padding-right: 2rem;">
+                    <input type="hidden" name="item_total[]" value="0.00">
+                    <button type="button" class="carrinho-remove-btn btn-remover-item-venda" title="Remover item do carrinho" data-bs-toggle="tooltip" style="${itens.length === 1 ? 'display:none;' : ''}">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>
+            `;
+            itensBody.appendChild(tr);
+            bindRow(tr);  // Adicionar event listeners
+        });
+
+        // Recalcular valores após carregar
+        setTimeout(calcularValores, 100);
+    }
+
+    // Função para carregar dados existentes da venda no carrinho
+    function carregarDadosExistentes() {
+        if (!itensBody || !vendaData.produto) return;
+
+        // Limpar itens existentes
+        itensBody.innerHTML = '';
+
+        // PRIORIDADE: Se tem itens_carrinho do lançamento, usar esses (dados mais precisos)
+        try {
+            var itensCarrinhoJSON = '{{ itens_carrinho_json|safe }}';
+            var itensCarrinho = JSON.parse(itensCarrinhoJSON);
+            if (itensCarrinho && itensCarrinho.length > 0) {
+                // Carregar do JSON do lançamento
+                carregarItensDoJSON(itensCarrinho);
+                return;
+            }
+        } catch(e) {
+            console.error('Erro ao fazer parse do itens_carrinho:', e);
+        }
+
+        // FALLBACK: Dividir produto por vírgula se houver múltiplos itens
+        var produtos = vendaData.produto.split(',').map(function(p) { return p.trim(); });
+        var valorUnitario = vendaData.valor / (vendaData.quantidade || 1);
+        var descontoPorItem = (vendaData.desconto || 0) / produtos.length;
+        
+        produtos.forEach(function(produtoNome, index) {
+            var idx = index + 1;
+            var tipoItem = vendaData.tipo_venda || 'produto';
+            var icon = 'fa-cubes';
+            var label = 'Produto';
+            if (tipoItem === 'servico') { icon = 'fa-wrench'; label = 'Serviço'; }
+            else if (tipoItem === 'frete') { icon = 'fa-truck'; label = 'Frete'; }
+            else if (tipoItem === 'despesa') { icon = 'fa-money'; label = 'Outras despesas'; }
+            
+            var tr = document.createElement('tr');
+            tr.className = 'vendas_linhaItem item-row-venda';
+            tr.setAttribute('linha', String(idx));
+            tr.setAttribute('comitem', 'sim');
+            tr.innerHTML = `
+                <td>
+                    <div class="btn-group">
+                        <button type="button" class="vendas_btnSelTipo btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" linha="${idx}" valor="${tipoItem}">
+                            <i class="fa ${icon}"></i> ${label}
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item vendas_selTipo" href="#" linha="${idx}" value="produto"><i class="fa fa-cubes"></i> Produto</a></li>
+                            <li><a class="dropdown-item vendas_selTipo" href="#" linha="${idx}" value="servico"><i class="fa fa-wrench"></i> Serviço</a></li>
+                            <li><a class="dropdown-item vendas_selTipo" href="#" linha="${idx}" value="frete"><i class="fa fa-truck"></i> Frete</a></li>
+                            <li><a class="dropdown-item vendas_selTipo" href="#" linha="${idx}" value="despesa"><i class="fa fa-money"></i> Outras despesas</a></li>
+                        </ul>
+                    </div>
+                    <input type="hidden" name="item_tipo[]" value="${tipoItem}">
+                </td>
+                <td>
+                    <div class="d-flex align-items-start gap-2">
+                        <div class="autocomplete-container flex-grow-1">
+                            <input type="text" class="form-control form-control-sm item-nome" value="${produtoNome}" autocomplete="off" name="item_nome[]" placeholder="Digite o nome do produto">
+                            <div class="autocomplete-suggestions item-suggestions" style="display:none;"></div>
+                        </div>
+                        <button type="button" class="btn btn-outline-secondary btn-sm input-clear-btn btn-clear-nome" title="Limpar campo" data-bs-toggle="tooltip">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <small class="text-muted d-block mt-1">Observações adicionais (opcional)</small>
+                    <input type="text" class="form-control form-control-sm mt-1" name="item_obs[]" placeholder="">
+                </td>
+                <td class="text-end">
+                    <input type="number" step="0.01" min="0" class="form-control form-control-sm text-end" name="item_preco[]" value="${valorUnitario.toFixed(2)}" inputmode="decimal">
+                </td>
+                <td class="text-center">
+                    <input type="number" min="1" class="form-control form-control-sm text-center" name="item_qtd[]" value="${vendaData.quantidade || 1}">
+                </td>
+                <td class="text-end">
+                    <input type="number" step="0.01" min="0" class="form-control form-control-sm text-end" name="item_desconto[]" value="${descontoPorItem.toFixed(2)}">
+                </td>
+                <td class="text-end">
+                    <input type="text" class="form-control form-control-sm text-end vendas_totalLinha" value="0,00" readonly style="background-color: #f8f9fa; padding-right: 2rem;">
+                    <input type="hidden" name="item_total[]" value="0.00">
+                    <button type="button" class="carrinho-remove-btn vendas_linkRemItem" title="Remover item do carrinho" data-bs-toggle="tooltip" style="${produtos.length > 1 ? '' : 'display:none;'}">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>`;
+            itensBody.appendChild(tr);
+            bindRow(tr);
+        });
+        
+        // Se não há produtos, criar uma linha vazia
+        if (produtos.length === 0) {
+            adicionarItemVenda();
+        }
+        
+        toggleRemoveButtons();
+        calcularValores();
+    }
+    
+    // Event listeners para recalcular valores
+    if (numeroParcelasInput) {
+        numeroParcelasInput.addEventListener('input', function() {
+            calcularValores();
+            toggleConfigParcelas();
+        });
+    }
+    
+    // Carrinho - adicionar/remover e listeners
+    function toggleRemoveButtons() {
+        var rows = itensBody.querySelectorAll('.vendas_linhaItem');
+        rows.forEach(function(r){
+            var btn = r.querySelector('.vendas_linkRemItem');
+            if (btn) btn.style.display = rows.length > 1 ? '' : 'none';
+        });
+        if (itensContagem) itensContagem.textContent = String(rows.length);
+    }
+
+    // Função para validar estoque
+    function validarEstoque(row) {
+        var qtdEl = row.querySelector('input[name="item_qtd[]"]');
+        if (!qtdEl) return;
+        
+        var estoque = parseFloat(row.dataset.estoque);
+        var quantidade = parseFloat(qtdEl.value) || 0;
+        var qtdCell = qtdEl.closest('td');
+        var errorMsg = qtdCell ? qtdCell.querySelector('.estoque-error-message') : null;
+        
+        if (!isNaN(estoque) && quantidade > estoque) {
+            qtdEl.classList.add('estoque-invalido');
+            if (!errorMsg && qtdCell) {
+                errorMsg = document.createElement('small');
+                errorMsg.className = 'estoque-error-message';
+                qtdCell.appendChild(errorMsg);
+            }
+            if (errorMsg) {
+                errorMsg.textContent = `Estoque disponível: ${estoque}`;
+            }
+        } else {
+            limparValidacaoEstoque(row);
+        }
+    }
+    
+    // Função para limpar validação de estoque
+    function limparValidacaoEstoque(row) {
+        var qtdEl = row.querySelector('input[name="item_qtd[]"]');
+        var qtdCell = qtdEl ? qtdEl.closest('td') : null;
+        if (qtdEl) qtdEl.classList.remove('estoque-invalido');
+        if (qtdCell) {
+            var errorMsg = qtdCell.querySelector('.estoque-error-message');
+            if (errorMsg) errorMsg.remove();
+        }
+    }
+
+    function bindRow(row) {
+        row.querySelectorAll('input, textarea, select').forEach(function(inp){ 
+            inp.addEventListener('input', function() {
+                calcularValores();
+                if (inp.name === 'item_qtd[]') {
+                    if (row.dataset.estoque) {
+                        validarEstoque(row);
+                    }
+                }
+            }); 
+        });
+        
+        var qtdInput = row.querySelector('input[name="item_qtd[]"]');
+        if (qtdInput) {
+            qtdInput.addEventListener('change', function() {
+                if (row.dataset.estoque) {
+                    validarEstoque(row);
+                }
+            });
+        }
+        var btn = row.querySelector('.vendas_linkRemItem');
+        if (btn) btn.addEventListener('click', function(){ row.remove(); toggleRemoveButtons(); calcularValores(); });
+        
+        // Autocomplete produto quando tipo=produto; texto livre quando serviço
+        var tipoSelect = row.querySelector('select[name="item_tipo[]"]');
+        var hiddenTipo = row.querySelector('input[name="item_tipo[]"]');
+        var nomeInput = row.querySelector('.item-nome');
+        var sugestDiv = row.querySelector('.item-suggestions');
+        
+        // Configurar botão de limpar campo nome
+        var btnClear = row.querySelector('.btn-clear-nome');
+        if (btnClear && nomeInput) {
+            btnClear.addEventListener('click', function(e){
+                e.preventDefault();
+                e.stopPropagation();
+                nomeInput.value = '';
+                if (sugestDiv) {
+                    sugestDiv.style.display = 'none';
+                    sugestDiv.innerHTML = '';
+                }
+                calcularValores();
+            });
+        }
+        function buscarProdutos(query){
+            if (!query || query.length < 2) { if(sugestDiv){sugestDiv.style.display='none';sugestDiv.innerHTML='';} return; }
+            if (sugestDiv) {
+                sugestDiv.innerHTML = `<div class="autocomplete-loading"><div class="sugg-icon"><i class="fas fa-box"></i></div><div class="skel" style="max-width:180px"></div></div>`;
+                sugestDiv.style.display = 'block';
+            }
+            fetch(`/api/produtos/sugestoes?q=${encodeURIComponent(query)}`)
+                .then(r=>r.json())
+                .then(data=>{
+                    const itens = data.produtos||[];
+                    if(!sugestDiv) return;
+                    sugestDiv.innerHTML='';
+                    itens.forEach(item=>{
+                        var d=document.createElement('div');
+                        d.className='autocomplete-suggestion';
+                        d.innerHTML=`<div class=\"sugg-left\"><span class=\"sugg-icon\"><i class=\"fas fa-box\"></i></span><span class=\"sugg-title\"><strong>${item.nome}</strong></span></div><div class=\"sugg-meta\">${item.estoque!==undefined?`<span class=\"badge-pill\">Estoque: ${item.estoque}</span>`:''}</div>`;
+                        d.addEventListener('click',()=>{
+                            nomeInput.value=item.nome; sugestDiv.style.display='none';
+                            var precoEl=row.querySelector('input[name="item_preco[]"]');
+                            var qtdEl=row.querySelector('input[name="item_qtd[]"]');
+                            if(precoEl && item.preco_venda){ precoEl.value=item.preco_venda; }
+                            if(item.estoque !== undefined) {
+                                row.dataset.estoque = item.estoque;
+                                validarEstoque(row);
+                            } else {
+                                delete row.dataset.estoque;
+                                limparValidacaoEstoque(row);
+                            }
+                            calcularValores();
+                        });
+                        sugestDiv.appendChild(d);
+                    });
+                    if (query && (itens.length === 0 || itens.length < 5)) {
+                        var createDiv = document.createElement('div');
+                        createDiv.className = 'autocomplete-suggestion create-new';
+                        createDiv.innerHTML = `<i class=\"fas fa-plus me-2\"></i><strong>Criar produto: \"${query}\"</strong><br><small class=\"text-muted\">Será criado ao salvar o registro</small>`;
+                        createDiv.addEventListener('click', function(){
+                            nomeInput.value = query;
+                            sugestDiv.style.display='none';
+                            calcularValores();
+                        });
+                        sugestDiv.appendChild(createDiv);
+                    }
+                    sugestDiv.style.display = 'block';
+                }).catch(()=>{ if(sugestDiv){sugestDiv.style.display='none';} });
+        }
+        function toggleAutocomplete(){
+            if (!nomeInput) return;
+            var tipoAtual = '';
+            if (tipoSelect) {
+                tipoAtual = tipoSelect.value;
+            } else if (hiddenTipo) {
+                tipoAtual = hiddenTipo.value;
+            }
+            
+            if (tipoAtual === 'produto' || tipoAtual === 'mercadoria') {
+                nomeInput.setAttribute('placeholder','Digite o nome do produto');
+                if (nomeInput.dataset.autocompleteBound !== 'true') {
+                    nomeInput.addEventListener('input', onNomeInput);
+                    nomeInput.dataset.autocompleteBound = 'true';
+                }
+            } else {
+                nomeInput.setAttribute('placeholder','Descreva o serviço');
+                if (sugestDiv){sugestDiv.style.display='none';sugestDiv.innerHTML='';}
+                nomeInput.removeEventListener('input', onNomeInput);
+                nomeInput.dataset.autocompleteBound = 'false';
+            }
+        }
+        
+        // Eventos para dropdown customizado do tipo (vendas)
+        var btnTipo = row.querySelector('.vendas_btnSelTipo');
+        if (btnTipo && hiddenTipo) {
+            row.querySelectorAll('.vendas_selTipo').forEach(function(a){
+                a.addEventListener('click', function(ev){
+                    ev.preventDefault();
+                    ev.stopPropagation();
+                    var v = this.getAttribute('value');
+                    if (hiddenTipo) hiddenTipo.value = v;
+                    if (btnTipo) {
+                        var icon = 'fa-cubes';
+                        var label = 'Produto';
+                        if (v === 'servico') { icon = 'fa-wrench'; label = 'Serviço'; }
+                        else if (v === 'frete') { icon = 'fa-truck'; label = 'Frete'; }
+                        else if (v === 'despesa') { icon = 'fa-money'; label = 'Outras despesas'; }
+                        btnTipo.innerHTML = `<i class="fa ${icon}"></i> ${label}`;
+                        btnTipo.setAttribute('valor', v);
+                    }
+                    if (window.bootstrap && bootstrap.Dropdown) {
+                        var dropdown = bootstrap.Dropdown.getInstance(btnTipo);
+                        if (dropdown) dropdown.hide();
+                    }
+                    toggleAutocomplete();
+                });
+            });
+        }
+        
+        if (tipoSelect) {
+            tipoSelect.addEventListener('change', function(){
+                if (hiddenTipo) hiddenTipo.value = this.value;
+                toggleAutocomplete();
+            });
+        }
+        
+        function onNomeInput(){ 
+            var tipoAtual = '';
+            if (tipoSelect) {
+                tipoAtual = tipoSelect.value;
+            } else if (hiddenTipo) {
+                tipoAtual = hiddenTipo.value;
+            }
+            if (tipoAtual === 'produto' || tipoAtual === 'mercadoria') {
+                buscarProdutos(nomeInput.value.trim()); 
+            }
+        }
+        
+        toggleAutocomplete();
+        
+        document.addEventListener('click', function(e){ 
+            if(sugestDiv && !e.target.closest('.autocomplete-container')) {
+                sugestDiv.style.display='none';
+            }
+        });
+    }
+
+    // Função para adicionar novo item
+    function adicionarItemVenda() {
+        var bodyDiv = document.getElementById('itens-body-venda');
+        if (!bodyDiv) return;
+        
+        var idx = bodyDiv.querySelectorAll('.vendas_linhaItem').length + 1;
+        var tr = document.createElement('tr');
+        tr.className = 'vendas_linhaItem item-row-venda';
+        tr.setAttribute('linha', String(idx));
+        tr.setAttribute('comitem', 'nao');
+        tr.innerHTML = `
+            <td>
+                <div class="btn-group">
+                    <button type="button" class="vendas_btnSelTipo btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" linha="${idx}" valor="produto">
+                        <i class="fa fa-cubes"></i> Produto
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item vendas_selTipo" href="#" linha="${idx}" value="produto"><i class="fa fa-cubes"></i> Produto</a></li>
+                        <li><a class="dropdown-item vendas_selTipo" href="#" linha="${idx}" value="servico"><i class="fa fa-wrench"></i> Serviço</a></li>
+                        <li><a class="dropdown-item vendas_selTipo" href="#" linha="${idx}" value="frete"><i class="fa fa-truck"></i> Frete</a></li>
+                        <li><a class="dropdown-item vendas_selTipo" href="#" linha="${idx}" value="despesa"><i class="fa fa-money"></i> Outras despesas</a></li>
+                    </ul>
+                </div>
+                <input type="hidden" name="item_tipo[]" value="produto">
+            </td>
+            <td>
+                <div class="d-flex align-items-start gap-2">
+                    <div class="autocomplete-container flex-grow-1">
+                        <input type="text" class="form-control form-control-sm item-nome" value="" autocomplete="off" name="item_nome[]" placeholder="Digite o nome do produto">
+                        <div class="autocomplete-suggestions item-suggestions" style="display:none;"></div>
+                    </div>
+                    <button type="button" class="btn btn-outline-secondary btn-sm input-clear-btn btn-clear-nome" title="Limpar campo" data-bs-toggle="tooltip">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <small class="text-muted d-block mt-1">Observações adicionais (opcional)</small>
+                <input type="text" class="form-control form-control-sm mt-1" name="item_obs[]" placeholder="">
+            </td>
+            <td class="text-end">
+                <input type="number" step="0.01" min="0" class="form-control form-control-sm text-end" name="item_preco[]" value="0.00" inputmode="decimal">
+            </td>
+            <td class="text-center">
+                <input type="number" min="1" class="form-control form-control-sm text-center" name="item_qtd[]" value="1">
+            </td>
+            <td class="text-end">
+                <input type="number" step="0.01" min="0" class="form-control form-control-sm text-end" name="item_desconto[]" value="0.00">
+            </td>
+            <td class="text-end">
+                <input type="text" class="form-control form-control-sm text-end vendas_totalLinha" value="0,00" readonly style="background-color: #f8f9fa; padding-right: 2rem;">
+                <input type="hidden" name="item_total[]" value="0.00">
+                <button type="button" class="carrinho-remove-btn vendas_linkRemItem" title="Remover item do carrinho" data-bs-toggle="tooltip">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </td>`;
+        bodyDiv.appendChild(tr);
+        bindRow(tr);
+        
+        if (window.bootstrap && bootstrap.Dropdown) {
+            var btnTipo = tr.querySelector('.vendas_btnSelTipo');
+            if (btnTipo) {
+                try {
+                    var existingDropdown = bootstrap.Dropdown.getInstance(btnTipo);
+                    if (!existingDropdown) {
+                        new bootstrap.Dropdown(btnTipo, {
+                            boundary: 'viewport',
+                            popperConfig: {
+                                modifiers: [
+                                    {
+                                        name: 'preventOverflow',
+                                        options: {
+                                            boundary: 'viewport'
+                                        }
+                                    }
+                                ]
+                            }
+                        });
+                    }
+                } catch(e) {
+                    console.warn('Erro ao inicializar dropdown:', e);
+                }
+            }
+        }
+        
+        if (window.bootstrap && bootstrap.Tooltip) {
+            var tooltips = tr.querySelectorAll('[data-bs-toggle="tooltip"]');
+            tooltips.forEach(function(el) {
+                try {
+                    new bootstrap.Tooltip(el);
+                } catch(e) {
+                    console.warn('Erro ao inicializar tooltip:', e);
+                }
+            });
+        }
+        
+        toggleRemoveButtons();
+        calcularValores();
+    }
+    
+    // Event listener para o botão adicionar item
+    if (btnAddItem) {
+        btnAddItem.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            adicionarItemVenda();
+        });
+    }
+    
+    // Mostrar/ocultar campos de parcelas baseado no tipo de pagamento
+    if (tipoPagamentoSelect) {
+        tipoPagamentoSelect.addEventListener('change', function() {
+            var isParcelado = this.value === 'parcelado';
+            if (numeroParcelasInput) {
+                numeroParcelasInput.disabled = !isParcelado;
+                if (!isParcelado) {
+                    numeroParcelasInput.value = '1';
+                }
+            }
+            calcularValores();
+            toggleConfigParcelas();
+        });
+    }
+    
+    // Event listeners para configuração de parcelas
+    if (intervaloParcelasSelect) {
+        intervaloParcelasSelect.addEventListener('change', function() {
+            const campoPersonalizado = document.getElementById('campo_intervalo_personalizado');
+            const isPersonalizado = this.value === 'personalizado';
+            if (campoPersonalizado) {
+                campoPersonalizado.style.display = isPersonalizado ? 'block' : 'none';
+            }
+            gerarTabelaParcelas();
+        });
+    }
+    
+    if (primeiraParcelaInput) {
+        primeiraParcelaInput.addEventListener('input', function() {
+            gerarTabelaParcelas();
+        });
+    }
+    
+    const intervaloDiasInput = document.getElementById('intervalo_dias');
+    if (intervaloDiasInput) {
+        intervaloDiasInput.addEventListener('input', function() {
+            const valor = parseInt(this.value);
+            if (valor < 1) {
+                this.value = 1;
+            } else if (valor > 365) {
+                this.value = 365;
+            }
+            gerarTabelaParcelas();
+        });
+    }
+    
+    // Adicionar listener para o botão de salvar
+    var btnSalvar = document.getElementById('btn-salvar-venda');
+    if (btnSalvar) {
+        btnSalvar.addEventListener('click', function(e) {
+            e.preventDefault();
+            if (form && form.checkValidity()) {
+                btnSalvar.disabled = true;
+                btnSalvar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
+                form.submit();
+            } else {
+                form.reportValidity();
+                btnSalvar.disabled = false;
+                btnSalvar.innerHTML = '<i class="fas fa-save"></i> Salvar Alterações';
+            }
+        });
+    }
+    
+    // Adicionar listener para o formulário
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            var camposObrigatorios = form.querySelectorAll('[required]');
+            var valido = true;
+            
+            camposObrigatorios.forEach(function(campo) {
+                if (!campo.value || campo.value.trim() === '') {
+                    valido = false;
+                    campo.classList.add('is-invalid');
+                } else {
+                    campo.classList.remove('is-invalid');
+                }
+            });
+            
+            if (!valido) {
+                e.preventDefault();
+                if (btnSalvar) {
+                    btnSalvar.disabled = false;
+                    btnSalvar.innerHTML = '<i class="fas fa-save"></i> Salvar Alterações';
+                }
+                alert('Por favor, preencha todos os campos obrigatórios.');
+                return false;
+            }
+        });
+    }
+    
+    // Inicializar
+    carregarDadosExistentes();
+    calcularValores();
+    toggleConfigParcelas();
+    
+    // Inicializar tooltips globais
+    if (window.bootstrap && bootstrap.Tooltip) {
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        tooltipTriggerList.forEach(function (tooltipTriggerEl) { new bootstrap.Tooltip(tooltipTriggerEl); });
+    }
+    
+    // Inicializar dropdowns do Bootstrap
+    if (window.bootstrap && bootstrap.Dropdown) {
+        var dropdownTriggerList = [].slice.call(document.querySelectorAll('.vendas_btnSelTipo[data-bs-toggle="dropdown"]'));
+        dropdownTriggerList.forEach(function (dropdownTriggerEl) {
+            try {
+                var existingDropdown = bootstrap.Dropdown.getInstance(dropdownTriggerEl);
+                if (!existingDropdown) {
+                    new bootstrap.Dropdown(dropdownTriggerEl, {
+                        boundary: 'viewport',
+                        popperConfig: {
+                            modifiers: [
+                                {
+                                    name: 'preventOverflow',
+                                    options: {
+                                        boundary: 'viewport'
+                                    }
+                                }
+                            ]
+                        }
+                    });
+                }
+            } catch(e) {
+                console.error('Erro ao inicializar dropdown:', e);
+            }
+        });
+    }
+    
+    console.log('✅ JavaScript inicializado com sucesso');
+});
+</script>
+{% endblock %} 

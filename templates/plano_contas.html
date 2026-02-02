@@ -1,0 +1,454 @@
+{% extends "base.html" %}
+
+{% block title %}Plano de Contas - Sistema de Gestão Financeira{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4><i class="fas fa-list"></i> Plano de Contas</h4>
+                    <a href="{{ url_for('nova_conta') }}" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Nova Conta
+                    </a>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header bg-success text-white">
+                                    <h5><i class="fas fa-arrow-up"></i> Contas de Receita</h5>
+                                </div>
+                                <div class="card-body">
+                                    {% if contas_receita %}
+                                        <div class="table-responsive">
+                                            <table class="table table-striped pc-table">
+                                                <colgroup>
+                                                    <col style="width: 40%">
+                                                    <col style="width: 40%">
+                                                    <col style="width: 20%">
+                                                </colgroup>
+                                                <thead>
+                                                    <tr>
+                                                        <th class="text-uppercase small text-muted">Nome</th>
+                                                        <th class="text-uppercase small text-muted">Descrição</th>
+                                                        <th class="text-uppercase small text-muted text-center">Ações</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {% for conta in contas_receita %}
+                                                    <tr>
+                                                        <td>
+                                                            <span class="badge rounded-pill bg-light text-dark border px-3 py-2">{{ conta.nome }}</span>
+                                                        </td>
+                                                        <td class="text-truncate" title="{{ conta.descricao or '-' }}">{{ conta.descricao or '-' }}</td>
+                                                        <td class="text-center">
+                                                            <div class="btn-group" role="group">
+                                                                <a href="{{ url_for('editar_conta', conta_id=conta.id) }}" 
+                                                                   class="btn btn-sm btn-primary" 
+                                                                   title="Editar">
+                                                                    <i class="fas fa-edit"></i>
+                                                                </a>
+                                                                <button type="button"
+                                                                        class="btn btn-sm btn-danger"
+                                                                        title="Deletar"
+                                                                        data-bs-toggle="modal"
+                                                                        data-bs-target="#modalConfirmacaoExclusao"
+                                                                        data-conta-id="{{ conta.id }}"
+                                                                        data-conta-nome="{{ conta.nome }}"
+                                                                        >
+                                                                    <i class="fas fa-trash"></i>
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                    {% endfor %}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    {% else %}
+                                        <p class="text-muted">Nenhuma conta de receita cadastrada.</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header bg-danger text-white">
+                                    <h5><i class="fas fa-arrow-down"></i> Contas de Despesa</h5>
+                                </div>
+                                <div class="card-body">
+                                    {% if contas_despesa %}
+                                        <div class="table-responsive">
+                                            <table class="table table-striped pc-table">
+                                                <colgroup>
+                                                    <col style="width: 40%">
+                                                    <col style="width: 40%">
+                                                    <col style="width: 20%">
+                                                </colgroup>
+                                                <thead>
+                                                    <tr>
+                                                        <th class="text-uppercase small text-muted">Nome</th>
+                                                        <th class="text-uppercase small text-muted">Descrição</th>
+                                                        <th class="text-uppercase small text-muted text-center">Ações</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {% for conta in contas_despesa %}
+                                                    <tr>
+                                                        <td>
+                                                            <span class="badge rounded-pill bg-light text-dark border px-3 py-2">{{ conta.nome }}</span>
+                                                        </td>
+                                                        <td class="text-truncate" title="{{ conta.descricao or '-' }}">{{ conta.descricao or '-' }}</td>
+                                                        <td class="text-center">
+                                                            <div class="btn-group" role="group">
+                                                                <a href="{{ url_for('editar_conta', conta_id=conta.id) }}" 
+                                                                   class="btn btn-sm btn-primary" 
+                                                                   title="Editar">
+                                                                    <i class="fas fa-edit"></i>
+                                                                </a>
+                                                                <button type="button"
+                                                                        class="btn btn-sm btn-danger"
+                                                                        title="Deletar"
+                                                                        data-bs-toggle="modal"
+                                                                        data-bs-target="#modalConfirmacaoExclusao"
+                                                                        data-conta-id="{{ conta.id }}"
+                                                                        data-conta-nome="{{ conta.nome }}"
+                                                                        >
+                                                                    <i class="fas fa-trash"></i>
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                    {% endfor %}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    {% else %}
+                                        <p class="text-muted">Nenhuma conta de despesa cadastrada.</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Confirmação de Exclusão -->
+<div class="modal fade" id="modalConfirmacaoExclusao" tabindex="-1" aria-labelledby="modalConfirmacaoExclusaoLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form id="formExcluirConta" method="POST">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalConfirmacaoExclusaoLabel">
+                        <i class="fas fa-exclamation-triangle me-2 text-warning"></i>Confirmar Exclusão
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                </div>
+                <div class="modal-body">
+                    <p id="mensagemConfirmacao">Tem certeza que deseja excluir esta conta? Esta ação não pode ser desfeita.</p>
+                </div>
+                <div class="modal-footer">
+                   <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                   <button type="submit" class="btn btn-danger" data-no-intercept="true">
+                        <i class="fas fa-trash me-1"></i>Excluir
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<style>
+/* Ajustes visuais para alinhamento consistente */
+.pc-table { table-layout: fixed; }
+.pc-table td, .pc-table th { vertical-align: middle; }
+.pc-table .text-truncate { max-width: 100%; }
+</style>
+<script>
+console.log('🔍 Script plano_contas.html carregado');
+
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🔍 DOMContentLoaded - Iniciando configuração do modal');
+    
+    const modalElement = document.getElementById('modalConfirmacaoExclusao');
+    const formExcluir = document.getElementById('formExcluirConta');
+    const mensagem = document.getElementById('mensagemConfirmacao');
+
+    console.log('🔍 Elementos encontrados:', {
+        modalElement: !!modalElement,
+        formExcluir: !!formExcluir,
+        mensagem: !!mensagem
+    });
+
+    if (!modalElement || !formExcluir) {
+        console.error('❌ Elementos do modal não encontrados!');
+        return;
+    }
+
+    // Garantir que o modal seja inicializado corretamente pelo Bootstrap
+    let modalInstance = bootstrap.Modal.getInstance(modalElement);
+    if (!modalInstance) {
+        console.log('🔧 Criando nova instância do modal Bootstrap');
+        modalInstance = new bootstrap.Modal(modalElement, {
+            backdrop: true,
+            keyboard: true,
+            focus: true
+        });
+    } else {
+        console.log('✅ Instância do modal já existe');
+    }
+
+    // Log quando o modal for aberto
+    modalElement.addEventListener('show.bs.modal', function (event) {
+        console.log('📋 Evento show.bs.modal disparado');
+        console.log('📋 Event relatedTarget:', event.relatedTarget);
+        
+        const botao = event.relatedTarget;
+        const contaId = botao?.getAttribute('data-conta-id');
+        const contaNome = botao?.getAttribute('data-conta-nome') || '';
+
+        console.log('📋 Dados do botão:', { contaId, contaNome });
+
+        if (contaId) {
+            formExcluir.action = `/plano-contas/${contaId}/deletar`;
+            console.log('✅ Action do form definido:', formExcluir.action);
+        }
+
+        if (mensagem) {
+            mensagem.textContent = `Tem certeza que deseja excluir a conta "${contaNome}"? Esta ação não pode ser desfeita.`;
+            console.log('✅ Mensagem atualizada');
+        }
+
+        // Verificar z-index antes de mostrar
+        console.log('🔍 Z-index antes de mostrar:', {
+            modal: window.getComputedStyle(modalElement).zIndex,
+            header: document.querySelector('.modern-header') ? window.getComputedStyle(document.querySelector('.modern-header')).zIndex : 'não encontrado'
+        });
+    });
+
+    // CORREÇÃO CRÍTICA: Quando o modal estiver totalmente visível
+    modalElement.addEventListener('shown.bs.modal', function () {
+        console.log('✅ Modal totalmente visível (shown.bs.modal)');
+        console.log('🔍 Aplicando correções...');
+        
+        // 1. Verificar e remover backdrops duplicados
+        const backdrops = document.querySelectorAll('.modal-backdrop');
+        console.log('🔍 Backdrops encontrados:', backdrops.length);
+        if (backdrops.length > 1) {
+            console.warn('⚠️ Múltiplos backdrops detectados, removendo extras');
+            for (let i = 1; i < backdrops.length; i++) {
+                console.log('🗑️ Removendo backdrop duplicado:', i);
+                backdrops[i].remove();
+            }
+        }
+        
+        // 2. Verificar z-index de todos os elementos
+        const backdrop = document.querySelector('.modal-backdrop');
+        const modalDialog = modalElement.querySelector('.modal-dialog');
+        const modalContent = modalElement.querySelector('.modal-content');
+        const header = document.querySelector('.modern-header');
+        
+        console.log('🔍 Z-index atual dos elementos:', {
+            modal: window.getComputedStyle(modalElement).zIndex,
+            backdrop: backdrop ? window.getComputedStyle(backdrop).zIndex : 'não encontrado',
+            dialog: modalDialog ? window.getComputedStyle(modalDialog).zIndex : 'não encontrado',
+            content: modalContent ? window.getComputedStyle(modalContent).zIndex : 'não encontrado',
+            header: header ? window.getComputedStyle(header).zIndex : 'não encontrado'
+        });
+        
+        // 3. Garantir z-index correto do modal (valores aumentados)
+        modalElement.style.zIndex = '1060';
+        console.log('✅ Modal z-index definido para 1060');
+        
+        if (modalDialog) {
+            modalDialog.style.zIndex = '1061';
+            console.log('✅ Modal-dialog z-index definido para 1061');
+        }
+        
+        if (modalContent) {
+            modalContent.style.zIndex = '1062';
+            modalContent.style.pointerEvents = 'auto';
+            console.log('✅ Modal-content z-index definido para 1062, pointer-events: auto');
+        }
+        
+        // 4. CRÍTICO: SOLUÇÃO DEFINITIVA - backdrop não deve bloquear cliques
+        if (backdrop) {
+            backdrop.style.zIndex = '1050';
+            backdrop.style.pointerEvents = 'none'; // NÃO bloquear cliques
+            console.log('✅ Backdrop z-index definido para 1050');
+            console.log('✅ Backdrop pointer-events definido para NONE - não bloqueia mais cliques');
+            
+            // Adicionar listener no document para detectar cliques no backdrop
+            // (já que o backdrop não recebe mais cliques diretamente)
+            const backdropClickHandler = function(e) {
+                // Verificar se o clique foi no backdrop (não no modal)
+                if (e.target === backdrop || backdrop.contains(e.target)) {
+                    // Verificar se o clique NÃO foi no modal
+                    if (!modalElement.contains(e.target)) {
+                        console.log('🖱️ Clique no backdrop detectado - fechando modal');
+                        const bsModal = bootstrap.Modal.getInstance(modalElement);
+                        if (bsModal) {
+                            bsModal.hide();
+                        }
+                        // Remover listener quando o modal fechar
+                        document.removeEventListener('click', backdropClickHandler, true);
+                    }
+                }
+            };
+            
+            // Adicionar listener no document (capture phase) para pegar cliques no backdrop
+            document.addEventListener('click', backdropClickHandler, true);
+            
+            // Remover listener quando o modal fechar
+            modalElement.addEventListener('hidden.bs.modal', function() {
+                document.removeEventListener('click', backdropClickHandler, true);
+            }, { once: true });
+        }
+        
+        // 4.5 CRÍTICO: Garantir que o modal esteja REALMENTE acima do backdrop
+        // Aumentar z-index do modal para garantir que fique acima
+        const modalComputedZIndex = parseInt(window.getComputedStyle(modalElement).zIndex);
+        const backdropComputedZIndex = backdrop ? parseInt(window.getComputedStyle(backdrop).zIndex) : 0;
+        
+        console.log('🔍 Comparação de z-index:', {
+            modal: modalComputedZIndex,
+            backdrop: backdropComputedZIndex,
+            diferenca: modalComputedZIndex - backdropComputedZIndex
+        });
+        
+        // Forçar z-index muito maior para garantir que o modal fique acima
+        modalElement.style.zIndex = '1060';
+        if (modalDialog) modalDialog.style.zIndex = '1061';
+        if (modalContent) modalContent.style.zIndex = '1062';
+        console.log('✅ Z-index do modal aumentado para garantir que fique acima do backdrop');
+        
+        // 5. Verificar pointer-events de todos os elementos do modal
+        const allModalElements = modalElement.querySelectorAll('*');
+        console.log('🔍 Total de elementos no modal:', allModalElements.length);
+        
+        let elementsWithPointerEventsNone = 0;
+        allModalElements.forEach(el => {
+            const computedStyle = window.getComputedStyle(el);
+            if (computedStyle.pointerEvents === 'none') {
+                elementsWithPointerEventsNone++;
+                console.warn('⚠️ Elemento com pointer-events: none encontrado:', el.tagName, el.className);
+            }
+            el.style.pointerEvents = 'auto';
+        });
+        
+        if (elementsWithPointerEventsNone > 0) {
+            console.warn(`⚠️ ${elementsWithPointerEventsNone} elementos tinham pointer-events: none, corrigidos`);
+        }
+        
+        // 6. Garantir que botões sejam clicáveis
+        const buttons = modalElement.querySelectorAll('button, .btn, input, select, textarea, a, .btn-close');
+        console.log('🔍 Botões encontrados no modal:', buttons.length);
+        
+        buttons.forEach((el, index) => {
+            const before = {
+                pointerEvents: window.getComputedStyle(el).pointerEvents,
+                cursor: window.getComputedStyle(el).cursor,
+                zIndex: window.getComputedStyle(el).zIndex
+            };
+            
+            el.style.pointerEvents = 'auto';
+            el.style.cursor = 'pointer';
+            el.style.zIndex = '1058';
+            el.style.position = 'relative';
+            
+            const after = {
+                pointerEvents: el.style.pointerEvents,
+                cursor: el.style.cursor,
+                zIndex: el.style.zIndex
+            };
+            
+            console.log(`✅ Botão ${index + 1} (${el.tagName}):`, {
+                antes: before,
+                depois: after,
+                texto: el.textContent?.trim().substring(0, 30) || el.value || 'sem texto'
+            });
+        });
+        
+        // 7. Verificar se há elementos sobrepondo o modal
+        const modalRect = modalElement.getBoundingClientRect();
+        console.log('🔍 Posição do modal:', {
+            top: modalRect.top,
+            left: modalRect.left,
+            width: modalRect.width,
+            height: modalRect.height
+        });
+        
+        // Verificar elementos que podem estar sobrepondo
+        const allElements = document.elementsFromPoint(
+            modalRect.left + modalRect.width / 2,
+            modalRect.top + modalRect.height / 2
+        );
+        
+        console.log('🔍 Elementos no centro do modal (do topo para baixo):');
+        allElements.forEach((el, index) => {
+            const style = window.getComputedStyle(el);
+            console.log(`  ${index + 1}. ${el.tagName}${el.className ? '.' + el.className.split(' ').join('.') : ''}`, {
+                zIndex: style.zIndex,
+                pointerEvents: style.pointerEvents,
+                position: style.position
+            });
+        });
+        
+        console.log('✅ Todas as correções aplicadas ao modal');
+    });
+
+    // Log quando o modal for fechado
+    modalElement.addEventListener('hidden.bs.modal', function () {
+        console.log('🔒 Modal fechado (hidden.bs.modal)');
+        // Limpar estilos inline quando fechar
+        modalElement.style.zIndex = '';
+        const modalDialog = modalElement.querySelector('.modal-dialog');
+        if (modalDialog) modalDialog.style.zIndex = '';
+        const modalContent = modalElement.querySelector('.modal-content');
+        if (modalContent) modalContent.style.zIndex = '';
+    });
+
+    // Adicionar listener de clique para debug e garantir que cliques funcionem
+    modalElement.addEventListener('click', function(e) {
+        console.log('🖱️ Clique detectado no modal:', {
+            target: e.target.tagName + (e.target.className ? '.' + e.target.className.split(' ').join('.') : ''),
+            currentTarget: e.currentTarget.tagName,
+            pointerEvents: window.getComputedStyle(e.target).pointerEvents,
+            zIndex: window.getComputedStyle(e.target).zIndex,
+            isButton: e.target.tagName === 'BUTTON' || e.target.closest('button'),
+            buttonText: e.target.textContent?.trim() || e.target.closest('button')?.textContent?.trim()
+        });
+        
+        // Se o clique foi em um botão, garantir que o evento não seja bloqueado
+        if (e.target.tagName === 'BUTTON' || e.target.closest('button')) {
+            const button = e.target.tagName === 'BUTTON' ? e.target : e.target.closest('button');
+            console.log('✅ Clique em botão detectado:', button.textContent?.trim());
+            // Não fazer preventDefault - deixar o botão funcionar normalmente
+        }
+    }, true); // Usar capture phase para pegar todos os cliques
+    
+    // Adicionar listener também no document para capturar cliques que podem estar sendo bloqueados
+    document.addEventListener('click', function(e) {
+        // Se o clique foi em um botão dentro do modal
+        if (modalElement.classList.contains('show')) {
+            const clickedButton = e.target.closest('.modal button');
+            if (clickedButton) {
+                console.log('🖱️ Clique em botão do modal detectado via document listener:', clickedButton.textContent?.trim());
+                // O evento já está no botão correto, não precisa fazer nada
+                console.log('✅ Clique já está no botão correto');
+            }
+        }
+    }, true);
+
+    console.log('✅ Configuração do modal concluída');
+});
+</script>
+{% endblock %} 

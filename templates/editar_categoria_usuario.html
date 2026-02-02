@@ -1,0 +1,202 @@
+{% extends "base.html" %}
+
+{% block title %}Editar Categoria de Usuário - Sistema de Gestão Financeira{% endblock %}
+
+{% block page_title %}Editar Categoria de Usuário{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-user-tag me-2"></i>
+                    Editar Categoria: {{ categoria.nome }}
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="nome" class="form-label">Nome da Categoria *</label>
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="fas fa-tag"></i>
+                                </span>
+                                <input type="text" class="form-control" id="nome" name="nome" 
+                                       value="{{ categoria.nome }}" required>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="descricao" class="form-label">Descrição</label>
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="fas fa-info-circle"></i>
+                                </span>
+                                <input type="text" class="form-control" id="descricao" name="descricao" 
+                                       value="{{ categoria.descricao or '' }}">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <h6 class="mb-3">
+                        <i class="fas fa-key me-2"></i>
+                        Permissões da Categoria
+                        <button type="button" class="btn btn-sm btn-outline-primary ms-2" onclick="selecionarTodas()">
+                            <i class="fas fa-check-double"></i> Selecionar Todas
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary ms-1" onclick="desmarcarTodas()">
+                            <i class="fas fa-times"></i> Desmarcar Todas
+                        </button>
+                    </h6>
+                    
+                    <div class="row">
+                        {% set modulos = [
+                            ('lancamentos', 'Lançamentos Financeiros', 'fas fa-money-bill-wave'),
+                            ('clientes', 'Clientes', 'fas fa-users'),
+                            ('fornecedores', 'Fornecedores', 'fas fa-truck'),
+                            ('estoque', 'Estoque', 'fas fa-boxes'),
+                            ('vendas', 'Vendas', 'fas fa-shopping-cart'),
+                            ('compras', 'Compras', 'fas fa-shopping-bag'),
+                            ('relatorios', 'Relatórios', 'fas fa-chart-bar'),
+                            ('configuracoes', 'Configurações', 'fas fa-cog')
+                        ] %}
+                        
+                        {% for modulo, nome_modulo, icone in modulos %}
+                        <div class="col-md-6 mb-4">
+                            <div class="card border-light">
+                                <div class="card-header bg-light">
+                                    <h6 class="mb-0">
+                                        <i class="{{ icone }} me-2"></i>{{ nome_modulo }}
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        {% set acoes = [
+                                            ('visualizar', 'Visualizar', 'fas fa-eye', 'success'),
+                                            ('criar', 'Criar', 'fas fa-plus', 'primary'),
+                                            ('editar', 'Editar', 'fas fa-edit', 'warning'),
+                                            ('deletar', 'Deletar', 'fas fa-trash', 'danger')
+                                        ] %}
+                                        
+                                        {% for acao, nome_acao, icone_acao, cor in acoes %}
+                                        <div class="col-6 mb-2">
+                                            <div class="form-check">
+                                                <input class="form-check-input permissao-checkbox" 
+                                                       type="checkbox" 
+                                                       id="{{ modulo }}_{{ acao }}" 
+                                                       name="{{ modulo }}_{{ acao }}"
+                                                       data-modulo="{{ modulo }}"
+                                                       data-acao="{{ acao }}"
+                                                       {% if permissoes.get(modulo) and acao in permissoes[modulo] %}checked{% endif %}>
+                                                <label class="form-check-label" for="{{ modulo }}_{{ acao }}">
+                                                    <i class="{{ icone_acao }} text-{{ cor }} me-1"></i>
+                                                    {{ nome_acao }}
+                                                </label>
+                                            </div>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    
+                    <div class="d-flex justify-content-between mt-4">
+                        <a href="{{ url_for('categorias_usuarios') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Voltar
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Salvar Alterações
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function selecionarTodas() {
+    const checkboxes = document.querySelectorAll('.permissao-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = true;
+    });
+}
+
+function desmarcarTodas() {
+    const checkboxes = document.querySelectorAll('.permissao-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = false;
+    });
+}
+
+// Adicionar funcionalidade para selecionar todas as permissões de um módulo
+document.addEventListener('DOMContentLoaded', function() {
+    // Adicionar botões para cada módulo
+    const cardHeaders = document.querySelectorAll('.card-header');
+    cardHeaders.forEach(header => {
+        if (header.querySelector('h6')) {
+            const moduloNome = header.querySelector('h6').textContent.trim();
+            const cardBody = header.nextElementSibling;
+            const checkboxes = cardBody.querySelectorAll('.permissao-checkbox');
+            
+            if (checkboxes.length > 0) {
+                const modulo = checkboxes[0].dataset.modulo;
+                
+                const btnGroup = document.createElement('div');
+                btnGroup.className = 'btn-group btn-group-sm ms-auto';
+                btnGroup.innerHTML = `
+                    <button type="button" class="btn btn-outline-success btn-xs" onclick="selecionarModulo('${modulo}')">
+                        <i class="fas fa-check"></i>
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-xs" onclick="desmarcarModulo('${modulo}')">
+                        <i class="fas fa-times"></i>
+                    </button>
+                `;
+                
+                header.style.display = 'flex';
+                header.style.justifyContent = 'space-between';
+                header.style.alignItems = 'center';
+                header.appendChild(btnGroup);
+            }
+        }
+    });
+});
+
+function selecionarModulo(modulo) {
+    const checkboxes = document.querySelectorAll(`[data-modulo="${modulo}"]`);
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = true;
+    });
+}
+
+function desmarcarModulo(modulo) {
+    const checkboxes = document.querySelectorAll(`[data-modulo="${modulo}"]`);
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = false;
+    });
+}
+</script>
+
+<style>
+.btn-xs {
+    padding: 0.125rem 0.25rem;
+    font-size: 0.75rem;
+    line-height: 1.2;
+}
+
+.card-header {
+    padding: 0.75rem 1rem;
+}
+
+.form-check-label {
+    font-size: 0.9rem;
+}
+</style>
+{% endblock %}
+

@@ -1,0 +1,228 @@
+{% extends "base.html" %}
+
+{% block title %}Login - Sistema de Gestão Financeira{% endblock %}
+
+{% block auth_content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-4">
+            <div class="card shadow-lg mt-5">
+                <div class="card-body p-5">
+                    <div class="text-center mb-4">
+                        <i class="fas fa-chart-line fa-3x text-primary mb-3"></i>
+                        <h2 class="card-title">Sistema de Gestão Financeira</h2>
+                        <p class="text-muted">Faça login para acessar sua conta</p>
+                    </div>
+                    
+                    <form method="POST" action="{{ url_for('login') }}">
+                        <!-- Tipo de Documento -->
+                        <div class="mb-3">
+                            <label class="form-label">Tipo de Documento *</label>
+                            <select class="form-select" name="tipo_acesso" id="tipo_acesso" required>
+                                <option value="">Selecione...</option>
+                                <option value="pessoa_fisica">CPF</option>
+                                <option value="empresa">CNPJ</option>
+                                <option value="contador_bpo">Contador/BPO</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Campo CNPJ para ADMIN (fixo) -->
+                        <div class="mb-3" id="admin_cnpj_field" style="display: none;">
+                            <label for="admin_cnpj" class="form-label">CNPJ</label>
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="fas fa-building"></i>
+                                </span>
+                                <input type="text" class="form-control" id="admin_cnpj" name="admin_cnpj" 
+                                       value="00.000.000/0000-00" readonly>
+                            </div>
+                        </div>
+                        
+                        <!-- Campo CPF para Pessoa Física -->
+                        <div class="mb-3" id="cpf_field" style="display: none;">
+                            <label for="cpf" class="form-label">CPF</label>
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="fas fa-id-card"></i>
+                                </span>
+                                <input type="text" class="form-control" id="cpf" name="cpf" 
+                                       placeholder="000.000.000-00">
+                            </div>
+                            <div class="form-text">Digite o CPF no formato: 000.000.000-00</div>
+                        </div>
+                        
+                        <!-- Campo CNPJ para Empresa -->
+                        <div class="mb-3" id="cnpj_field" style="display: none;">
+                            <label for="cnpj" class="form-label">CNPJ</label>
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="fas fa-building"></i>
+                                </span>
+                                <input type="text" class="form-control" id="cnpj" name="cnpj" 
+                                       placeholder="00.000.000/0000-00">
+                            </div>
+                            <div class="form-text">Digite o CNPJ no formato: 00.000.000/0000-00</div>
+                        </div>
+                        
+                        <!-- Campo CPF/CNPJ para Contador/BPO -->
+                        <div class="mb-3" id="contador_doc_field" style="display: none;">
+                            <label for="contador_doc" class="form-label" id="contador_doc_label">CPF/CNPJ</label>
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="fas fa-id-card"></i>
+                                </span>
+                                <input type="text" class="form-control" id="contador_doc" name="contador_doc" 
+                                       placeholder="000.000.000-00">
+                            </div>
+                            <div class="form-text">Digite o CPF no formato: 000.000.000-00</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="usuario" class="form-label">Usuário</label>
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="fas fa-user"></i>
+                                </span>
+                                <input type="text" class="form-control" id="usuario" name="usuario" 
+                                       placeholder="Digite seu nome de usuário" required>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="senha" class="form-label">Senha</label>
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="fas fa-lock"></i>
+                                </span>
+                                <input type="password" class="form-control" id="senha" name="senha" required>
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-sign-in-alt me-2"></i>Entrar
+                            </button>
+                        </div>
+                    </form>
+                    
+                    <div class="text-center mt-4">
+                        <p class="mb-0">Não tem uma conta?</p>
+                        <a href="{{ url_for('registro') }}" class="btn btn-link">Criar conta</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const tipoAcessoSelect = document.getElementById('tipo_acesso');
+    const adminCnpjField = document.getElementById('admin_cnpj_field');
+    const cpfField = document.getElementById('cpf_field');
+    const cnpjField = document.getElementById('cnpj_field');
+    const contadorDocField = document.getElementById('contador_doc_field');
+    const cpfInput = document.getElementById('cpf');
+    const cnpjInput = document.getElementById('cnpj');
+    const contadorDocInput = document.getElementById('contador_doc');
+    const contadorDocLabel = document.getElementById('contador_doc_label');
+    const contadorDocHelp = contadorDocField.querySelector('.form-text');
+    const adminCnpjInput = document.getElementById('admin_cnpj');
+    
+    // Função para mostrar/ocultar campos baseado no tipo de acesso
+    function toggleFields() {
+        const selectedType = tipoAcessoSelect.value;
+        
+        // Ocultar todos os campos primeiro
+        adminCnpjField.style.display = 'none';
+        cpfField.style.display = 'none';
+        cnpjField.style.display = 'none';
+        contadorDocField.style.display = 'none';
+        
+        // Remover required de todos
+        cpfInput.required = false;
+        cnpjInput.required = false;
+        contadorDocInput.required = false;
+        adminCnpjInput.required = false;
+        
+        // Limpar valores
+        cpfInput.value = '';
+        cnpjInput.value = '';
+        contadorDocInput.value = '';
+        
+        // Mostrar campo apropriado
+        if (selectedType === 'admin') {
+            adminCnpjField.style.display = 'block';
+            adminCnpjInput.required = true;
+        } else if (selectedType === 'pessoa_fisica') {
+            cpfField.style.display = 'block';
+            cpfInput.required = true;
+        } else if (selectedType === 'empresa') {
+            cnpjField.style.display = 'block';
+            cnpjInput.required = true;
+        } else if (selectedType === 'contador_bpo') {
+            contadorDocField.style.display = 'block';
+            contadorDocInput.required = true;
+            contadorDocLabel.textContent = 'CPF/CNPJ';
+            contadorDocInput.placeholder = '000.000.000-00';
+            contadorDocHelp.textContent = 'Digite o CPF no formato: 000.000.000-00';
+        }
+    }
+    
+    // Adicionar event listener para o select
+    tipoAcessoSelect.addEventListener('change', toggleFields);
+    
+    // Máscara para CPF
+    cpfInput.addEventListener('input', function(e) {
+        let value = e.target.value.replace(/\D/g, '');
+        
+        if (value.length <= 11) {
+            value = value.replace(/^(\d{3})(\d)/, '$1.$2');
+            value = value.replace(/^(\d{3})\.(\d{3})(\d)/, '$1.$2.$3');
+            value = value.replace(/\.(\d{3})(\d)/, '.$1-$2');
+        }
+        
+        e.target.value = value;
+    });
+    
+    // Máscara para CNPJ
+    cnpjInput.addEventListener('input', function(e) {
+        let value = e.target.value.replace(/\D/g, '');
+        
+        if (value.length <= 14) {
+            value = value.replace(/^(\d{2})(\d)/, '$1.$2');
+            value = value.replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3');
+            value = value.replace(/\.(\d{3})(\d)/, '.$1/$2');
+            value = value.replace(/(\d{4})(\d)/, '$1-$2');
+        }
+        
+        e.target.value = value;
+    });
+    
+    // Máscara inteligente para CPF ou CNPJ (contador)
+    contadorDocInput.addEventListener('input', function(e) {
+        let value = e.target.value.replace(/\D/g, '');
+        const contadorDocHelp = contadorDocField.querySelector('.form-text');
+        
+        if (value.length <= 11) {
+            // Formatar como CPF
+            value = value.replace(/^(\d{3})(\d)/, '$1.$2');
+            value = value.replace(/^(\d{3})\.(\d{3})(\d)/, '$1.$2.$3');
+            value = value.replace(/\.(\d{3})(\d)/, '.$1-$2');
+            contadorDocInput.placeholder = '000.000.000-00';
+            contadorDocHelp.textContent = 'Digite o CPF no formato: 000.000.000-00';
+        } else if (value.length <= 14) {
+            // Formatar como CNPJ
+            value = value.replace(/^(\d{2})(\d)/, '$1.$2');
+            value = value.replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3');
+            value = value.replace(/\.(\d{3})(\d)/, '.$1/$2');
+            value = value.replace(/(\d{4})(\d)/, '$1-$2');
+            contadorDocInput.placeholder = '00.000.000/0000-00';
+            contadorDocHelp.textContent = 'Digite o CNPJ no formato: 00.000.000/0000-00';
+        }
+        
+        e.target.value = value;
+    });
+});
+</script>
+{% endblock %}

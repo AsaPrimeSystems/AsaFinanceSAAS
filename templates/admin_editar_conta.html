@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+
+{% block title %}Editar Conta - Sistema de Gestão Financeira{% endblock %}
+
+{% block page_title %}Editar Conta{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-edit me-2"></i>Editar Dados da Conta
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('admin_salvar_conta', conta_id=conta.id) }}">
+                        <div class="row">
+                            <!-- Tipo de Conta (readonly) -->
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Tipo de Conta</label>
+                                <input type="text" class="form-control"
+                                       value="{% if conta.tipo_conta == 'empresa' %}Empresa (PJ){% elif conta.tipo_conta == 'pessoa_fisica' %}Pessoa Física (PF){% elif conta.tipo_conta == 'contador_bpo' %}Contador/BPO{% else %}Admin{% endif %}"
+                                       readonly>
+                            </div>
+
+                            <!-- CPF/CNPJ (readonly) -->
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">CPF/CNPJ</label>
+                                <input type="text" class="form-control"
+                                       value="{{ conta.cpf or conta.cnpj or '-' }}"
+                                       readonly>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <!-- Razão Social / Nome -->
+                            <div class="col-md-6 mb-3">
+                                <label for="razao_social" class="form-label">
+                                    {% if conta.tipo_conta == 'pessoa_fisica' %}Nome Completo{% else %}Razão Social{% endif %} *
+                                </label>
+                                <input type="text" class="form-control" id="razao_social" name="razao_social"
+                                       value="{{ conta.razao_social }}" required>
+                            </div>
+
+                            <!-- Nome Fantasia (apenas para PJ) -->
+                            <div class="col-md-6 mb-3">
+                                <label for="nome_fantasia" class="form-label">
+                                    {% if conta.tipo_conta == 'pessoa_fisica' %}Apelido{% else %}Nome Fantasia{% endif %}
+                                </label>
+                                <input type="text" class="form-control" id="nome_fantasia" name="nome_fantasia"
+                                       value="{{ conta.nome_fantasia or '' }}">
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <!-- Email -->
+                            <div class="col-md-6 mb-3">
+                                <label for="email" class="form-label">Email</label>
+                                <input type="email" class="form-control" id="email" name="email"
+                                       value="{{ conta.email or '' }}">
+                            </div>
+
+                            <!-- Telefone -->
+                            <div class="col-md-6 mb-3">
+                                <label for="telefone" class="form-label">Telefone</label>
+                                <input type="text" class="form-control" id="telefone" name="telefone"
+                                       value="{{ conta.telefone or '' }}"
+                                       placeholder="(00) 00000-0000">
+                            </div>
+                        </div>
+
+                        <!-- Informações Adicionais (readonly) -->
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Data de Cadastro</label>
+                                <input type="text" class="form-control"
+                                       value="{% if conta.data_criacao %}{{ conta.data_criacao.strftime('%d/%m/%Y %H:%M') }}{% else %}-{% endif %}"
+                                       readonly>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Dias de Assinatura</label>
+                                <input type="text" class="form-control"
+                                       value="{{ conta.dias_assinatura if conta.dias_assinatura is not none else '-' }}"
+                                       readonly>
+                                <small class="form-text text-muted">Use o botão "Editar Dias de Assinatura" para alterar</small>
+                            </div>
+                        </div>
+
+                        <hr class="my-4">
+
+                        <!-- Botões de Ação -->
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>Salvar Alterações
+                            </button>
+                            <a href="{{ url_for('admin_usuarios') }}" class="btn btn-secondary">
+                                <i class="fas fa-times me-2"></i>Cancelar
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.card {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    border-radius: 8px;
+    border: none;
+}
+
+.card-header {
+    background-color: #f8f9fa;
+    border-bottom: 2px solid #dee2e6;
+    padding: 1rem 1.5rem;
+}
+
+.card-body {
+    padding: 2rem;
+}
+
+.form-label {
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 0.5rem;
+}
+
+.form-control:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+input[readonly] {
+    background-color: #e9ecef;
+    cursor: not-allowed;
+}
+</style>
+
+<script>
+// Máscara para telefone
+document.getElementById('telefone').addEventListener('input', function(e) {
+    let value = e.target.value.replace(/\D/g, '');
+    if (value.length > 11) value = value.slice(0, 11);
+
+    if (value.length > 10) {
+        e.target.value = value.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
+    } else if (value.length > 6) {
+        e.target.value = value.replace(/(\d{2})(\d{4})(\d{0,4})/, '($1) $2-$3');
+    } else if (value.length > 2) {
+        e.target.value = value.replace(/(\d{2})(\d{0,5})/, '($1) $2');
+    } else {
+        e.target.value = value.replace(/(\d*)/, '$1');
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,405 @@
+{% extends "base.html" %}
+
+{% block title %}Gerenciar Vouchers - Painel Admin{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2><i class="fas fa-ticket-alt me-2"></i>Gerenciar Vouchers</h2>
+            <p class="text-muted">Criar e gerenciar vouchers de assinatura</p>
+        </div>
+    </div>
+
+    <!-- Botões de Ação -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalCriarVoucher">
+                <i class="fas fa-plus me-2"></i>Criar Novo Voucher
+            </button>
+            <button class="btn btn-info" data-bs-toggle="modal" data-bs-target="#modalAplicarVoucher">
+                <i class="fas fa-gift me-2"></i>Aplicar Voucher
+            </button>
+            <button class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#modalHistoricoUso">
+                <i class="fas fa-history me-2"></i>Histórico de Uso
+            </button>
+        </div>
+    </div>
+
+    <!-- Tabela de Vouchers -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-list me-2"></i>Vouchers Cadastrados</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover" id="tabelaVouchers">
+                    <thead>
+                        <tr>
+                            <th>Código</th>
+                            <th>Dias</th>
+                            <th>Validade</th>
+                            <th>Status</th>
+                            <th>Usos</th>
+                            <th>Criado em</th>
+                            <th class="text-center">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td colspan="7" class="text-center">
+                                <div class="spinner-border spinner-border-sm" role="status">
+                                    <span class="visually-hidden">Carregando...</span>
+                                </div>
+                                Carregando vouchers...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Criar Voucher -->
+<div class="modal fade" id="modalCriarVoucher" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-plus me-2"></i>Criar Novo Voucher</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formCriarVoucher">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Código do Voucher</label>
+                        <input type="text" class="form-control" id="codigoVoucher" name="codigo" required
+                               placeholder="Ex: PROMO2025" maxlength="50">
+                        <small class="text-muted">Será convertido para MAIÚSCULAS automaticamente</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Dias de Assinatura</label>
+                        <input type="number" class="form-control" id="diasAssinatura" name="dias_assinatura"
+                               required min="1" value="30">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Data de Validade</label>
+                        <input type="date" class="form-control" id="validadeVoucher" name="validade" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i>Criar Voucher
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Aplicar Voucher -->
+<div class="modal fade" id="modalAplicarVoucher" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-gift me-2"></i>Aplicar Voucher a Empresa</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formAplicarVoucher">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Código do Voucher</label>
+                        <input type="text" class="form-control" id="codigoVoucherAplicar" name="codigo"
+                               required placeholder="Digite o código do voucher">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">ID da Empresa</label>
+                        <input type="number" class="form-control" id="empresaIdAplicar" name="empresa_id"
+                               required min="1" placeholder="Digite o ID da empresa">
+                        <small class="text-muted">Você pode encontrar o ID na listagem de contas</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-check me-2"></i>Aplicar Voucher
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Histórico de Uso -->
+<div class="modal fade" id="modalHistoricoUso" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-history me-2"></i>Histórico de Uso de Vouchers</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive">
+                    <table class="table table-sm" id="tabelaHistoricoUso">
+                        <thead>
+                            <tr>
+                                <th>Código</th>
+                                <th>Empresa</th>
+                                <th>Dias Creditados</th>
+                                <th>Data de Uso</th>
+                                <th>Admin</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="5" class="text-center">
+                                    <div class="spinner-border spinner-border-sm" role="status">
+                                        <span class="visually-hidden">Carregando...</span>
+                                    </div>
+                                    Carregando histórico...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts específicos -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    carregarVouchers();
+
+    // Setar data mínima como hoje
+    const hoje = new Date().toISOString().split('T')[0];
+    document.getElementById('validadeVoucher').setAttribute('min', hoje);
+
+    // Form de criar voucher
+    document.getElementById('formCriarVoucher').addEventListener('submit', function(e) {
+        e.preventDefault();
+        criarVoucher();
+    });
+
+    // Form de aplicar voucher
+    document.getElementById('formAplicarVoucher').addEventListener('submit', function(e) {
+        e.preventDefault();
+        aplicarVoucher();
+    });
+
+    // Carregar histórico quando abrir modal
+    document.getElementById('modalHistoricoUso').addEventListener('show.bs.modal', function() {
+        carregarHistoricoUso();
+    });
+});
+
+function carregarVouchers() {
+    fetch('/admin/vouchers')
+        .then(response => response.json())
+        .then(data => {
+            if (data.sucesso) {
+                renderizarVouchers(data.vouchers);
+            } else {
+                mostrarErro('Erro ao carregar vouchers: ' + (data.erro || 'Erro desconhecido'));
+            }
+        })
+        .catch(error => {
+            console.error('Erro:', error);
+            mostrarErro('Erro ao carregar vouchers');
+        });
+}
+
+function renderizarVouchers(vouchers) {
+    const tbody = document.querySelector('#tabelaVouchers tbody');
+
+    if (vouchers.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center">Nenhum voucher cadastrado</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = vouchers.map(v => `
+        <tr>
+            <td><strong>${v.codigo}</strong></td>
+            <td>${v.dias_assinatura} dias</td>
+            <td>${v.validade}</td>
+            <td>
+                ${v.ativo ?
+                    (v.pode_usar ? '<span class="badge bg-success">Disponível</span>' : '<span class="badge bg-warning">Usado</span>') :
+                    '<span class="badge bg-secondary">Inativo</span>'
+                }
+            </td>
+            <td>${v.usos}</td>
+            <td>${v.data_criacao}</td>
+            <td class="text-center">
+                <button class="btn btn-sm btn-${v.ativo ? 'warning' : 'success'}"
+                        onclick="toggleVoucher(${v.id}, ${v.ativo})"
+                        title="${v.ativo ? 'Desativar' : 'Ativar'}">
+                    <i class="fas fa-${v.ativo ? 'ban' : 'check'}"></i>
+                </button>
+                ${v.usos === 0 ? `
+                <button class="btn btn-sm btn-danger"
+                        onclick="deletarVoucher(${v.id}, '${v.codigo}')"
+                        title="Excluir">
+                    <i class="fas fa-trash"></i>
+                </button>
+                ` : ''}
+            </td>
+        </tr>
+    `).join('');
+}
+
+function criarVoucher() {
+    const form = document.getElementById('formCriarVoucher');
+    const formData = new FormData(form);
+
+    const dados = {
+        codigo: formData.get('codigo'),
+        dias_assinatura: formData.get('dias_assinatura'),
+        validade: formData.get('validade')
+    };
+
+    fetch('/admin/vouchers', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(dados)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.sucesso) {
+            mostrarSucesso(data.mensagem);
+            bootstrap.Modal.getInstance(document.getElementById('modalCriarVoucher')).hide();
+            form.reset();
+            carregarVouchers();
+        } else {
+            mostrarErro(data.erro || 'Erro ao criar voucher');
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        mostrarErro('Erro ao criar voucher');
+    });
+}
+
+function aplicarVoucher() {
+    const form = document.getElementById('formAplicarVoucher');
+    const formData = new FormData(form);
+
+    const dados = {
+        codigo: formData.get('codigo'),
+        empresa_id: formData.get('empresa_id')
+    };
+
+    fetch('/admin/vouchers/aplicar', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(dados)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.sucesso) {
+            mostrarSucesso(data.mensagem);
+            bootstrap.Modal.getInstance(document.getElementById('modalAplicarVoucher')).hide();
+            form.reset();
+            carregarVouchers();
+        } else {
+            mostrarErro(data.erro || 'Erro ao aplicar voucher');
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        mostrarErro('Erro ao aplicar voucher');
+    });
+}
+
+function toggleVoucher(id, ativo) {
+    const acao = ativo ? 'desativar' : 'ativar';
+    if (!confirm(`Tem certeza que deseja ${acao} este voucher?`)) return;
+
+    fetch(`/admin/vouchers/${id}/toggle`, {
+        method: 'PATCH'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.sucesso) {
+            mostrarSucesso(data.mensagem);
+            carregarVouchers();
+        } else {
+            mostrarErro(data.erro || 'Erro ao alterar status');
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        mostrarErro('Erro ao alterar status do voucher');
+    });
+}
+
+function deletarVoucher(id, codigo) {
+    if (!confirm(`Tem certeza que deseja excluir o voucher ${codigo}?`)) return;
+
+    fetch(`/admin/vouchers/${id}`, {
+        method: 'DELETE'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.sucesso) {
+            mostrarSucesso(data.mensagem);
+            carregarVouchers();
+        } else {
+            mostrarErro(data.erro || 'Erro ao excluir voucher');
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        mostrarErro('Erro ao excluir voucher');
+    });
+}
+
+function carregarHistoricoUso() {
+    fetch('/admin/vouchers/usos')
+        .then(response => response.json())
+        .then(data => {
+            if (data.sucesso) {
+                renderizarHistorico(data.usos);
+            } else {
+                mostrarErro('Erro ao carregar histórico: ' + (data.erro || 'Erro desconhecido'));
+            }
+        })
+        .catch(error => {
+            console.error('Erro:', error);
+            mostrarErro('Erro ao carregar histórico');
+        });
+}
+
+function renderizarHistorico(usos) {
+    const tbody = document.querySelector('#tabelaHistoricoUso tbody');
+
+    if (usos.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center">Nenhum voucher foi usado ainda</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = usos.map(u => `
+        <tr>
+            <td><strong>${u.codigo_voucher}</strong></td>
+            <td>${u.empresa}</td>
+            <td>${u.dias_creditados} dias</td>
+            <td>${u.data_uso}</td>
+            <td>${u.admin}</td>
+        </tr>
+    `).join('');
+}
+
+function mostrarSucesso(mensagem) {
+    alert(mensagem);
+}
+
+function mostrarErro(mensagem) {
+    alert('Erro: ' + mensagem);
+}
+</script>
+{% endblock %}

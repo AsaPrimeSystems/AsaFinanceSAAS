@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+
+{% block title %}Backup do Sistema - Administração{% endblock %}
+
+{% block page_title %}Backup do Sistema{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-database me-2"></i>Gerenciamento de Backup
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="alert alert-info">
+                            <h6><i class="fas fa-info-circle me-2"></i>Informações sobre Backup</h6>
+                            <ul class="mb-0">
+                                <li>O backup cria uma cópia completa do banco de dados</li>
+                                <li>Backups são salvos na pasta <code>backups/</code></li>
+                                <li>Backups antigos (mais de 30 dias) são removidos automaticamente</li>
+                                <li>Recomenda-se fazer backup antes de atualizações importantes</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <form method="POST" class="d-inline">
+                            <button type="submit" class="btn btn-success btn-lg w-100">
+                                <i class="fas fa-download me-2"></i>Criar Backup Agora
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                {% if backups %}
+                <h6><i class="fas fa-history me-2"></i>Backups Existentes</h6>
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Nome do Arquivo</th>
+                                <th>Data de Criação</th>
+                                <th>Tamanho</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for backup in backups %}
+                            <tr>
+                                <td>
+                                    <i class="fas fa-file-archive me-2"></i>
+                                    {{ backup.nome }}
+                                </td>
+                                <td>
+                                    <i class="fas fa-calendar me-2"></i>
+                                    {{ backup.data.strftime('%d/%m/%Y %H:%M:%S') }}
+                                </td>
+                                <td>
+                                    <i class="fas fa-hdd me-2"></i>
+                                    {{ "%.2f"|format(backup.tamanho / 1024 / 1024) }} MB
+                                </td>
+                                <td>
+                                    <div class="btn-group" role="group">
+                                        <button type="button" class="btn btn-sm btn-outline-primary" 
+                                                onclick="copiarCaminho('{{ backup.caminho }}')">
+                                            <i class="fas fa-copy"></i> Copiar Caminho
+                                        </button>
+                                        <a href="#" class="btn btn-sm btn-outline-info" 
+                                           onclick="mostrarDetalhes('{{ backup.nome }}', '{{ backup.data.strftime('%d/%m/%Y %H:%M:%S') }}', '{{ "%.2f"|format(backup.tamanho / 1024 / 1024) }}')">
+                                            <i class="fas fa-eye"></i> Detalhes
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Nenhum backup encontrado. Crie o primeiro backup clicando no botão acima.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para detalhes do backup -->
+<div class="modal fade" id="detalhesBackupModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-info-circle me-2"></i>Detalhes do Backup
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="detalhesBackupContent">
+                    <!-- Conteúdo será preenchido via JavaScript -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function copiarCaminho(caminho) {
+    navigator.clipboard.writeText(caminho).then(function() {
+        // Mostrar notificação de sucesso
+        const toast = document.createElement('div');
+        toast.className = 'toast align-items-center text-white bg-success border-0 position-fixed';
+        toast.style.top = '20px';
+        toast.style.right = '20px';
+        toast.style.zIndex = '9999';
+        toast.innerHTML = `
+            <div class="d-flex">
+                <div class="toast-body">
+                    <i class="fas fa-check me-2"></i>Caminho copiado para a área de transferência!
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>
+        `;
+        document.body.appendChild(toast);
+        const bsToast = new bootstrap.Toast(toast);
+        bsToast.show();
+        
+        // Remover toast após 3 segundos
+        setTimeout(() => {
+            document.body.removeChild(toast);
+        }, 3000);
+    });
+}
+
+function mostrarDetalhes(nome, data, tamanho) {
+    const content = document.getElementById('detalhesBackupContent');
+    content.innerHTML = `
+        <div class="row">
+            <div class="col-12">
+                <p><strong>Nome:</strong> ${nome}</p>
+                <p><strong>Data de Criação:</strong> ${data}</p>
+                <p><strong>Tamanho:</strong> ${tamanho} MB</p>
+                <p><strong>Status:</strong> <span class="badge bg-success">Válido</span></p>
+            </div>
+        </div>
+    `;
+    
+    const modal = new bootstrap.Modal(document.getElementById('detalhesBackupModal'));
+    modal.show();
+}
+</script>
+{% endblock %} 

@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+
+{% block title %}Configurações - Sistema de Gestão Financeira{% endblock %}
+
+{% block page_title %}Configurações{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-cog"></i> Configurações do Sistema
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 col-lg-4 mb-4">
+                            <div class="card h-100 border-primary">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-university fa-3x text-primary mb-3"></i>
+                                    <h5 class="card-title">Contas Caixa</h5>
+                                    <p class="card-text">
+                                        Gerencie suas contas bancárias, caixa físico e outros meios de pagamento.
+                                    </p>
+                                    <a href="{{ url_for('contas_caixa') }}" class="btn btn-primary">
+                                        <i class="fas fa-arrow-right"></i> Gerenciar Contas
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6 col-lg-4 mb-4">
+                            <div class="card h-100 border-success">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-user-cog fa-3x text-success mb-3"></i>
+                                    <h5 class="card-title">Perfil</h5>
+                                    <p class="card-text">
+                                        Atualize suas informações pessoais e configurações de conta.
+                                    </p>
+                                    <a href="{{ url_for('perfil') }}" class="btn btn-success">
+                                        <i class="fas fa-arrow-right"></i> Editar Perfil
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6 col-lg-4 mb-4">
+                            <div class="card h-100 border-info">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-list-alt fa-3x text-info mb-3"></i>
+                                    <h5 class="card-title">Plano de Contas</h5>
+                                    <p class="card-text">
+                                        Configure categorias de receitas e despesas para melhor organização.
+                                    </p>
+                                    <a href="{{ url_for('plano_contas') }}" class="btn btn-info">
+                                        <i class="fas fa-arrow-right"></i> Gerenciar Contas
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        {% if session.usuario_tipo in ['usuario_principal', 'admin'] %}
+                        <div class="col-md-6 col-lg-4 mb-4">
+                            <div class="card h-100 border-warning">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-users-cog fa-3x text-warning mb-3"></i>
+                                    <h5 class="card-title">Usuários da Empresa</h5>
+                                    <p class="card-text">
+                                        Gerencie usuários, permissões e acessos da sua empresa.
+                                    </p>
+                                    <a href="{{ url_for('empresa_usuarios') }}" class="btn btn-warning">
+                                        <i class="fas fa-arrow-right"></i> Gerenciar Usuários
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="col-md-6 col-lg-4 mb-4">
+                            <div class="card h-100 border-danger">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-download fa-3x text-danger mb-3"></i>
+                                    <h5 class="card-title">Backup Completo</h5>
+                                    <p class="card-text">
+                                        Exporte todos os dados do sistema em Excel organizado e bonito.
+                                    </p>
+                                    <button type="button" class="btn btn-danger" onclick="exportarBackupGeral()">
+                                        <i class="fas fa-download"></i> Exportar Backup
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function exportarBackupGeral() {
+    // Mostrar loading
+    const btn = event.target;
+    const btnOriginal = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Gerando Backup...';
+    btn.disabled = true;
+    
+    // Criar elemento de download temporário
+    const link = document.createElement('a');
+    link.href = '/api/backup/exportar-geral';
+    link.download = 'backup_completo.xlsx';
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    
+    // Simular clique para iniciar download
+    link.click();
+    
+    // Remover elemento temporário
+    document.body.removeChild(link);
+    
+    // Restaurar botão após um tempo
+    setTimeout(() => {
+        btn.innerHTML = btnOriginal;
+        btn.disabled = false;
+        
+        // Mostrar mensagem de sucesso
+        const alertDiv = document.createElement('div');
+        alertDiv.className = 'alert alert-success alert-dismissible fade show';
+        alertDiv.innerHTML = `
+            <i class="fas fa-check-circle me-2"></i>
+            <strong>Backup gerado com sucesso!</strong> O arquivo Excel foi baixado automaticamente.
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        `;
+        
+        // Inserir alerta no topo da página
+        const container = document.querySelector('.container-fluid');
+        container.insertBefore(alertDiv, container.firstChild);
+        
+        // Remover alerta automaticamente após 5 segundos
+        setTimeout(() => {
+            if (alertDiv.parentNode) {
+                alertDiv.remove();
+            }
+        }, 5000);
+        
+    }, 2000);
+}
+</script>
+{% endblock %} 

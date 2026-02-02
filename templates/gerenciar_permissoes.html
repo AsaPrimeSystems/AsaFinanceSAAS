@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+
+{% block title %}Gerenciar Permissões - Sistema de Gestão Financeira{% endblock %}
+
+{% block page_title %}Gerenciar Permissões - {{ usuario.nome }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-key me-2"></i>
+                    Permissões do Usuário: {{ usuario.nome }}
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="table-responsive">
+                        <table class="table table-bordered">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Módulo</th>
+                                    <th>Visualizar</th>
+                                    <th>Criar</th>
+                                    <th>Editar</th>
+                                    <th>Deletar</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% set modulos = [
+                                    ('lancamentos', 'Lançamentos'),
+                                    ('clientes', 'Clientes'),
+                                    ('fornecedores', 'Fornecedores'),
+                                    ('estoque', 'Estoque'),
+                                    ('vendas', 'Vendas'),
+                                    ('compras', 'Compras'),
+                                    ('relatorios', 'Relatórios'),
+                                    ('configuracoes', 'Configurações')
+                                ] %}
+                                
+                                {% for modulo_codigo, modulo_nome in modulos %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ modulo_nome }}</strong>
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" 
+                                                   id="{{ modulo_codigo }}_visualizar" 
+                                                   name="{{ modulo_codigo }}_visualizar"
+                                                   {% if 'visualizar' in permissoes.get(modulo_codigo, []) %}checked{% endif %}>
+                                            <label class="form-check-label" for="{{ modulo_codigo }}_visualizar">
+                                                <i class="fas fa-eye"></i>
+                                            </label>
+                                        </div>
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" 
+                                                   id="{{ modulo_codigo }}_criar" 
+                                                   name="{{ modulo_codigo }}_criar"
+                                                   {% if 'criar' in permissoes.get(modulo_codigo, []) %}checked{% endif %}>
+                                            <label class="form-check-label" for="{{ modulo_codigo }}_criar">
+                                                <i class="fas fa-plus"></i>
+                                            </label>
+                                        </div>
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" 
+                                                   id="{{ modulo_codigo }}_editar" 
+                                                   name="{{ modulo_codigo }}_editar"
+                                                   {% if 'editar' in permissoes.get(modulo_codigo, []) %}checked{% endif %}>
+                                            <label class="form-check-label" for="{{ modulo_codigo }}_editar">
+                                                <i class="fas fa-edit"></i>
+                                            </label>
+                                        </div>
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" 
+                                                   id="{{ modulo_codigo }}_deletar" 
+                                                   name="{{ modulo_codigo }}_deletar"
+                                                   {% if 'deletar' in permissoes.get(modulo_codigo, []) %}checked{% endif %}>
+                                            <label class="form-check-label" for="{{ modulo_codigo }}_deletar">
+                                                <i class="fas fa-trash"></i>
+                                            </label>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between mt-4">
+                        <a href="{{ url_for('empresa_usuarios') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Voltar
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Salvar Permissões
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Lógica para marcar/desmarcar todas as permissões de um módulo
+    const modulos = ['lancamentos', 'clientes', 'fornecedores', 'estoque', 'vendas', 'compras', 'relatorios', 'configuracoes'];
+    const acoes = ['visualizar', 'criar', 'editar', 'deletar'];
+    
+    // Adicionar listeners para checkboxes
+    modulos.forEach(function(modulo) {
+        acoes.forEach(function(acao) {
+            const checkbox = document.getElementById(`${modulo}_${acao}`);
+            if (checkbox) {
+                checkbox.addEventListener('change', function() {
+                    // Se visualizar for desmarcado, desmarcar as outras permissões
+                    if (acao === 'visualizar' && !this.checked) {
+                        acoes.forEach(function(outraAcao) {
+                            if (outraAcao !== 'visualizar') {
+                                const outroCheckbox = document.getElementById(`${modulo}_${outraAcao}`);
+                                if (outroCheckbox) {
+                                    outroCheckbox.checked = false;
+                                }
+                            }
+                        });
+                    }
+                    
+                    // Se outras permissões forem marcadas, garantir que visualizar também esteja
+                    if (acao !== 'visualizar' && this.checked) {
+                        const visualizarCheckbox = document.getElementById(`${modulo}_visualizar`);
+                        if (visualizarCheckbox) {
+                            visualizarCheckbox.checked = true;
+                        }
+                    }
+                });
+            }
+        });
+    });
+});
+</script>
+{% endblock %} 

@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% block title %}Ajustar Estoque - Sistema de Gestão Financeira{% endblock %}
+
+{% block page_title %}Ajustar Estoque{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-exchange-alt me-2"></i>Ajustar Estoque
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Produto:</strong> {{ produto.nome }} | 
+                    <strong>Estoque Atual:</strong> {{ produto.estoque }} unidades
+                </div>
+                
+                <form method="POST">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="tipo_ajuste" class="form-label">Tipo de Ajuste *</label>
+                                <select class="form-select" id="tipo_ajuste" name="tipo_ajuste" required>
+                                    <option value="entrada">Entrada</option>
+                                    <option value="saida">Saída</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="quantidade" class="form-label">Quantidade *</label>
+                                <input type="number" class="form-control" id="quantidade" name="quantidade" min="1" value="1" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="motivo" class="form-label">Motivo do Ajuste *</label>
+                        <textarea class="form-control" id="motivo" name="motivo" rows="3" placeholder="Descreva o motivo do ajuste..." required></textarea>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('estoque') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-1"></i>Voltar
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i>Realizar Ajuste
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Validação do formulário
+    document.querySelector('form').addEventListener('submit', function(e) {
+        const tipoAjuste = document.getElementById('tipo_ajuste').value;
+        const quantidade = parseInt(document.getElementById('quantidade').value);
+        const estoqueAtual = {{ produto.estoque }};
+        
+        if (tipoAjuste === 'saida' && quantidade > estoqueAtual) {
+            e.preventDefault();
+            alert('Quantidade de saída não pode ser maior que o estoque atual (' + estoqueAtual + ' unidades).');
+            return false;
+        }
+        
+        if (quantidade <= 0) {
+            e.preventDefault();
+            alert('A quantidade deve ser maior que zero.');
+            return false;
+        }
+    });
+
+    // Atualizar preview do estoque
+    document.getElementById('quantidade').addEventListener('input', function() {
+        const tipoAjuste = document.getElementById('tipo_ajuste').value;
+        const quantidade = parseInt(this.value) || 0;
+        const estoqueAtual = {{ produto.estoque }};
+        
+        let novoEstoque = estoqueAtual;
+        if (tipoAjuste === 'entrada') {
+            novoEstoque = estoqueAtual + quantidade;
+        } else if (tipoAjuste === 'saida') {
+            novoEstoque = estoqueAtual - quantidade;
+        }
+        
+        // Atualizar preview se necessário
+        const preview = document.getElementById('preview-estoque');
+        if (preview) {
+            preview.textContent = novoEstoque + ' unidades';
+            preview.className = novoEstoque > 10 ? 'text-success' : novoEstoque > 0 ? 'text-warning' : 'text-danger';
+        }
+    });
+
+    document.getElementById('tipo_ajuste').addEventListener('change', function() {
+        // Trigger the quantity input event to update preview
+        document.getElementById('quantidade').dispatchEvent(new Event('input'));
+    });
+</script>
+{% endblock %} 

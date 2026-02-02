@@ -1,0 +1,265 @@
+{% extends "base.html" %}
+
+{% block title %}Fornecedores - Sistema de Gestão Financeira{% endblock %}
+
+{% block page_title %}Fornecedores{% endblock %}
+
+{% block content %}
+<div class="modern-panel">
+    <!-- Cabeçalho do Painel -->
+    <div class="modern-panel-header">
+        <h5 class="modern-panel-title">
+            <i class="fas fa-truck"></i>
+            Fornecedores
+        </h5>
+        <div class="modern-panel-actions">
+            <a href="{{ url_for('novo_fornecedor') }}" class="btn btn-primary btn-sm">
+                <i class="fas fa-plus me-1"></i>Novo Fornecedor
+            </a>
+        </div>
+    </div>
+    
+    <!-- Seção de Filtros -->
+    <div class="modern-filters">
+        <div class="modern-filter-group">
+            <label class="modern-filter-label">Buscar:</label>
+            <input type="text" class="modern-filter-input" id="filtro-busca" 
+                   placeholder="Nome, email ou telefone">
+        </div>
+        
+        <div class="modern-filter-group">
+            <label class="modern-filter-label">Tipo:</label>
+            <select class="modern-filter-input" id="filtro-tipo">
+                <option value="">Todos</option>
+                <option value="pessoa_fisica">Pessoa Física</option>
+                <option value="pessoa_juridica">Pessoa Jurídica</option>
+            </select>
+        </div>
+        
+        <div class="modern-filter-group">
+            <button class="btn btn-primary btn-sm" onclick="aplicarFiltros()">
+                <i class="fas fa-search"></i>
+            </button>
+            <button class="btn btn-secondary btn-sm" onclick="limparFiltros()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    </div>
+    
+    <!-- Controles de Paginação -->
+    <div class="modern-panel-controls">
+        <div class="modern-pagination-info">
+            Exibindo itens 1 - 50 de {{ fornecedores|length if fornecedores else 0 }}
+        </div>
+        <div class="modern-pagination-controls">
+            <button class="modern-pagination-btn" onclick="paginaAnterior()">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+            <span class="modern-page-selector">1</span>
+            <button class="modern-pagination-btn" onclick="proximaPagina()">
+                <i class="fas fa-chevron-right"></i>
+            </button>
+        </div>
+    </div>
+    
+    <!-- Ações em Lote -->
+    <div class="modern-batch-actions" id="batch-actions" style="display:none;">
+        <div class="modern-batch-info">
+            <span id="selected-count">0</span> fornecedor(es) selecionado(s)
+        </div>
+        <div class="modern-batch-buttons">
+            <button class="modern-batch-btn danger" id="btn-excluir-lote">
+                <i class="fas fa-trash me-1"></i>Excluir Selecionados
+            </button>
+            <button class="modern-batch-btn secondary" id="btn-deselecionar-todos">
+                <i class="fas fa-times me-1"></i>Deselecionar Todos
+            </button>
+        </div>
+    </div>
+    
+    <!-- Tabela Principal -->
+    <div class="modern-table-container">
+        <table class="modern-table">
+            <thead>
+                <tr>
+                    <th class="modern-checkbox-col">
+                        <input type="checkbox" id="select-all" class="modern-checkbox">
+                    </th>
+                    <th class="modern-data-col">Nome</th>
+                    <th class="modern-data-col">Email</th>
+                    <th class="modern-data-col">Telefone</th>
+                    <th class="modern-data-col">CPF/CNPJ</th>
+                    <th class="modern-actions-col">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if fornecedores %}
+                    {% for fornecedor in fornecedores %}
+                    <tr>
+                        <td class="modern-checkbox-col">
+                            <input type="checkbox" class="modern-checkbox fornecedor-checkbox" 
+                                   value="{{ fornecedor.id }}">
+                        </td>
+                        <td class="modern-data-col" title="{{ fornecedor.nome }}">
+                            <strong>{{ fornecedor.nome[:25] + '...' if fornecedor.nome|length > 25 else fornecedor.nome }}</strong>
+                        </td>
+                        <td class="modern-data-col" title="{{ fornecedor.email or '-' }}">
+                            {{ (fornecedor.email[:20] + '...' if fornecedor.email and fornecedor.email|length > 20 else fornecedor.email) or '-' }}
+                        </td>
+                        <td class="modern-data-col" title="{{ fornecedor.telefone or '-' }}">
+                            {{ fornecedor.telefone or '-' }}
+                        </td>
+                        <td class="modern-data-col" title="{{ fornecedor.cpf_cnpj or '-' }}">
+                            {{ fornecedor.cpf_cnpj or '-' }}
+                        </td>
+                        <td class="modern-actions-col">
+                            <button class="modern-action-btn edit" 
+                                    onclick="editarFornecedor({{ fornecedor.id }})"
+                                    title="Editar">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="modern-action-btn delete" 
+                                    onclick="excluirFornecedor({{ fornecedor.id }})"
+                                    title="Excluir">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="10" class="text-center py-4 text-muted">
+                            <i class="fas fa-truck fa-2x mb-2"></i><br>
+                            Nenhum fornecedor encontrado
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- Rodapé com Totais -->
+    <div class="modern-panel-footer">
+        <div class="modern-totals">
+            <div>
+                <span class="modern-total-label">Total de Fornecedores:</span>
+                <span class="modern-total-value">{{ fornecedores|length if fornecedores else 0 }}</span>
+            </div>
+            <div>
+                <span class="modern-total-label">Fornecedores Ativos:</span>
+                <span class="modern-total-value positive">{{ fornecedores|selectattr('ativo')|list|length if fornecedores else 0 }}</span>
+            </div>
+            <div>
+                <span class="modern-total-label">Total em Compras:</span>
+                <span class="modern-total-value negative">
+                    R$ {{ "%.2f"|format(fornecedores|sum(attribute='total_compras') or 0) if fornecedores else '0,00' }}
+                </span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Funções de filtro
+function aplicarFiltros() {
+    const status = document.getElementById('filtro-status').value;
+    const busca = document.getElementById('filtro-busca').value;
+    const tipo = document.getElementById('filtro-tipo').value;
+    
+    // Construir URL com parâmetros
+    const params = new URLSearchParams();
+    if (status) params.append('status', status);
+    if (busca) params.append('busca', busca);
+    if (tipo) params.append('tipo', tipo);
+    
+    // Redirecionar com filtros
+    window.location.href = window.location.pathname + '?' + params.toString();
+}
+
+function limparFiltros() {
+    document.getElementById('filtro-status').value = '';
+    document.getElementById('filtro-busca').value = '';
+    document.getElementById('filtro-tipo').value = '';
+    window.location.href = window.location.pathname;
+}
+
+// Funções de seleção em lote
+document.getElementById('select-all').addEventListener('change', function() {
+    const checkboxes = document.querySelectorAll('.fornecedor-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = this.checked;
+    });
+    atualizarAcoesLote();
+});
+
+document.querySelectorAll('.fornecedor-checkbox').forEach(checkbox => {
+    checkbox.addEventListener('change', atualizarAcoesLote);
+});
+
+function atualizarAcoesLote() {
+    const selecionados = document.querySelectorAll('.fornecedor-checkbox:checked');
+    const batchActions = document.getElementById('batch-actions');
+    const selectedCount = document.getElementById('selected-count');
+    if (selecionados.length > 0) {
+        batchActions.classList.add('active');
+        batchActions.style.display = 'flex';
+        selectedCount.textContent = selecionados.length;
+    } else {
+        batchActions.classList.remove('active');
+        batchActions.style.display = 'none';
+    }
+}
+
+// Excluir em lote
+document.getElementById('btn-excluir-lote').addEventListener('click', function(e){
+    e.preventDefault();
+    const selecionados = Array.from(document.querySelectorAll('.fornecedor-checkbox:checked')).map(cb => cb.value);
+    if (selecionados.length === 0) return;
+    if (!confirm(`Excluir ${selecionados.length} fornecedor(es) selecionado(s)?`)) return;
+    fetch('/api/fornecedores/excluir-lote', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fornecedor_ids: selecionados })
+    }).then(r => r.json()).then(data => {
+        if (data.success) location.reload(); else alert(data.error || 'Erro ao excluir');
+    }).catch(() => alert('Erro ao excluir'));
+});
+
+// Deselecionar todos
+document.getElementById('btn-deselecionar-todos').addEventListener('click', function(e){
+    e.preventDefault();
+    document.getElementById('select-all').checked = false;
+    document.querySelectorAll('.fornecedor-checkbox').forEach(cb => cb.checked = false);
+    atualizarAcoesLote();
+});
+
+// Funções de ação
+function editarFornecedor(id) {
+    window.location.href = `/fornecedores/${id}/editar`;
+}
+
+function excluirFornecedor(id) {
+    if (confirm('Tem certeza que deseja excluir este fornecedor?')) {
+        // Implementar exclusão via AJAX ou redirecionamento
+        window.location.href = `/fornecedores/${id}/deletar`;
+    }
+}
+
+// Busca em tempo real
+document.getElementById('filtro-busca').addEventListener('input', function(e) {
+    const termo = e.target.value.toLowerCase();
+    const linhas = document.querySelectorAll('.modern-table tbody tr');
+    
+    linhas.forEach(linha => {
+        const nome = linha.querySelector('td:nth-child(2)').textContent.toLowerCase();
+        const email = linha.querySelector('td:nth-child(3)').textContent.toLowerCase();
+        const telefone = linha.querySelector('td:nth-child(4)').textContent.toLowerCase();
+        
+        if (nome.includes(termo) || email.includes(termo) || telefone.includes(termo)) {
+            linha.style.display = '';
+        } else {
+            linha.style.display = 'none';
+        }
+    });
+});
+</script>
+{% endblock %}

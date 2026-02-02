@@ -1,0 +1,308 @@
+{% extends "base.html" %}
+
+{% block title %}Produtos - Sistema de Gestão Financeira{% endblock %}
+
+{% block page_title %}Produtos{% endblock %}
+
+{% block content %}
+<div class="modern-panel">
+    <!-- Cabeçalho do Painel -->
+    <div class="modern-panel-header">
+        <h5 class="modern-panel-title">
+            <i class="fas fa-boxes"></i>
+            Produtos
+        </h5>
+        <div class="modern-panel-actions">
+            <a href="{{ url_for('novo_produto') }}" class="btn btn-primary btn-sm">
+                <i class="fas fa-plus me-1"></i>Novo Produto
+            </a>
+        </div>
+    </div>
+    
+    <!-- Seção de Filtros -->
+    <div class="modern-filters">
+        <div class="modern-filter-group">
+            <label class="modern-filter-label">Categoria:</label>
+            <select class="modern-filter-input" id="filtro-categoria">
+                <option value="">Todas</option>
+                {% for categoria in categorias %}
+                    <option value="{{ categoria }}">{{ categoria }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div class="modern-filter-group">
+            <label class="modern-filter-label">Status:</label>
+            <select class="modern-filter-input" id="filtro-status">
+                <option value="">Todos</option>
+                <option value="ativo">Ativo</option>
+                <option value="inativo">Inativo</option>
+            </select>
+        </div>
+        
+        <div class="modern-filter-group">
+            <label class="modern-filter-label">Estoque:</label>
+            <select class="modern-filter-input" id="filtro-estoque">
+                <option value="">Todos</option>
+                <option value="em_estoque">Em Estoque</option>
+                <option value="sem_estoque">Sem Estoque</option>
+                <option value="estoque_baixo">Estoque Baixo</option>
+            </select>
+        </div>
+        
+        <div class="modern-filter-group">
+            <label class="modern-filter-label">Buscar:</label>
+            <input type="text" class="modern-filter-input" id="filtro-busca" 
+                   placeholder="Nome do produto">
+        </div>
+        
+        <div class="modern-filter-group">
+            <button class="btn btn-primary btn-sm" onclick="aplicarFiltros()">
+                <i class="fas fa-search"></i>
+            </button>
+            <button class="btn btn-secondary btn-sm" onclick="limparFiltros()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    </div>
+    
+    <!-- Controles de Paginação -->
+    <div class="modern-panel-controls">
+        <div class="modern-pagination-info">
+            Exibindo itens 1 - 50 de {{ produtos|length if produtos else 0 }}
+        </div>
+        <div class="modern-pagination-controls">
+            <button class="modern-pagination-btn" onclick="paginaAnterior()">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+            <span class="modern-page-selector">1</span>
+            <button class="modern-pagination-btn" onclick="proximaPagina()">
+                <i class="fas fa-chevron-right"></i>
+            </button>
+        </div>
+    </div>
+    
+    <!-- Ações em Lote -->
+    <div class="modern-batch-actions" id="batch-actions" style="display:none;">
+        <div class="modern-batch-info">
+            <span id="selected-count">0</span> produto(s) selecionado(s)
+        </div>
+        <div class="modern-batch-buttons">
+            <button class="modern-batch-btn danger" id="btn-excluir-lote">
+                <i class="fas fa-trash me-1"></i>Excluir Selecionados
+            </button>
+            <button class="modern-batch-btn secondary" id="btn-deselecionar-todos">
+                <i class="fas fa-times me-1"></i>Deselecionar Todos
+            </button>
+        </div>
+    </div>
+    
+    <!-- Tabela Principal -->
+    <div class="modern-table-container">
+        <table class="modern-table">
+            <thead>
+                <tr>
+                    <th class="modern-checkbox-col">
+                        <input type="checkbox" id="select-all" class="modern-checkbox">
+                    </th>
+                    <th class="modern-data-col">Produto</th>
+                    <th class="modern-data-col">ID</th>
+                    <th class="modern-data-col">Descrição</th>
+                    <th class="modern-value-col">Preço Venda</th>
+                    <th class="modern-value-col">Estoque</th>
+                    <th class="modern-status-col">Status</th>
+                    <th class="modern-actions-col">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if produtos %}
+                    {% for produto in produtos %}
+                    <tr>
+                        <td class="modern-checkbox-col">
+                            <input type="checkbox" class="modern-checkbox produto-checkbox" 
+                                   value="{{ produto.id }}">
+                        </td>
+                        <td class="modern-data-col" title="{{ produto.nome }}">
+                            <strong>{{ produto.nome[:30] + '...' if produto.nome|length > 30 else produto.nome }}</strong>
+                        </td>
+                        <td class="modern-data-col">
+                            {{ produto.id }}
+                        </td>
+                        <td class="modern-data-col">
+                            {{ produto.descricao or '-' }}
+                        </td>
+                        <td class="modern-value-col positive">
+                            R$ {{ "%.2f"|format(produto.preco_venda or 0) }}
+                        </td>
+                        <td class="modern-value-col {{ 'positive' if (produto.estoque or 0) > 0 else 'negative' }}">
+                            {{ produto.estoque or 0 }}
+                        </td>
+                        <td class="modern-status-col">
+                            {% set estoque_qtd = produto.estoque or 0 %}
+                            {% if estoque_qtd == 0 %}
+                                <span class="modern-status-badge pending">
+                                    Sem estoque
+                                </span>
+                            {% elif estoque_qtd >= 1 and estoque_qtd <= 5 %}
+                                <span class="modern-status-badge pending">
+                                    Estoque baixo
+                                </span>
+                            {% else %}
+                                <span class="modern-status-badge completed">
+                                    Em estoque
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="modern-actions-col">
+                            <button class="modern-action-btn edit" 
+                                    onclick="editarProduto({{ produto.id }})"
+                                    title="Editar">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="modern-action-btn delete" 
+                                    onclick="excluirProduto({{ produto.id }})"
+                                    title="Excluir">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="8" class="text-center py-4 text-muted">
+                            <i class="fas fa-boxes fa-2x mb-2"></i><br>
+                            Nenhum produto encontrado
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- Rodapé com Totais -->
+    <div class="modern-panel-footer">
+        <div class="modern-totals">
+            <div>
+                <span class="modern-total-label">Total de Produtos:</span>
+                <span class="modern-total-value">{{ produtos|length if produtos else 0 }}</span>
+            </div>
+            <div>
+                <span class="modern-total-label">Produtos Ativos:</span>
+                <span class="modern-total-value positive">{{ produtos|selectattr('ativo')|list|length if produtos else 0 }}</span>
+            </div>
+            <div>
+                <span class="modern-total-label">Valor Total Estoque:</span>
+                <span class="modern-total-value positive">
+                    R$ {{ "%.2f"|format(produtos|sum(attribute='valor_estoque') or 0) if produtos else '0,00' }}
+                </span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Funções de filtro
+function aplicarFiltros() {
+    const categoria = document.getElementById('filtro-categoria').value;
+    const status = document.getElementById('filtro-status').value;
+    const estoque = document.getElementById('filtro-estoque').value;
+    const busca = document.getElementById('filtro-busca').value;
+    
+    // Construir URL com parâmetros
+    const params = new URLSearchParams();
+    if (categoria) params.append('categoria', categoria);
+    if (status) params.append('status', status);
+    if (estoque) params.append('estoque', estoque);
+    if (busca) params.append('busca', busca);
+    
+    // Redirecionar com filtros
+    window.location.href = window.location.pathname + '?' + params.toString();
+}
+
+function limparFiltros() {
+    document.getElementById('filtro-categoria').value = '';
+    document.getElementById('filtro-status').value = '';
+    document.getElementById('filtro-estoque').value = '';
+    document.getElementById('filtro-busca').value = '';
+    window.location.href = window.location.pathname;
+}
+
+// Funções de seleção em lote
+document.getElementById('select-all').addEventListener('change', function() {
+    const checkboxes = document.querySelectorAll('.produto-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = this.checked;
+    });
+    atualizarAcoesLote();
+});
+
+document.querySelectorAll('.produto-checkbox').forEach(checkbox => {
+    checkbox.addEventListener('change', atualizarAcoesLote);
+});
+
+function atualizarAcoesLote() {
+    const selecionados = document.querySelectorAll('.produto-checkbox:checked');
+    const batchActions = document.getElementById('batch-actions');
+    const selectedCount = document.getElementById('selected-count');
+    
+    if (selecionados.length > 0) {
+        batchActions.classList.add('active');
+        batchActions.style.display = 'flex';
+        selectedCount.textContent = selecionados.length;
+    } else {
+        batchActions.classList.remove('active');
+        batchActions.style.display = 'none';
+    }
+}
+
+// Funções de ação
+function editarProduto(id) {
+    window.location.href = `/estoque/produto/${id}/editar`;
+}
+
+function excluirProduto(id) {
+    if (confirm('Tem certeza que deseja excluir este produto?')) {
+        window.location.href = `/estoque/produto/${id}/deletar`;
+    }
+}
+
+// Busca em tempo real
+document.getElementById('filtro-busca').addEventListener('input', function(e) {
+    const termo = e.target.value.toLowerCase();
+    const linhas = document.querySelectorAll('.modern-table tbody tr');
+    
+    linhas.forEach(linha => {
+        const nome = linha.querySelector('td:nth-child(2)').textContent.toLowerCase();
+        const codigo = linha.querySelector('td:nth-child(3)').textContent.toLowerCase();
+        
+        if (nome.includes(termo) || codigo.includes(termo)) {
+            linha.style.display = '';
+        } else {
+            linha.style.display = 'none';
+        }
+    });
+});
+
+// Excluir em lote
+document.getElementById('btn-excluir-lote').addEventListener('click', function(e){
+    e.preventDefault();
+    const selecionados = Array.from(document.querySelectorAll('.produto-checkbox:checked')).map(cb => cb.value);
+    if (selecionados.length === 0) return;
+    if (!confirm(`Excluir ${selecionados.length} produto(s) selecionado(s)?`)) return;
+    fetch('/api/produtos/excluir-lote', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ produto_ids: selecionados })
+    }).then(r => r.json()).then(data => {
+        if (data.success) location.reload(); else alert(data.error || 'Erro ao excluir');
+    }).catch(() => alert('Erro ao excluir'));
+});
+
+// Deselecionar todos
+document.getElementById('btn-deselecionar-todos').addEventListener('click', function(e){
+    e.preventDefault();
+    document.getElementById('select-all').checked = false;
+    document.querySelectorAll('.produto-checkbox').forEach(cb => cb.checked = false);
+    atualizarAcoesLote();
+});
+</script>
+{% endblock %}

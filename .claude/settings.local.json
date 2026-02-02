@@ -1,0 +1,42 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pip install:*)",
+      "Bash(python app.py:*)",
+      "Bash(python:*)",
+      "Bash(cat:*)",
+      "Bash(lsof:*)",
+      "Bash(xargs kill:*)",
+      "Bash(curl:*)",
+      "Bash(python3:*)",
+      "Bash(brew install:*)",
+      "Bash(unzip:*)",
+      "Bash(sudo mv:*)",
+      "Bash(chmod:*)",
+      "Bash(ngrok version:*)",
+      "Bash(~/.zshrc)",
+      "Bash(export PATH=\"$HOME/bin:$PATH\")",
+      "Bash(~/bin/ngrok config add-authtoken:*)",
+      "Bash(~/bin/ngrok http:*)",
+      "Bash(pkill:*)",
+      "Bash(kill:*)",
+      "Bash(grep:*)",
+      "Bash(awk:*)",
+      "Bash(sqlite3:*)",
+      "Bash(sudo /usr/libexec/ApplicationFirewall/socketfilterfw:*)",
+      "Bash(./INICIAR_SISTEMA.sh)",
+      "Bash(# Check where the redirect goes curl -s -c /tmp/cookies2.txt -b /tmp/cookies2.txt http://localhost:8002/relatorios/saldos -D - -o /dev/null)",
+      "Bash(comm:*)",
+      "Bash(find:*)",
+      "Bash(ls:*)",
+      "Read(//Users/danielcoelho/Documents/ASA PRIME SYSTEMS/PROJETOS DANIEL/SAAS-GESTAO-FINANCEIRA/**)",
+      "Bash(wc:*)",
+      "Bash(if [ -f .gitignore ])",
+      "Bash(then echo \"Arquivo .gitignore já existe\")",
+      "Bash(else echo \"Arquivo .gitignore não existe\")",
+      "Bash(fi:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

@@ -1,0 +1,234 @@
+/* CSS PROFISSIONAL PARA RELATÓRIOS - CORES: PRETO, VERDE, VERMELHO */
+
+/* Cards de Resumo Geral */
+.card.bg-success {
+    background-color: #28a745 !important;
+    border-color: #28a745 !important;
+}
+
+.card.bg-danger {
+    background-color: #dc3545 !important;
+    border-color: #dc3545 !important;
+}
+
+.card.bg-warning {
+    background-color: #000000 !important;
+    border-color: #000000 !important;
+}
+
+.card.bg-info {
+    background-color: #000000 !important;
+    border-color: #000000 !important;
+}
+
+.card.bg-primary {
+    background-color: #000000 !important;
+    border-color: #000000 !important;
+}
+
+/* Cards com cores dinâmicas baseadas em valores */
+.card.positive {
+    background-color: #28a745 !important;
+    border-color: #28a745 !important;
+    color: white !important;
+}
+
+.card.negative {
+    background-color: #dc3545 !important;
+    border-color: #dc3545 !important;
+    color: white !important;
+}
+
+.card.neutral {
+    background-color: #000000 !important;
+    border-color: #000000 !important;
+    color: white !important;
+}
+
+/* Tabelas de relatórios */
+.report-table {
+    border: 1px solid #000000;
+}
+
+.report-table thead th {
+    background-color: #000000 !important;
+    color: white !important;
+    border-color: #000000 !important;
+    font-weight: 600;
+    text-align: center;
+}
+
+.report-table tbody td {
+    border-color: #dee2e6 !important;
+    vertical-align: middle;
+}
+
+.report-table tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+/* Valores positivos (verde) */
+.value-positive {
+    color: #28a745 !important;
+    font-weight: 600;
+}
+
+.value-positive::before {
+    content: "+";
+}
+
+/* Valores negativos (vermelho) */
+.value-negative {
+    color: #dc3545 !important;
+    font-weight: 600;
+}
+
+/* Valores neutros (preto) */
+.value-neutral {
+    color: #000000 !important;
+    font-weight: 600;
+}
+
+/* Badges de status */
+.badge.bg-success {
+    background-color: #28a745 !important;
+}
+
+.badge.bg-danger {
+    background-color: #dc3545 !important;
+}
+
+.badge.bg-warning {
+    background-color: #000000 !important;
+}
+
+.badge.bg-info {
+    background-color: #000000 !important;
+}
+
+.badge.bg-primary {
+    background-color: #000000 !important;
+}
+
+/* Gráficos e elementos visuais */
+.chart-container {
+    border: 1px solid #000000;
+    background-color: #ffffff;
+}
+
+.progress-bar.bg-success {
+    background-color: #28a745 !important;
+}
+
+.progress-bar.bg-danger {
+    background-color: #dc3545 !important;
+}
+
+.progress-bar.bg-warning {
+    background-color: #000000 !important;
+}
+
+/* Botões de ação */
+.btn-success {
+    background-color: #28a745 !important;
+    border-color: #28a745 !important;
+}
+
+.btn-danger {
+    background-color: #dc3545 !important;
+    border-color: #dc3545 !important;
+}
+
+.btn-dark {
+    background-color: #000000 !important;
+    border-color: #000000 !important;
+}
+
+/* Cards de categoria */
+.category-card.positive {
+    border-left: 4px solid #28a745 !important;
+}
+
+.category-card.negative {
+    border-left: 4px solid #dc3545 !important;
+}
+
+.category-card.neutral {
+    border-left: 4px solid #000000 !important;
+}
+
+/* Indicadores de tendência */
+.trend-up {
+    color: #28a745 !important;
+}
+
+.trend-down {
+    color: #dc3545 !important;
+}
+
+.trend-neutral {
+    color: #000000 !important;
+}
+
+/* Headers de seção */
+.section-header {
+    background-color: #000000 !important;
+    color: white !important;
+    padding: 10px 15px;
+    margin-bottom: 15px;
+    border-radius: 4px;
+}
+
+/* Totais e sumários */
+.total-row {
+    background-color: #f8f9fa !important;
+    border-top: 2px solid #000000 !important;
+    font-weight: 600;
+}
+
+.total-row td {
+    border-color: #000000 !important;
+}
+
+/* Alertas e notificações */
+.alert-success {
+    background-color: #d4edda !important;
+    border-color: #28a745 !important;
+    color: #155724 !important;
+}
+
+.alert-danger {
+    background-color: #f8d7da !important;
+    border-color: #dc3545 !important;
+    color: #721c24 !important;
+}
+
+.alert-info {
+    background-color: #e9ecef !important;
+    border-color: #000000 !important;
+    color: #000000 !important;
+}
+
+/* Ícones coloridos */
+.fa-arrow-up {
+    color: #28a745 !important;
+}
+
+.fa-arrow-down {
+    color: #dc3545 !important;
+}
+
+.fa-minus {
+    color: #000000 !important;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    .card-body h3 {
+        font-size: 1.5rem;
+    }
+    
+    .card-body h4 {
+        font-size: 1rem;
+    }
+}

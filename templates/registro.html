@@ -1,0 +1,341 @@
+{% extends "base.html" %}
+
+{% block title %}Registro - Asa Finance{% endblock %}
+
+{% block auth_content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-10 col-lg-8">
+            <div class="card shadow-lg mt-5">
+                <div class="card-body p-5">
+                    <div class="text-center mb-4">
+                        <i class="fas fa-user-plus fa-3x text-primary mb-3"></i>
+                        <h2 class="card-title">Criar Conta</h2>
+                        <p class="text-muted">Preencha os dados da empresa e do usuário principal</p>
+                    </div>
+                    
+                    <form method="POST" action="{{ url_for('registro') }}">
+                        <!-- Dados da Empresa -->
+                        <h5 class="mb-3 text-primary">
+                            <i class="fas fa-building me-2"></i>Dados da Empresa
+                        </h5>
+                        
+                        <!-- Tipo de Pessoa -->
+                        <div class="row mb-3">
+                            <div class="col-12">
+                                <label class="form-label">Tipo de Pessoa *</label>
+                                <div class="d-flex gap-3 flex-wrap">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="tipo_pessoa" id="tipo_pf" value="PF" required>
+                                        <label class="form-check-label" for="tipo_pf">
+                                            <i class="fas fa-user me-1"></i>Pessoa Física (CPF)
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="tipo_pessoa" id="tipo_pj" value="PJ" required>
+                                        <label class="form-check-label" for="tipo_pj">
+                                            <i class="fas fa-building me-1"></i>Pessoa Jurídica (CNPJ)
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="tipo_pessoa" id="tipo_contador" value="CONTADOR" required>
+                                        <label class="form-check-label" for="tipo_contador">
+                                            <i class="fas fa-calculator me-1"></i>Contador/BPO
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Campo CPF (inicialmente oculto) -->
+                        <div class="row" id="cpf_field" style="display: none;">
+                            <div class="col-md-6 mb-3">
+                                <label for="cpf" class="form-label">CPF *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="fas fa-id-card"></i>
+                                    </span>
+                                    <input type="text" class="form-control" id="cpf" name="cpf" 
+                                           placeholder="000.000.000-00">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Campo CNPJ (inicialmente oculto) -->
+                        <div class="row" id="cnpj_field" style="display: none;">
+                            <div class="col-md-6 mb-3">
+                                <label for="cnpj" class="form-label" id="cnpj_label">CNPJ *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="fas fa-id-card"></i>
+                                    </span>
+                                    <input type="text" class="form-control" id="cnpj" name="cnpj" 
+                                           placeholder="00.000.000/0000-00">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="razao_social" class="form-label">Razão Social / Nome Completo *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="fas fa-building"></i>
+                                    </span>
+                                    <input type="text" class="form-control" id="razao_social" name="razao_social" required>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="nome_fantasia" class="form-label">Nome Fantasia / Nome Social</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="fas fa-store"></i>
+                                    </span>
+                                    <input type="text" class="form-control" id="nome_fantasia" name="nome_fantasia">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row" id="tipo_empresa_field">
+                            <div class="col-md-6 mb-3">
+                                <label for="tipo_empresa" class="form-label">Tipo de Empresa *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="fas fa-industry"></i>
+                                    </span>
+                                    <select class="form-select" id="tipo_empresa" name="tipo_empresa" required>
+                                        <option value="">Selecione...</option>
+                                        <option value="servicos">Serviços</option>
+                                        <option value="comercio">Comércio</option>
+                                        <option value="industria">Indústria</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="telefone" class="form-label">Telefone</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="fas fa-phone"></i>
+                                    </span>
+                                    <input type="text" class="form-control" id="telefone" name="telefone" placeholder="(00) 00000-0000">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="email" class="form-label">Email *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="fas fa-envelope"></i>
+                                    </span>
+                                    <input type="email" class="form-control" id="email" name="email" required>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="endereco_empresa" class="form-label">Endereço</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="fas fa-map-marker-alt"></i>
+                                    </span>
+                                    <input type="text" class="form-control" id="endereco_empresa" name="endereco_empresa">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Dados do Usuário -->
+                        <h5 class="mb-3 text-primary mt-4">
+                            <i class="fas fa-user me-2"></i>Dados do Usuário Principal
+                        </h5>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="nome" class="form-label">Nome Completo *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="fas fa-user"></i>
+                                    </span>
+                                    <input type="text" class="form-control" id="nome" name="nome" required>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="usuario" class="form-label">Nome de Usuário *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="fas fa-at"></i>
+                                    </span>
+                                    <input type="text" class="form-control" id="usuario" name="usuario" required>
+                                </div>
+                                <div class="form-text">Este será seu nome de usuário para login</div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="senha" class="form-label">Senha *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="fas fa-lock"></i>
+                                    </span>
+                                    <input type="password" class="form-control" id="senha" name="senha" required>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-user-plus me-2"></i>Criar Conta
+                            </button>
+                        </div>
+                    </form>
+                    
+                    <div class="text-center mt-4">
+                        <p class="mb-0">Já tem uma conta?</p>
+                        <a href="{{ url_for('login') }}" class="btn btn-link">Fazer login</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const tipoPessoaRadios = document.querySelectorAll('input[name="tipo_pessoa"]');
+    const cpfField = document.getElementById('cpf_field');
+    const cnpjField = document.getElementById('cnpj_field');
+    const cpfInput = document.getElementById('cpf');
+    const cnpjInput = document.getElementById('cnpj');
+    const tipoEmpresaField = document.getElementById('tipo_empresa_field');
+    const tipoEmpresaSelect = document.getElementById('tipo_empresa');
+    
+    const cnpjLabel = document.getElementById('cnpj_label');
+    
+    // Função para mostrar/ocultar campos baseado no tipo de pessoa
+    function toggleFields() {
+        const selectedType = document.querySelector('input[name="tipo_pessoa"]:checked');
+        
+        if (selectedType) {
+            if (selectedType.value === 'PF') {
+                cpfField.style.display = 'block';
+                cnpjField.style.display = 'none';
+                cpfInput.required = true;
+                cnpjInput.required = false;
+                cnpjInput.value = '';
+                cnpjLabel.textContent = 'CNPJ *';
+                cnpjInput.placeholder = '00.000.000/0000-00';
+                tipoEmpresaField.style.display = 'flex';
+                tipoEmpresaSelect.required = true;
+                tipoEmpresaSelect.value = '';
+            } else if (selectedType.value === 'PJ') {
+                cpfField.style.display = 'none';
+                cnpjField.style.display = 'block';
+                cpfInput.required = false;
+                cnpjInput.required = true;
+                cpfInput.value = '';
+                cnpjLabel.textContent = 'CNPJ *';
+                cnpjInput.placeholder = '00.000.000/0000-00';
+                tipoEmpresaField.style.display = 'flex';
+                tipoEmpresaSelect.required = true;
+                tipoEmpresaSelect.value = '';
+            } else if (selectedType.value === 'CONTADOR') {
+                cpfField.style.display = 'none';
+                cnpjField.style.display = 'block';
+                cpfInput.required = false;
+                cnpjInput.required = true;
+                cpfInput.value = '';
+                cnpjLabel.textContent = 'CPF/CNPJ *';
+                // Atualizar placeholder para aceitar ambos
+                cnpjInput.placeholder = '000.000.000-00 ou 00.000.000/0000-00';
+                // Ocultar campo Tipo de Empresa e definir como "servicos"
+                tipoEmpresaField.style.display = 'none';
+                tipoEmpresaSelect.required = false;
+                tipoEmpresaSelect.value = 'servicos';
+            }
+        } else {
+            cpfField.style.display = 'none';
+            cnpjField.style.display = 'none';
+            cpfInput.required = false;
+            cnpjInput.required = false;
+            cnpjLabel.textContent = 'CNPJ *';
+            cnpjInput.placeholder = '00.000.000/0000-00';
+            tipoEmpresaField.style.display = 'flex';
+            tipoEmpresaSelect.required = true;
+            tipoEmpresaSelect.value = '';
+        }
+    }
+    
+    // Adicionar event listeners para os radio buttons
+    tipoPessoaRadios.forEach(radio => {
+        radio.addEventListener('change', toggleFields);
+    });
+    
+    // Máscara para CPF
+    cpfInput.addEventListener('input', function(e) {
+        let value = e.target.value.replace(/\D/g, '');
+        
+        if (value.length <= 11) {
+            value = value.replace(/^(\d{3})(\d)/, '$1.$2');
+            value = value.replace(/^(\d{3})\.(\d{3})(\d)/, '$1.$2.$3');
+            value = value.replace(/\.(\d{3})(\d)/, '.$1-$2');
+        }
+        
+        e.target.value = value;
+    });
+    
+    // Máscara para CNPJ (ou CPF quando for Contador/BPO)
+    cnpjInput.addEventListener('input', function(e) {
+        let value = e.target.value.replace(/\D/g, '');
+        const selectedType = document.querySelector('input[name="tipo_pessoa"]:checked');
+        
+        // Se for Contador/BPO, aplicar máscara de CPF ou CNPJ dependendo do tamanho
+        if (selectedType && selectedType.value === 'CONTADOR') {
+            if (value.length <= 11) {
+                // Máscara de CPF
+                value = value.replace(/^(\d{3})(\d)/, '$1.$2');
+                value = value.replace(/^(\d{3})\.(\d{3})(\d)/, '$1.$2.$3');
+                value = value.replace(/\.(\d{3})(\d)/, '.$1-$2');
+            } else if (value.length <= 14) {
+                // Máscara de CNPJ
+                value = value.replace(/^(\d{2})(\d)/, '$1.$2');
+                value = value.replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3');
+                value = value.replace(/\.(\d{3})(\d)/, '.$1/$2');
+                value = value.replace(/(\d{4})(\d)/, '$1-$2');
+            }
+        } else {
+            // Máscara de CNPJ padrão
+            if (value.length <= 14) {
+                value = value.replace(/^(\d{2})(\d)/, '$1.$2');
+                value = value.replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3');
+                value = value.replace(/\.(\d{3})(\d)/, '.$1/$2');
+                value = value.replace(/(\d{4})(\d)/, '$1-$2');
+            }
+        }
+        
+        e.target.value = value;
+    });
+    
+    // Máscara para telefone
+    const telefoneInput = document.getElementById('telefone');
+    telefoneInput.addEventListener('input', function(e) {
+        let value = e.target.value.replace(/\D/g, '');
+        
+        if (value.length <= 11) {
+            if (value.length <= 10) {
+                value = value.replace(/^(\d{2})(\d)/, '($1) $2');
+                value = value.replace(/(\d{4})(\d)/, '$1-$2');
+            } else {
+                value = value.replace(/^(\d{2})(\d)/, '($1) $2');
+                value = value.replace(/(\d{5})(\d)/, '$1-$2');
+            }
+        }
+        
+        e.target.value = value;
+    });
+});
+</script>
+{% endblock %} 

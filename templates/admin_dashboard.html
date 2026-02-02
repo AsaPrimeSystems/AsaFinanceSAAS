@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard Administrativo - Sistema de Gestão Financeira{% endblock %}
+
+{% block page_title %}Dashboard Administrativo{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="alert alert-info">
+            <h5><i class="fas fa-info-circle"></i> Bem-vindo ao Painel Administrativo</h5>
+            <p>Este painel é destinado exclusivamente ao gerenciamento de usuários do sistema. Aqui você pode:</p>
+            <ul>
+                <li>Visualizar todos os usuários cadastrados</li>
+                <li>Ativar/desativar contas de usuários</li>
+                <li>Pausar/despausar contas de usuários</li>
+                <li>Alterar senhas de usuários</li>
+                <li>Gerenciar permissões de usuários</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<div class="row" id="quadrinhosAdmin">
+    <div id="totalUsuarios" class="col-xs-12 col-sm-6 col-md-6 col-lg-3 caixinha">
+        <div class="boxCaixinha">
+            <i class="fas fa-users iconeCaixinha"></i>
+            <div class="destaque"></div>
+            <div class="texto">Total de Usuários</div>
+            <div class="subtexto">{{ total_usuarios }} usuários</div>
+        </div>
+        <div class="rodape">
+            <a href="{{ url_for('admin_usuarios') }}">Gerenciar usuários »</a>
+        </div>
+    </div>
+
+    <div id="usuariosAtivos" class="col-xs-12 col-sm-6 col-md-6 col-lg-3 caixinha">
+        <div class="boxCaixinha">
+            <i class="fas fa-user-check iconeCaixinha"></i>
+            <div class="destaque"></div>
+            <div class="texto">Usuários Ativos</div>
+            <div class="subtexto">{{ usuarios_ativos }} usuários</div>
+        </div>
+        <div class="rodape">
+            <a href="{{ url_for('admin_usuarios') }}">Ver detalhes »</a>
+        </div>
+    </div>
+
+    <div id="usuariosPausados" class="col-xs-12 col-sm-6 col-md-6 col-lg-3 caixinha">
+        <div class="boxCaixinha">
+            <i class="fas fa-user-clock iconeCaixinha"></i>
+            <div class="destaque"></div>
+            <div class="texto">Usuários Pausados</div>
+            <div class="subtexto">{{ usuarios_pausados }} usuários</div>
+        </div>
+        <div class="rodape">
+            <a href="{{ url_for('admin_usuarios') }}">Ver detalhes »</a>
+        </div>
+    </div>
+
+    <div id="usuariosInativos" class="col-xs-12 col-sm-6 col-md-6 col-lg-3 caixinha">
+        <div class="boxCaixinha">
+            <i class="fas fa-user-times iconeCaixinha"></i>
+            <div class="destaque"></div>
+            <div class="texto">Usuários Inativos</div>
+            <div class="subtexto">{{ total_usuarios - usuarios_ativos }} usuários</div>
+        </div>
+        <div class="rodape">
+            <a href="{{ url_for('admin_usuarios') }}">Ver detalhes »</a>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-users me-2"></i>Ações Rápidas
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="d-grid">
+                            <a href="{{ url_for('admin_usuarios') }}" class="btn btn-primary btn-lg">
+                                <i class="fas fa-users me-2"></i>Gerenciar Usuários
+                            </a>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="d-grid">
+                            <a href="{{ url_for('admin_dashboard') }}" class="btn btn-info btn-lg">
+                                <i class="fas fa-chart-bar me-2"></i>Estatísticas
+                            </a>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="d-grid">
+                            <a href="{{ url_for('verificar_empresas_orfas') }}" class="btn btn-warning btn-lg">
+                                <i class="fas fa-search me-2"></i>Verificar Órfãs
+                            </a>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="d-grid">
+                            <a href="{{ url_for('logout') }}" class="btn btn-secondary btn-lg">
+                                <i class="fas fa-sign-out-alt me-2"></i>Sair do Sistema
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-list me-2"></i>Últimos Usuários Cadastrados
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Nome</th>
+                                <th>Usuário</th>
+                                <th>Email</th>
+                                <th>Empresa</th>
+                                <th>Status</th>
+                                <th>Data de Criação</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for user in usuarios[:5] %}
+                            <tr>
+                                <td>{{ user.nome }}</td>
+                                <td><code>{{ user.usuario }}</code></td>
+                                <td>{{ user.email }}</td>
+                                <td>
+                                    <span class="badge bg-{{ 'primary' if user.empresa and user.empresa.tipo_empresa == 'servicos' else 'success' if user.empresa and user.empresa.tipo_empresa == 'comercio' else 'warning' }}">
+                                        {{ user.empresa.razao_social if user.empresa else 'N/A' }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if user.pausado %}
+                                        <span class="badge bg-warning">Pausado</span>
+                                    {% elif user.ativo %}
+                                        <span class="badge bg-success">Ativo</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">Inativo</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ user.data_criacao.strftime('%d/%m/%Y') }}</td>
+                                <td>
+                                    <div class="btn-group" role="group">
+                                        {% if user.ativo %}
+                                            <a href="{{ url_for('toggle_usuario_status', user_id=user.id) }}" class="btn btn-sm btn-warning" title="Desativar usuário">
+                                                <i class="fas fa-pause"></i>
+                                            </a>
+                                        {% else %}
+                                            <a href="{{ url_for('toggle_usuario_status', user_id=user.id) }}" class="btn btn-sm btn-success" title="Ativar usuário">
+                                                <i class="fas fa-play"></i>
+                                            </a>
+                                        {% endif %}
+                                        
+                                        <a href="{{ url_for('alterar_senha_usuario', user_id=user.id) }}" class="btn btn-sm btn-primary" title="Alterar senha">
+                                            <i class="fas fa-key"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% if usuarios|length > 5 %}
+                <div class="text-center mt-3">
+                    <a href="{{ url_for('admin_usuarios') }}" class="btn btn-outline-primary">
+                        Ver todos os usuários ({{ usuarios|length }})
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

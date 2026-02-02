@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+
+{% block title %}Contas Caixa - Sistema de Gestão Financeira{% endblock %}
+
+{% block page_title %}Contas Caixa{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-university"></i> Contas Caixa
+                    </h5>
+                    <a href="{{ url_for('nova_conta_caixa') }}" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Nova Conta
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if contas_caixa %}
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Nome</th>
+                                    <th>Tipo</th>
+                                    <th>Banco</th>
+                                    <th>Agência/Conta</th>
+                                    <th>Saldo Atual</th>
+                                    <th>Status</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for conta in contas_caixa %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ conta.nome }}</strong>
+                                        {% if conta.descricao %}
+                                        <br><small class="text-muted">{{ conta.descricao }}</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if conta.tipo == 'conta_corrente' %}
+                                            <span class="badge bg-primary">Conta Corrente</span>
+                                        {% elif conta.tipo == 'poupanca' %}
+                                            <span class="badge bg-success">Poupança</span>
+                                        {% elif conta.tipo == 'caixa_fisico' %}
+                                            <span class="badge bg-warning">Caixa Físico</span>
+                                        {% elif conta.tipo == 'cartao_credito' %}
+                                            <span class="badge bg-info">Cartão de Crédito</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">{{ conta.tipo|title }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ conta.banco or '-' }}</td>
+                                    <td>
+                                        {% if conta.agencia and conta.conta %}
+                                            {{ conta.agencia }}/{{ conta.conta }}
+                                        {% elif conta.agencia %}
+                                            {{ conta.agencia }}
+                                        {% elif conta.conta %}
+                                            {{ conta.conta }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% set saldo_calculado = conta.calcular_saldo_atual() %}
+                                        <span class="fw-bold {% if saldo_calculado >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                            R$ {{ "%.2f"|format(saldo_calculado) }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if conta.ativo %}
+                                            <span class="badge bg-success">Ativa</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">Inativa</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <a href="{{ url_for('editar_conta_caixa', conta_id=conta.id) }}" 
+                                               class="btn btn-sm btn-outline-primary" 
+                                               title="Editar">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <a href="{{ url_for('toggle_conta_caixa', conta_id=conta.id) }}" 
+                                               class="btn btn-sm btn-outline-{% if conta.ativo %}warning{% else %}success{% endif %}" 
+                                               title="{% if conta.ativo %}Desativar{% else %}Ativar{% endif %}"
+                                               onclick="confirmarToggleConta({{ conta.id }}, '{{ conta.nome }}', {{ 'true' if conta.ativo else 'false' }})">
+                                                <i class="fas fa-{% if conta.ativo %}pause{% else %}play{% endif %}"></i>
+                                            </a>
+                                            <button class="btn btn-sm btn-outline-danger" 
+                                               title="Deletar"
+                                               onclick="confirmarExclusaoContaCaixa({{ conta.id }}, '{{ conta.nome }}')">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-university fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">Nenhuma conta caixa cadastrada</h5>
+                        <p class="text-muted">Comece criando sua primeira conta caixa para organizar melhor suas finanças.</p>
+                        <a href="{{ url_for('nova_conta_caixa') }}" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> Criar Primeira Conta
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Confirmação de Exclusão -->
+<div class="modal fade" id="modalConfirmacaoExclusao" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-exclamation-triangle me-2"></i>Confirmar Exclusão</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p id="mensagemConfirmacao">Tem certeza que deseja excluir esta conta? Esta ação não pode ser desfeita.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-danger" id="btnConfirmarExclusao">Excluir</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function confirmarExclusaoContaCaixa(contaId, contaNome) {
+    const modal = new bootstrap.Modal(document.getElementById('modalConfirmacaoExclusao'));
+    const mensagem = document.getElementById('mensagemConfirmacao');
+    const btnConfirmar = document.getElementById('btnConfirmarExclusao');
+    
+    mensagem.textContent = `Tem certeza que deseja excluir a conta "${contaNome}"? Esta ação não pode ser desfeita.`;
+    
+    btnConfirmar.onclick = function() {
+        window.location.href = `/configuracoes/contas-caixa/${contaId}/deletar`;
+    };
+    
+    modal.show();
+}
+
+function confirmarToggleConta(contaId, contaNome, ativo) {
+    const acao = ativo ? 'desativar' : 'ativar';
+    if (confirm(`Tem certeza que deseja ${acao} a conta "${contaNome}"?`)) {
+        window.location.href = `/configuracoes/contas-caixa/${contaId}/toggle`;
+    }
+}
+</script>
+{% endblock %} 

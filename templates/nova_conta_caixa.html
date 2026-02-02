@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block title %}Nova Conta Caixa - Sistema de Gestão Financeira{% endblock %}
+
+{% block page_title %}Nova Conta Caixa{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-plus"></i> Nova Conta Caixa
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="nome" class="form-label">Nome da Conta *</label>
+                                    <input type="text" class="form-control" id="nome" name="nome" required>
+                                    <div class="form-text">Ex: Conta Principal, Caixa da Empresa, etc.</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="tipo" class="form-label">Tipo de Conta *</label>
+                                    <select class="form-select" id="tipo" name="tipo" required>
+                                        <option value="">Selecione o tipo</option>
+                                        <option value="conta_corrente">Conta Corrente</option>
+                                        <option value="poupanca">Poupança</option>
+                                        <option value="caixa_fisico">Caixa Físico</option>
+                                        <option value="cartao_credito">Cartão de Crédito</option>
+                                        <option value="cartao_debito">Cartão de Débito</option>
+                                        <option value="investimento">Investimento</option>
+                                        <option value="outro">Outro</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="banco" class="form-label">Banco</label>
+                                    <input type="text" class="form-control" id="banco" name="banco">
+                                    <div class="form-text">Nome do banco (opcional)</div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="agencia" class="form-label">Agência</label>
+                                    <input type="text" class="form-control" id="agencia" name="agencia">
+                                    <div class="form-text">Número da agência (opcional)</div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="conta" class="form-label">Conta</label>
+                                    <input type="text" class="form-control" id="conta" name="conta">
+                                    <div class="form-text">Número da conta (opcional)</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="saldo_inicial" class="form-label">Saldo Inicial</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">R$</span>
+                                        <input type="number" class="form-control" id="saldo_inicial" name="saldo_inicial" step="0.01" value="0.00">
+                                    </div>
+                                    <div class="form-text">Saldo inicial da conta</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="descricao" class="form-label">Descrição</label>
+                            <textarea class="form-control" id="descricao" name="descricao" rows="3"></textarea>
+                            <div class="form-text">Informações adicionais sobre a conta (opcional)</div>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('contas_caixa') }}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Voltar
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Salvar Conta
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

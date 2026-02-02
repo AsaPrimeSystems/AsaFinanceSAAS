@@ -1,0 +1,315 @@
+{% extends "base.html" %}
+
+{% block title %}Relatório de Produtos - Sistema de Gestão Financeira{% endblock %}
+
+{% block page_title %}Relatório de Produtos{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Filtros -->
+    <div class="col-md-12 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-filter me-2"></i>Filtros
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="GET" action="{{ url_for('relatorio_produtos') }}">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="data_inicio" class="form-label">Data Início</label>
+                                <input type="text" class="form-control" id="data_inicio" name="data_inicio"
+                                       placeholder="DD/MM/AAAA" value="{{ filtros.data_inicio or '' }}">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="data_fim" class="form-label">Data Fim</label>
+                                <input type="text" class="form-control" id="data_fim" name="data_fim"
+                                       placeholder="DD/MM/AAAA" value="{{ filtros.data_fim or '' }}">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">&nbsp;</label>
+                                <div>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-search me-2"></i>Filtrar
+                                    </button>
+                                    <a href="{{ url_for('relatorio_produtos') }}" class="btn btn-secondary">
+                                        <i class="fas fa-times me-2"></i>Limpar
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Resumo Geral -->
+    <div class="col-md-12 mb-4">
+        <div class="row">
+            <div class="col-md-3">
+                <div class="card bg-info text-white">
+                    <div class="card-body text-center">
+                        <i class="fas fa-box fa-2x mb-2"></i>
+                        <h4>Total Produtos</h4>
+                        <h3>{{ produtos|length }}</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-success text-white">
+                    <div class="card-body text-center">
+                        <i class="fas fa-chart-line fa-2x mb-2"></i>
+                        <h4>Total Vendas</h4>
+                        <h3>R$ {{ "%.2f"|format(produtos|sum(attribute='valor_total')) }}</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-warning text-white">
+                    <div class="card-body text-center">
+                        <i class="fas fa-shopping-cart fa-2x mb-2"></i>
+                        <h4>Total Quantidade</h4>
+                        <h3>{{ produtos|sum(attribute='quantidade_total') }}</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-danger text-white">
+                    <div class="card-body text-center">
+                        <i class="fas fa-exchange-alt fa-2x mb-2"></i>
+                        <h4>Total Transações</h4>
+                        <h3>{{ produtos|sum(attribute='total_vendas') }}</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lista de Produtos -->
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-list me-2"></i>Produtos Mais Vendidos
+                </h5>
+                <div>
+                    <a href="{{ url_for('relatorio_produtos', exportar='pdf') }}" class="btn btn-danger btn-sm">
+                        <i class="fas fa-file-pdf me-2"></i>Exportar PDF
+                    </a>
+                    <a href="{{ url_for('relatorio_produtos', exportar='excel') }}" class="btn btn-success btn-sm">
+                        <i class="fas fa-file-excel me-2"></i>Exportar Excel
+                    </a>
+                    <button onclick="exportarCSV()" class="btn btn-info btn-sm">
+                        <i class="fas fa-download me-2"></i>Exportar CSV
+                    </button>
+                    <button onclick="window.print()" class="btn btn-primary btn-sm">
+                        <i class="fas fa-print me-2"></i>Imprimir
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if produtos %}
+                    <div class="table-responsive">
+                        <table class="table table-striped" id="tabelaProdutos">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Produto</th>
+                                    <th class="text-end">Quantidade Vendida</th>
+                                    <th class="text-end">Valor Total</th>
+                                    <th class="text-end">Nº Vendas</th>
+                                    <th class="text-end">Ticket Médio</th>
+                                    <th>Performance</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for produto in produtos %}
+                                <tr>
+                                    <td>
+                                        {% if loop.index <= 3 %}
+                                            <span class="badge bg-warning">{{ loop.index }}</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">{{ loop.index }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <strong>{{ produto.nome }}</strong>
+                                    </td>
+                                    <td class="text-end">
+                                        <span class="badge bg-info">{{ produto.quantidade_total }}</span>
+                                    </td>
+                                    <td class="text-end">
+                                        <span class="text-success fw-bold">R$ {{ "%.2f"|format(produto.valor_total) }}</span>
+                                    </td>
+                                    <td class="text-end">
+                                        <span class="badge bg-primary">{{ produto.total_vendas }}</span>
+                                    </td>
+                                    <td class="text-end">
+                                        R$ {{ "%.2f"|format(produto.valor_total / produto.total_vendas) }}
+                                    </td>
+                                    <td>
+                                        {% if produto.valor_total > 1000 %}
+                                            <span class="badge bg-success">
+                                                <i class="fas fa-star"></i> Excelente
+                                            </span>
+                                        {% elif produto.valor_total > 500 %}
+                                            <span class="badge bg-warning">
+                                                <i class="fas fa-star"></i> Bom
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-info">
+                                                <i class="fas fa-star"></i> Regular
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">Nenhum produto vendido</h5>
+                        <p class="text-muted">Registre vendas para ver o relatório de produtos.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Top 3 Produtos -->
+    {% if produtos %}
+    <div class="col-md-12 mt-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-trophy me-2"></i>Top 3 Produtos
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for produto in produtos[:3] %}
+                    <div class="col-md-4 mb-3">
+                        <div class="card border-{{ 'success' if loop.index == 1 else 'warning' if loop.index == 2 else 'info' }}">
+                            <div class="card-body text-center">
+                                <div class="position-relative mb-3">
+                                    <i class="fas fa-box fa-3x text-{{ 'success' if loop.index == 1 else 'warning' if loop.index == 2 else 'info' }}"></i>
+                                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-{{ 'success' if loop.index == 1 else 'warning' if loop.index == 2 else 'info' }}">
+                                        {{ loop.index }}
+                                    </span>
+                                </div>
+                                <h6 class="card-title">{{ produto.nome }}</h6>
+                                <p class="card-text">
+                                    <strong class="text-success">R$ {{ "%.2f"|format(produto.valor_total) }}</strong><br>
+                                    <small class="text-muted">{{ produto.quantidade_total }} unidades vendidas</small><br>
+                                    <small class="text-muted">{{ produto.total_vendas }} transações</small>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráfico de Performance -->
+    <div class="col-md-12 mt-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-chart-bar me-2"></i>Performance por Produto
+                </h5>
+            </div>
+            <div class="card-body">
+                {% for produto in produtos[:10] %}
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span>{{ produto.nome }}</span>
+                        <span class="text-success fw-bold">R$ {{ "%.2f"|format(produto.valor_total) }}</span>
+                    </div>
+                    <div class="progress">
+                        <div class="progress-bar bg-success"
+                             style="width: {{ (produto.valor_total / produtos[0].valor_total) * 100 }}%">
+                            {{ "%.1f"|format((produto.valor_total / produtos[0].valor_total) * 100) }}%
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Botões de Ação -->
+    <div class="col-md-12 mt-4">
+        <div class="d-flex justify-content-between">
+            <a href="{{ url_for('relatorios') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Voltar aos Relatórios
+            </a>
+            <a href="{{ url_for('vendas') }}" class="btn btn-info">
+                <i class="fas fa-shopping-cart me-2"></i>Ver Vendas
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+function exportarCSV() {
+    const table = document.getElementById('tabelaProdutos');
+    const rows = table.querySelectorAll('tbody tr');
+    
+    let csv = 'Posição,Produto,Quantidade Vendida,Valor Total,Nº Vendas,Ticket Médio,Performance\n';
+    
+    rows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        const rowData = [];
+        
+        cells.forEach((cell, index) => {
+            let text = cell.textContent.trim();
+            if (index === 0) { // Posição
+                text = text.replace(/[^\d]/g, '');
+            } else if (index === 2 || index === 3 || index === 5) { // Valores monetários
+                text = text.replace('R$ ', '').replace(',', '.');
+            } else if (index === 4) { // Número de vendas
+                text = text.replace(/[^\d]/g, '');
+            } else if (index === 6) { // Performance
+                text = text.includes('Excelente') ? 'Excelente' : text.includes('Bom') ? 'Bom' : 'Regular';
+            }
+            rowData.push(`"${text}"`);
+        });
+        
+        csv += rowData.join(',') + '\n';
+    });
+    
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'relatorio_produtos.csv');
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+</script>
+
+<style>
+@media print {
+    .btn, .navbar, .sidebar {
+        display: none !important;
+    }
+    .card {
+        border: 1px solid #000 !important;
+    }
+}
+</style>
+{% endblock %} 

@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+
+{% block title %}Editar Produto - Sistema de Gestão Financeira{% endblock %}
+
+{% block page_title %}Editar Produto{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-edit me-2"></i>Editar Produto
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="nome" class="form-label">Nome do Produto *</label>
+                                <input type="text" class="form-control" id="nome" name="nome" value="{{ produto.nome }}" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="preco_custo" class="form-label">Preço de Custo *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">R$</span>
+                                    <input type="number" class="form-control" id="preco_custo" name="preco_custo" step="0.01" min="0" value="{{ produto.preco_custo }}" required>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="preco_venda" class="form-label">Preço de Venda *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">R$</span>
+                                    <input type="number" class="form-control" id="preco_venda" name="preco_venda" step="0.01" min="0" value="{{ produto.preco_venda }}" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="estoque" class="form-label">Estoque *</label>
+                                <input type="number" class="form-control" id="estoque" name="estoque" min="0" value="{{ produto.estoque }}" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="descricao" class="form-label">Descrição</label>
+                        <textarea class="form-control" id="descricao" name="descricao" rows="3">{{ produto.descricao or '' }}</textarea>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="ativo" name="ativo" {{ 'checked' if produto.ativo else '' }} {{ 'disabled' if produto.estoque > 0 else '' }}>
+                            <label class="form-check-label" for="ativo">
+                                Produto Ativo
+                                {% if produto.estoque > 0 %}
+                                <small class="text-muted d-block">(Produto ativado automaticamente pois possui estoque > 0)</small>
+                                {% else %}
+                                <small class="text-muted d-block">(Produtos inativos não serão considerados nos alertas)</small>
+                                {% endif %}
+                            </label>
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('estoque') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-1"></i>Voltar
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i>Salvar Alterações
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Validação do formulário
+    document.querySelector('form').addEventListener('submit', function(e) {
+        const precoCusto = parseFloat(document.getElementById('preco_custo').value);
+        const precoVenda = parseFloat(document.getElementById('preco_venda').value);
+        
+        if (precoVenda < precoCusto) {
+            e.preventDefault();
+            alert('O preço de venda não pode ser menor que o preço de custo.');
+            return false;
+        }
+    });
+
+    // Máscara para valores monetários
+    document.querySelectorAll('input[name="preco_custo"], input[name="preco_venda"]').forEach(function(input) {
+        input.addEventListener('input', function() {
+            let value = this.value;
+            if (value && !isNaN(value)) {
+                this.value = parseFloat(value).toFixed(2);
+            }
+        });
+    });
+
+    // Ativar automaticamente quando estoque > 0
+    const estoqueInput = document.getElementById('estoque');
+    const ativoCheckbox = document.getElementById('ativo');
+    
+    if (estoqueInput && ativoCheckbox) {
+        estoqueInput.addEventListener('input', function() {
+            const estoque = parseInt(this.value) || 0;
+            if (estoque > 0) {
+                ativoCheckbox.checked = true;
+                ativoCheckbox.disabled = true;
+                // Atualizar mensagem
+                const label = ativoCheckbox.nextElementSibling;
+                if (label) {
+                    label.innerHTML = 'Produto Ativo <small class="text-muted d-block">(Produto ativado automaticamente pois possui estoque > 0)</small>';
+                }
+            } else {
+                ativoCheckbox.disabled = false;
+                // Atualizar mensagem
+                const label = ativoCheckbox.nextElementSibling;
+                if (label) {
+                    label.innerHTML = 'Produto Ativo <small class="text-muted d-block">(Produtos inativos não serão considerados nos alertas)</small>';
+                }
+            }
+        });
+    }
+</script>
+{% endblock %} 

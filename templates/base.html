@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>
+    <title>{% block title %}Asa Finance - Gestão Financeira{% endblock %}</title>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=3.1">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/professional-enhancements.css') }}?v=4.2">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/layout-compacto.css') }}?v=1.1">
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+</head>
+<body>
+    {% if session.usuario_id or session.sub_usuario_id %}
+    <header class="modern-header">
+        <div class="header-container">
+            <div class="header-logo">
+                <a href="{{ url_for('dashboard') }}" class="logo-link">
+                    <div class="logo-icon">
+                        <i class="fas fa-dove"></i>
+                    </div>
+                    <div class="logo-text">
+                        <span class="logo-title">Asa Finance</span>
+                        <span class="logo-subtitle">Gestão Financeira</span>
+                    </div>
+                </a>
+            </div>
+
+            <div class="header-company">
+                {% if session.get('acesso_contador') and session.get('empresa_nome_original') %}
+                <div class="company-card" style="border: 2px solid #ffc107; background: #fff3cd; display: flex; align-items: center; gap: 15px; padding: 10px 15px;">
+                    <div class="company-icon">
+                        <i class="fas fa-user-tie"></i>
+                    </div>
+                    <div class="company-info" style="flex: 1;">
+                        <div class="company-name" style="font-weight: bold; color: #856404; font-size: 14px;">
+                            <i class="fas fa-building me-2"></i>{{ session.empresa_nome_original }}
+                        </div>
+                        <div class="company-details" style="margin-top: 5px;">
+                            <small style="color: #856404; font-size: 12px;">
+                                <i class="fas fa-arrow-right me-1"></i>Acessando como: <strong>{{ session.empresa_nome }}</strong>
+                            </small>
+                        </div>
+                    </div>
+                    <div>
+                        <form method="POST" action="{{ url_for('contador_voltar_perfil') }}" style="display: inline; margin: 0;">
+                            <button type="submit" class="btn btn-sm btn-warning" style="white-space: nowrap;">
+                                <i class="fas fa-arrow-left me-1"></i>Voltar ao painel do Contador/BPO
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                {% else %}
+                <div class="company-card">
+                    <div class="company-icon">
+                        <i class="fas fa-building"></i>
+                    </div>
+                    <div class="company-info">
+                        <div class="company-name" id="company-name">{{ session.empresa_nome or 'Empresa' }}</div>
+                        <div class="company-details">
+                            <span class="company-type" id="company-type"></span>
+                            <span class="company-doc" id="company-doc"></span>
+                        </div>
+                        <div class="company-sector" id="company-sector" style="display: none;">
+                            <i class="fas fa-industry"></i>
+                            <span id="company-sector-text"></span>
+                        </div>
+                    </div>
+                    {% if session.get('tipo_conta') and session.get('tipo_conta') != 'admin' and session.get('dias_assinatura') is not none %}
+                    <div class="company-subscription">
+                        <div class="subscription-badge">
+                            <i class="fas fa-calendar-check"></i>
+                            <span class="subscription-days">{{ session.get('dias_assinatura', 0) }}</span>
+                            <span class="subscription-text">dias restantes de assinatura</span>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="header-user">
+                <div class="user-card">
+                    <div class="user-avatar">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div class="user-info">
+                        <div class="user-name" id="user-name">{{ session.usuario_nome }}</div>
+                        <div class="user-role" id="user-role">
+                            {% if session.get('acesso_contador') and session.get('empresa_nome_original') %}
+                            <i class="fas fa-user-shield"></i> Contador/BPO
+                            {% else %}
+                            <i class="fas fa-user"></i> Usuário
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="user-dropdown">
+                    <button class="user-dropdown-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-user-circle"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li>
+                            <div class="dropdown-header">
+                                <div class="dropdown-user-info">
+                                    <div class="dropdown-user-name" id="dropdown-user-name">{{ session.usuario_nome }}</div>
+                                    <div class="dropdown-user-company" id="dropdown-user-company">
+                                        {% if session.get('acesso_contador') and session.get('empresa_nome_original') %}
+                                        {{ session.empresa_nome_original }}
+                                        {% else %}
+                                        {{ session.empresa_nome or 'N/A' }}
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('perfil') }}">
+                                <i class="fas fa-user-edit"></i> Alterar Dados
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('logout') }}">
+                                <i class="fas fa-sign-out-alt"></i> Sair do Sistema
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="all">
+        <section class="menu transition">
+            <nav class="menu-nav">
+                <ul class="nav nav-pills nav-stacked">
+                    {% if session.usuario_tipo == 'admin' %}
+                    <li role="presentation">
+                        <a class="link-menu" href="{{ url_for('admin_dashboard') }}">
+                            <span class="icon fa fa-tachometer-alt"></span>
+                            <span class="aux-js">Dashboard Admin</span>
+                        </a>
+                    </li>
+                    <li role="presentation">
+                        <a class="link-menu" href="{{ url_for('admin_usuarios') }}">
+                            <span class="icon fa fa-users"></span>
+                            <span class="aux-js">Gerenciar Usuários</span>
+                        </a>
+                    </li>
+                    <li role="presentation">
+                        <a class="link-menu" href="{{ url_for('admin_vouchers_page') }}">
+                            <span class="icon fa fa-ticket-alt"></span>
+                            <span class="aux-js">Gerenciar Vouchers</span>
+                        </a>
+                    </li>
+                    <li role="presentation">
+                        <a class="link-menu" href="{{ url_for('logout') }}">
+                            <span class="icon fa fa-sign-out-alt"></span>
+                            <span class="aux-js">Sair do Sistema</span>
+                        </a>
+                    </li>
+                    {% elif (session.get('tipo_conta') == 'contador_bpo' or session.get('usuario_tipo') == 'sub_contador') and not session.get('acesso_contador') %}
+                    <li role="presentation">
+                        <a class="link-menu" href="{{ url_for('dashboard_contador') }}">
+                            <span class="icon fa fa-home"></span> 
+                            <span class="aux-js">Dashboard</span>
+                        </a>
+                    </li>
+                    {% if session.get('usuario_tipo') != 'sub_contador' %}
+                    <li role="presentation">
+                        <a class="link-menu" href="{{ url_for('contador_gerenciar_vinculos') }}">
+                            <span class="icon fa fa-link"></span> 
+                            <span class="aux-js">Gerenciar Vínculos</span>
+                        </a>
+                    </li>
+                    <li role="presentation">
+                        <a class="link-menu" href="{{ url_for('contador_gerenciar_usuarios') }}">
+                            <span class="icon fa fa-users-cog"></span> 
+                            <span class="aux-js">Gerenciar Usuários</span>
+                        </a>
+                    </li>
+                    {% endif %}
+                    {% else %}
+                    <li role="presentation">
+                        <a class="link-menu" href="{{ url_for('dashboard') }}">
+                            <span class="icon fa fa-home"></span> 
+                            <span class="aux-js">Dashboard</span>
+                        </a>
+                    </li>
+                    <li role="presentation">
+                        <a class="link-menu" href="{{ url_for('lancamentos') }}">
+                            <span class="icon fa fa-money-bill"></span> 
+                            <span class="aux-js">Financeiro</span>
+                        </a>
+                    </li>
+                    <li role="presentation" class="submenu-item">
+                        <a class="link-menu" href="{{ url_for('vendas') }}">
+                            <span class="icon fa fa-shopping-cart"></span> 
+                            <span class="aux-js">Vendas</span>
+                        </a>
+                    </li>
+                    <li role="presentation" class="submenu-item">
+                        <a class="link-menu" href="{{ url_for('compras') }}">
+                            <span class="icon fa fa-shopping-bag"></span> 
+                            <span class="aux-js">Compras</span>
+                        </a>
+                    </li>
+                    <li role="presentation">
+                        <a class="link-menu" href="{{ url_for('plano_contas') }}">
+                            <span class="icon fa fa-list"></span> 
+                            <span class="aux-js">Plano de Contas</span>
+                        </a>
+                    </li>
+                    <li role="presentation">
+                        <a class="link-menu" href="{{ url_for('clientes') }}">
+                            <span class="icon fa fa-users"></span> 
+                            <span class="aux-js">Clientes</span>
+                        </a>
+                    </li>
+                    <li role="presentation">
+                        <a class="link-menu" href="{{ url_for('fornecedores') }}">
+                            <span class="icon fa fa-truck"></span> 
+                            <span class="aux-js">Fornecedores</span>
+                        </a>
+                    </li>
+                    {% if usuario and usuario.empresa and usuario.empresa.tipo_empresa in ['comercio', 'industria'] %}
+                    <li role="presentation">
+                        <a class="link-menu" href="{{ url_for('estoque') }}">
+                            <span class="icon fa fa-boxes"></span> 
+                            <span class="aux-js">Estoque</span>
+                        </a>
+                    </li>
+                    {% endif %}
+                    <li role="presentation">
+                        <a class="link-menu" href="{{ url_for('relatorios') }}">
+                            <span class="icon fa fa-chart-bar"></span> 
+                            <span class="aux-js">Relatórios</span>
+                        </a>
+                    </li>
+                    <li role="presentation">
+                        <a class="link-menu" href="{{ url_for('importacao') }}">
+                            <span class="icon fa fa-file-import"></span> 
+                            <span class="aux-js">Importação</span>
+                        </a>
+                    </li>
+                    <li role="presentation">
+                        <a class="link-menu" href="{{ url_for('configuracoes') }}">
+                            <span class="icon fa fa-cog"></span> 
+                            <span class="aux-js">Configurações</span>
+                        </a>
+                    </li>
+                    {% if session.get('acesso_contador') %}
+                    <li role="presentation">
+                        <a class="link-menu" href="{{ url_for('dashboard_contador') }}">
+                            <span class="icon fa fa-arrow-left"></span> 
+                            <span class="aux-js">Voltar ao painel do Contador/BPO</span>
+                        </a>
+                    </li>
+                    {% endif %}
+                    {% endif %}
+                </ul>
+            </nav>
+        </section>
+
+        <section class="conteudo transition">
+            <div class="container-fluid">
+                <div class="row title-row no-print">
+                    <div class="col-lg-8 col-md-6 col-xs-7">
+                        <h1 class="title">{% block page_title %}{% endblock %}</h1>
+                    </div>
+                </div>
+
+                <div class="row conteudo-row relative">
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            {% for category, message in messages %}
+                                <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                                    {{ message }}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+
+                    {% block content %}{% endblock %}
+                </div>
+            </div>
+        </section>
+    </div>
+    {% else %}
+    <div class="container-fluid">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        {% block auth_content %}{% endblock %}
+    </div>
+    {% endif %}
+
+    <script src="{{ url_for('static', filename='js/utils/common.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/utils/security.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/utils/base-init.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/utils/page-loader.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/utils/subscription-badge.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/mascara-data.js') }}"></script>
+    
+    <script src="{{ url_for('static', filename='js/dashboard/dashboard.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/clientes/clientes.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/lancamentos/lancamentos.js') }}"></script>
+    
+    {% block scripts %}{% endblock %}
+</body>
+</html> 

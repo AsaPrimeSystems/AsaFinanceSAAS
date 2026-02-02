@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block title %}Vínculos Pendentes{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2><i class="fas fa-link me-2"></i>Solicitações de Vínculo Pendentes</h2>
+            <p class="text-muted">Contadores/BPOs solicitando acesso aos dados da sua empresa</p>
+        </div>
+    </div>
+
+    {% if vinculos %}
+    <div class="row">
+        {% for vinculo in vinculos %}
+        <div class="col-md-6 mb-3">
+            <div class="card">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0"><i class="fas fa-clock me-2"></i>Solicitação Pendente</h5>
+                </div>
+                <div class="card-body">
+                    <h6><i class="fas fa-calculator me-2"></i>Contador/BPO</h6>
+                    <p class="mb-2"><strong>{{ vinculo.contador.razao_social }}</strong></p>
+                    {% if vinculo.contador.nome_fantasia %}
+                    <p class="mb-2 text-muted">{{ vinculo.contador.nome_fantasia }}</p>
+                    {% endif %}
+                    
+                    <hr>
+                    
+                    <p class="mb-2">
+                        <i class="fas fa-id-card me-2"></i>
+                        {% if vinculo.contador.cpf %}
+                        CPF: {{ vinculo.contador.cpf }}
+                        {% else %}
+                        CNPJ: {{ vinculo.contador.cnpj }}
+                        {% endif %}
+                    </p>
+                    
+                    {% if vinculo.contador.email %}
+                    <p class="mb-2"><i class="fas fa-envelope me-2"></i>{{ vinculo.contador.email }}</p>
+                    {% endif %}
+                    
+                    {% if vinculo.contador.telefone %}
+                    <p class="mb-2"><i class="fas fa-phone me-2"></i>{{ vinculo.contador.telefone }}</p>
+                    {% endif %}
+                    
+                    <p class="mb-3 text-muted">
+                        <small><i class="fas fa-calendar me-2"></i>Solicitado em: {{ vinculo.data_solicitacao.strftime('%d/%m/%Y às %H:%M') }}</small>
+                    </p>
+                    
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Atenção:</strong> Ao autorizar, este contador terá acesso para visualizar os dados financeiros da sua empresa.
+                    </div>
+                    
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-success flex-fill" onclick="autorizarVinculo({{ vinculo.id }})">
+                            <i class="fas fa-check me-2"></i>Autorizar
+                        </button>
+                        <button class="btn btn-danger flex-fill" onclick="rejeitarVinculo({{ vinculo.id }})">
+                            <i class="fas fa-times me-2"></i>Rejeitar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle me-2"></i>Não há solicitações de vínculo pendentes no momento.
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function autorizarVinculo(vinculoId) {
+    if (confirm('Tem certeza que deseja AUTORIZAR este contador a acessar os dados da sua empresa?')) {
+        fetch('/vinculos/' + vinculoId + '/autorizar', {
+            method: 'POST'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Vínculo autorizado com sucesso!');
+                location.reload();
+            } else {
+                alert('Erro ao autorizar: ' + data.message);
+            }
+        });
+    }
+}
+
+function rejeitarVinculo(vinculoId) {
+    if (confirm('Tem certeza que deseja REJEITAR esta solicitação?')) {
+        fetch('/vinculos/' + vinculoId + '/rejeitar', {
+            method: 'POST'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Solicitação rejeitada.');
+                location.reload();
+            } else {
+                alert('Erro ao rejeitar: ' + data.message);
+            }
+        });
+    }
+}
+</script>
+{% endblock %}

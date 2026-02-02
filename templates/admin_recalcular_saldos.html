@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+
+{% block title %}Recalcular Saldos - Administração{% endblock %}
+
+{% block page_title %}Recalcular Saldos das Contas{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-calculator me-2"></i>Recalcular Saldos das Contas Caixa
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="alert alert-info">
+                            <h6><i class="fas fa-info-circle me-2"></i>Informações</h6>
+                            <ul class="mb-0">
+                                <li>Recalcula os saldos com base nos lançamentos realizados</li>
+                                <li>Fórmula: Saldo Inicial + Receitas - Despesas</li>
+                                <li>Apenas lançamentos com status "Realizado" são considerados</li>
+                                <li>Use esta ferramenta se os saldos estiverem inconsistentes</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <form method="POST" class="d-inline" onsubmit="return confirm('Tem certeza que deseja recalcular todos os saldos? Esta operação atualizará o saldo_atual de todas as contas.');">
+                            <button type="submit" class="btn btn-success btn-lg w-100">
+                                <i class="fas fa-sync-alt me-2"></i>Recalcular Todos os Saldos
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                {% if informacoes_contas %}
+                <h6><i class="fas fa-list me-2"></i>Status Atual das Contas</h6>
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Conta</th>
+                                <th>Tipo</th>
+                                <th class="text-end">Saldo Inicial</th>
+                                <th class="text-end">Saldo Atual</th>
+                                <th class="text-end">Saldo Calculado</th>
+                                <th class="text-end">Diferença</th>
+                                <th class="text-center">Status</th>
+                                <th class="text-center">Lançamentos</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for info in informacoes_contas %}
+                            <tr {% if info.diferenca|abs > 0.01 %}class="table-warning"{% endif %}>
+                                <td>
+                                    <i class="fas fa-wallet me-2"></i>
+                                    {{ info.conta.nome }}
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary">{{ info.conta.tipo }}</span>
+                                </td>
+                                <td class="text-end">
+                                    R$ {{ "%.2f"|format(info.conta.saldo_inicial) }}
+                                </td>
+                                <td class="text-end">
+                                    <strong>R$ {{ "%.2f"|format(info.saldo_atual) }}</strong>
+                                </td>
+                                <td class="text-end">
+                                    <strong class="text-primary">R$ {{ "%.2f"|format(info.saldo_calculado) }}</strong>
+                                </td>
+                                <td class="text-end">
+                                    {% if info.diferenca|abs > 0.01 %}
+                                        <span class="badge bg-danger">
+                                            <i class="fas fa-exclamation-triangle me-1"></i>
+                                            R$ {{ "%.2f"|format(info.diferenca) }}
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-success">
+                                            <i class="fas fa-check me-1"></i>OK
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">
+                                    {% if info.diferenca|abs > 0.01 %}
+                                        <span class="badge bg-warning text-dark">
+                                            <i class="fas fa-tools me-1"></i>Requer Ajuste
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-success">
+                                            <i class="fas fa-check-circle me-1"></i>Correto
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">
+                                    <button type="button" class="btn btn-sm btn-outline-info"
+                                            onclick="mostrarDetalhes('{{ info.conta.nome }}', {{ info.total_receitas }}, {{ info.total_despesas }}, {{ info.qtd_lancamentos }})">
+                                        <i class="fas fa-eye"></i> {{ info.qtd_lancamentos }}
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot>
+                            <tr class="table-light">
+                                <td colspan="3"><strong>Totais:</strong></td>
+                                <td class="text-end"><strong>R$ {{ "%.2f"|format(informacoes_contas|sum(attribute='saldo_atual')) }}</strong></td>
+                                <td class="text-end"><strong class="text-primary">R$ {{ "%.2f"|format(informacoes_contas|sum(attribute='saldo_calculado')) }}</strong></td>
+                                <td class="text-end">
+                                    <strong {% if (informacoes_contas|sum(attribute='diferenca'))|abs > 0.01 %}class="text-danger"{% else %}class="text-success"{% endif %}>
+                                        R$ {{ "%.2f"|format(informacoes_contas|sum(attribute='diferenca')) }}
+                                    </strong>
+                                </td>
+                                <td colspan="2"></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+
+                <!-- Legenda -->
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <div class="alert alert-light border">
+                            <h6><i class="fas fa-info-circle me-2"></i>Legenda:</h6>
+                            <ul class="mb-0">
+                                <li><strong>Saldo Atual:</strong> Valor armazenado no banco de dados</li>
+                                <li><strong>Saldo Calculado:</strong> Saldo Inicial + Receitas Realizadas - Despesas Realizadas</li>
+                                <li><strong>Diferença:</strong> Diferença entre Saldo Atual e Calculado (valores em vermelho indicam inconsistência)</li>
+                                <li class="text-warning"><strong>Linha Amarela:</strong> Conta com inconsistência que precisa ser corrigida</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                {% else %}
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Nenhuma conta caixa encontrada no sistema.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para detalhes da conta -->
+<div class="modal fade" id="detalhesContaModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-info-circle me-2"></i>Detalhes da Conta
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="detalhesContaContent">
+                    <!-- Conteúdo será preenchido via JavaScript -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function mostrarDetalhes(nome, receitas, despesas, qtd) {
+    const content = document.getElementById('detalhesContaContent');
+    content.innerHTML = `
+        <div class="row">
+            <div class="col-12">
+                <h6>${nome}</h6>
+                <hr>
+                <p><strong>Total de Receitas Realizadas:</strong> <span class="text-success">R$ ${receitas.toFixed(2)}</span></p>
+                <p><strong>Total de Despesas Realizadas:</strong> <span class="text-danger">R$ ${despesas.toFixed(2)}</span></p>
+                <p><strong>Saldo das Movimentações:</strong> <span class="text-primary">R$ ${(receitas - despesas).toFixed(2)}</span></p>
+                <p><strong>Quantidade de Lançamentos Realizados:</strong> ${qtd}</p>
+            </div>
+        </div>
+    `;
+
+    const modal = new bootstrap.Modal(document.getElementById('detalhesContaModal'));
+    modal.show();
+}
+</script>
+{% endblock %}

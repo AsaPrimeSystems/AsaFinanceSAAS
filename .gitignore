@@ -1,0 +1,68 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+instance/
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
+logs/
+*.log
+
+# Uploads
+uploads/
+!uploads/.gitkeep
+
+# Virtual Environment
+venv/
+env/
+ENV/
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-store/
+
+# Build
+dist/
+build/
+*.egg-info/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Backup
+INICIAR_SISTEMA_OLD.bat
+*.bak
+*.backup
+*.old
+*~
+
+# Debug & Test Scripts
+debug_*.py
+testar_*.py
+teste_*.py
+
+# Temporary Files
+*.tmp
+*.temp
+.cache/
+
+# Screenshots & Assets temporários
+assets/image-*.png
+assets/screenshot-*.png

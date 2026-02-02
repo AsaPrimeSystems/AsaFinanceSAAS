@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+
+{% block title %}Parcelas da Compra - Sistema de Gestão Financeira{% endblock %}
+
+{% block page_title %}Parcelas da Compra{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Parcelas da Compra</h5>
+            </div>
+            <div class="card-body">
+                <!-- Informações da Compra -->
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <h6>Informações da Compra</h6>
+                        <p><strong>Fornecedor:</strong> {{ compra.fornecedor.nome }}</p>
+                        <p><strong>Produto/Serviço:</strong> {{ compra.produto }}</p>
+                        <p><strong>Quantidade:</strong> {{ compra.quantidade }}</p>
+                        <p><strong>Preço de Custo:</strong> R$ {{ "%.2f"|format(compra.preco_custo) }}</p>
+                        <p><strong>Valor Total:</strong> R$ {{ "%.2f"|format(compra.valor) }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Informações de Pagamento</h6>
+                        <p><strong>Tipo de Pagamento:</strong> 
+                            {% if compra.tipo_pagamento == 'a_vista' %}
+                                À Vista
+                            {% else %}
+                                Parcelado ({{ compra.numero_parcelas }}x)
+                            {% endif %}
+                        </p>
+                        {% if compra.tipo_pagamento == 'parcelado' %}
+                        <p><strong>Valor da Parcela:</strong> R$ {{ "%.2f"|format(compra.valor_parcela) }}</p>
+                        {% endif %}
+                        <p><strong>Data Prevista:</strong> {{ compra.data_prevista.strftime('%d/%m/%Y') }}</p>
+                        {% if compra.data_realizada %}
+                        <p><strong>Data Realizada:</strong> {{ compra.data_realizada.strftime('%d/%m/%Y') }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                {% if compra.tipo_pagamento == 'parcelado' and parcelas %}
+                <!-- Tabela de Parcelas -->
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Parcela</th>
+                                <th>Valor</th>
+                                <th>Data de Vencimento</th>
+                                <th>Data de Pagamento</th>
+                                <th>Status</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for parcela in parcelas %}
+                            <tr>
+                                <td>{{ parcela.numero }}</td>
+                                <td>R$ {{ "%.2f"|format(parcela.valor) }}</td>
+                                <td>{{ parcela.data_vencimento.strftime('%d/%m/%Y') }}</td>
+                                <td>
+                                    {% if parcela.data_pagamento %}
+                                        {{ parcela.data_pagamento.strftime('%d/%m/%Y') }}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if parcela.realizado %}
+                                        <span class="badge bg-success">Paga</span>
+                                    {% else %}
+                                        <span class="badge bg-warning">Pendente</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if not parcela.realizado %}
+                                    <button class="btn btn-sm btn-success" onclick="marcarComoPaga({{ parcela.id }})">
+                                        <i class="fas fa-check"></i> Marcar como Paga
+                                    </button>
+                                    {% else %}
+                                    <button class="btn btn-sm btn-warning" onclick="marcarComoPendente({{ parcela.id }})">
+                                        <i class="fas fa-times"></i> Marcar como Pendente
+                                    </button>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i>
+                    Esta compra não possui parcelas ou foi realizada à vista.
+                </div>
+                {% endif %}
+
+                <div class="d-flex justify-content-between mt-4">
+                    <a href="{{ url_for('compras') }}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Voltar para Compras
+                    </a>
+                    {% if compra.tipo_pagamento == 'parcelado' and parcelas %}
+                    <button class="btn btn-primary" onclick="exportarParcelas()">
+                        <i class="fas fa-download"></i> Exportar Parcelas
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function marcarComoPaga(parcelaId) {
+    if (confirm('Deseja marcar esta parcela como paga?')) {
+        // Implementar lógica para marcar como paga
+        alert('Funcionalidade em desenvolvimento');
+    }
+}
+
+function marcarComoPendente(parcelaId) {
+    if (confirm('Deseja marcar esta parcela como pendente?')) {
+        // Implementar lógica para marcar como pendente
+        alert('Funcionalidade em desenvolvimento');
+    }
+}
+
+function exportarParcelas() {
+    // Implementar lógica para exportar parcelas
+    alert('Funcionalidade em desenvolvimento');
+}
+</script>
+{% endblock %} 

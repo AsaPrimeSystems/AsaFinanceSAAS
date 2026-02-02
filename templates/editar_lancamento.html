@@ -1,0 +1,1029 @@
+{% extends "base.html" %}
+
+{% block title %}Editar Lançamento - Sistema de Gestão Financeira{% endblock %}
+
+{% block page_title %}Editar Lançamento{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0 d-flex align-items-center justify-content-between flex-wrap">
+                    <span>
+                        <i class="fas fa-edit me-2"></i>Editar Lançamento
+                        <span class="badge bg-primary ms-2">ID: {{ lancamento.id }}</span>
+                    </span>
+                    {% if lancamento.venda_id %}
+                    <span class="badge bg-success">
+                        <i class="fas fa-link me-1"></i>Venda ID: {{ lancamento.venda_id }}
+                    </span>
+                    {% elif lancamento.compra_id %}
+                    <span class="badge bg-warning text-dark">
+                        <i class="fas fa-link me-1"></i>Compra ID: {{ lancamento.compra_id }}
+                    </span>
+                    {% endif %}
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <label for="descricao" class="form-label">Descrição</label>
+                            <input type="text" class="form-control" id="descricao" name="descricao" value="{{ lancamento.descricao }}" required>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="tipo" class="form-label">Tipo</label>
+                            <select class="form-select" id="tipo" name="tipo" required>
+                                <option value="">Selecione...</option>
+                                <option value="receita" {{ 'selected' if lancamento.tipo == 'receita' else '' }}>Receita</option>
+                                <option value="despesa" {{ 'selected' if lancamento.tipo == 'despesa' else '' }}>Despesa</option>
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="categoria" class="form-label">Categoria</label>
+                            <select class="form-select" id="categoria" name="categoria" required>
+                                <option value="">Selecione primeiro o tipo...</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="data_prevista" class="form-label">Data Prevista</label>
+                            <input type="text" class="form-control" id="data_prevista" name="data_prevista" 
+                                   value="{{ lancamento.data_prevista.strftime('%d/%m/%Y') }}" 
+                                   placeholder="__/__/____" pattern="\d{2}/\d{2}/\d{4}" 
+                                   title="Formato: DD/MM/AAAA" required>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="data_realizada" class="form-label">Data Realizada (Opcional)</label>
+                            <input type="text" class="form-control" id="data_realizada" name="data_realizada" 
+                                   value="{% if lancamento.data_realizada %}{{ lancamento.data_realizada.strftime('%d/%m/%Y') }}{% endif %}" 
+                                   placeholder="__/__/____" pattern="\d{2}/\d{2}/\d{4}" 
+                                   title="Formato: DD/MM/AAAA">
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <label for="cliente_fornecedor" class="form-label">Cliente/Fornecedor (Opcional)</label>
+                            <div class="position-relative">
+                                <input type="text" class="form-control" id="cliente_fornecedor" name="cliente_fornecedor" 
+                                       placeholder="Digite o nome do cliente ou fornecedor..." autocomplete="off" 
+                                       value="{% if lancamento.cliente %}{{ lancamento.cliente.nome }}{% elif lancamento.fornecedor %}{{ lancamento.fornecedor.nome }}{% endif %}">
+                                <div id="suggestions" class="suggestions-dropdown" style="display: none;">
+                                    <!-- Sugestões aparecerão aqui -->
+                                </div>
+                            </div>
+                            <div class="form-text">Digite para buscar clientes/fornecedores existentes ou criar um novo</div>
+                            <!-- Campos ocultos para armazenar os IDs -->
+                            <input type="hidden" id="cliente_id" name="cliente_id" value="{% if lancamento.cliente_id %}{{ lancamento.cliente_id }}{% endif %}">
+                            <input type="hidden" id="fornecedor_id" name="fornecedor_id" value="{% if lancamento.fornecedor_id %}{{ lancamento.fornecedor_id }}{% endif %}">
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="conta_caixa_id" class="form-label">Conta Caixa</label>
+                            <select class="form-select" id="conta_caixa_id" name="conta_caixa_id">
+                                <option value="">Selecione uma conta (opcional)</option>
+                                {% for conta in contas_caixa %}
+                                <option value="{{ conta.id }}" {% if lancamento.conta_caixa_id == conta.id %}selected{% endif %}>{{ conta.nome }} - R$ {{ "%.2f"|format(conta.calcular_saldo_atual()) }}</option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text">Selecione a conta caixa para este lançamento</div>
+                        </div>
+                    </div>
+
+                    <!-- Campos Adicionais -->
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <label for="observacoes" class="form-label">Observações</label>
+                            <textarea class="form-control" id="observacoes" name="observacoes" rows="3" 
+                                      placeholder="Digite observações adicionais sobre este lançamento">{{ lancamento.observacoes or '' }}</textarea>
+                            <div class="form-text">Observações adicionais sobre este lançamento</div>
+                        </div>
+                    </div>
+
+                    <!-- Opção de usar carrinho -->
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="usar_carrinho" name="usar_carrinho" value="1" {% if lancamento.produto_servico or (itens_carrinho and itens_carrinho|length > 0) %}checked{% endif %}>
+                                <label class="form-check-label" for="usar_carrinho">
+                                    <strong>Usar Carrinho</strong> - Marque para adicionar múltiplos itens (produtos/serviços) ao lançamento
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Carrinho -->
+                    <div class="card carrinho-card mb-3" id="carrinho-container" style="display: {% if lancamento.produto_servico %}block{% else %}none{% endif %};">
+                        <div class="card-header">
+                            <h6 class="mb-0">Carrinho</h6>
+                        </div>
+                        <div class="card-body">
+                            <table class="carrinho-table" id="tabela-itens-lanc">
+                                <thead>
+                                    <tr>
+                                        <th>Tipo</th>
+                                        <th>Produto ou serviço</th>
+                                        <th>Preço unitário</th>
+                                        <th>Quantidade</th>
+                                        <th>Desconto</th>
+                                        <th>Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="itens-body-lanc">
+                                    {% if itens_carrinho and itens_carrinho|length > 0 %}
+                                        {% for item in itens_carrinho %}
+                                    <tr class="item-row-lanc">
+                                        <td>
+                                            <select class="form-select form-select-sm" name="item_tipo[]">
+                                                <option value="produto" {% if item.tipo == 'produto' %}selected{% endif %}>Produto</option>
+                                                <option value="servico" {% if item.tipo == 'servico' %}selected{% endif %}>Serviço</option>
+                                            </select>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-start gap-2">
+                                                <div class="autocomplete-container flex-grow-1">
+                                                    <input type="text" class="form-control form-control-sm item-nome" name="item_nome[]" placeholder="Digite o nome do produto" value="{{ item.nome }}" required>
+                                                    <div class="autocomplete-suggestions item-suggestions" style="display:none;"></div>
+                                                </div>
+                                                <button type="button" class="btn btn-outline-secondary btn-sm input-clear-btn btn-clear-nome" title="Limpar campo" data-bs-toggle="tooltip">
+                                                    <i class="fas fa-times"></i>
+                                                </button>
+                                            </div>
+                                            <small class="text-muted d-block mt-1">Observações adicionais (opcional)</small>
+                                            <input type="text" class="form-control form-control-sm mt-1" name="item_obs[]" placeholder="" value="{{ item.get('observacoes', '') if item.observacoes is defined else '' }}">
+                                        </td>
+                                        <td class="text-end">
+                                            <input type="number" step="0.01" min="0" class="form-control form-control-sm text-end" name="item_preco[]" value="{{ "%.2f"|format(item.preco) }}" inputmode="decimal" required>
+                                        </td>
+                                        <td class="text-center">
+                                            <input type="number" min="1" class="form-control form-control-sm text-center" name="item_qtd[]" value="{{ item.qtd }}" required>
+                                        </td>
+                                        <td class="text-end">
+                                            <input type="number" step="0.01" min="0" class="form-control form-control-sm text-end" name="item_desconto[]" value="{{ "%.2f"|format(item.desconto) }}" inputmode="decimal">
+                                        </td>
+                                        <td class="text-end">
+                                            <input type="text" class="form-control form-control-sm text-end" name="item_total[]" value="{{ "%.2f"|format(item.total) }}" readonly style="background-color: #f8f9fa; padding-right: 2rem;">
+                                            <button type="button" class="carrinho-remove-btn btn-remover-item-lanc" title="Remover item do carrinho" data-bs-toggle="tooltip" style="{% if loop.first and loop.last %}display:none;{% endif %}">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                        {% endfor %}
+                                    {% else %}
+                                    <tr class="item-row-lanc">
+                                        <td>
+                                            <select class="form-select form-select-sm" name="item_tipo[]">
+                                                <option value="produto" selected>Produto</option>
+                                                <option value="servico">Serviço</option>
+                                            </select>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-start gap-2">
+                                                <div class="autocomplete-container flex-grow-1">
+                                                    <input type="text" class="form-control form-control-sm item-nome" name="item_nome[]" placeholder="Digite o nome do produto" required>
+                                                    <div class="autocomplete-suggestions item-suggestions" style="display:none;"></div>
+                                                </div>
+                                                <button type="button" class="btn btn-outline-secondary btn-sm input-clear-btn btn-clear-nome" title="Limpar campo" data-bs-toggle="tooltip">
+                                                    <i class="fas fa-times"></i>
+                                                </button>
+                                            </div>
+                                            <small class="text-muted d-block mt-1">Observações adicionais (opcional)</small>
+                                            <input type="text" class="form-control form-control-sm mt-1" name="item_obs[]" placeholder="">
+                                        </td>
+                                        <td class="text-end">
+                                            <input type="number" step="0.01" min="0" class="form-control form-control-sm text-end" name="item_preco[]" value="0.00" inputmode="decimal" required>
+                                        </td>
+                                        <td class="text-center">
+                                            <input type="number" min="1" class="form-control form-control-sm text-center" name="item_qtd[]" value="1" required>
+                                        </td>
+                                        <td class="text-end">
+                                            <input type="number" step="0.01" min="0" class="form-control form-control-sm text-end" name="item_desconto[]" value="0.00" inputmode="decimal">
+                                        </td>
+                                        <td class="text-end">
+                                            <input type="text" class="form-control form-control-sm text-end" name="item_total[]" value="0.00" readonly style="background-color: #f8f9fa; padding-right: 2rem;">
+                                            <button type="button" class="carrinho-remove-btn btn-remover-item-lanc" title="Remover item do carrinho" data-bs-toggle="tooltip" style="display:none;">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    {% endif %}
+                                </tbody>
+                                <tfoot>
+                                    <tr>
+                                        <td colspan="3"></td>
+                                        <td class="text-end"><strong>Itens:</strong></td>
+                                        <td class="text-center"><strong id="itens-contagem-lanc">{% if itens_carrinho %}{{ itens_carrinho|length }}{% else %}1{% endif %}</strong></td>
+                                        <td class="text-end">
+                                            <input type="text" class="form-control form-control-sm text-end" id="carrinho_total_lanc" value="{% if itens_carrinho and itens_carrinho|length > 0 %}{{ "%.2f"|format(itens_carrinho[0].total) }}{% else %}0,00{% endif %}" readonly style="background-color: #f8f9fa; font-weight: 600;">
+                                        </td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                            <div style="padding: 1rem;">
+                                <button type="button" id="btn-adicionar-item-lanc" class="btn-adicionar-item" title="Adicionar novo produto/serviço ao carrinho">
+                                    <i class="fas fa-plus me-1"></i> Adicionar item
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Campos para condições de pagamento -->
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="tipo_pagamento" class="form-label">Tipo de Pagamento *</label>
+                            <select class="form-select" id="tipo_pagamento" name="tipo_pagamento" required>
+                                <option value="a_vista" selected>À Vista</option>
+                                <option value="parcelado">Parcelado</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="numero_parcelas" class="form-label">Número de Parcelas *</label>
+                            <input type="number" min="1" max="24" class="form-control" id="numero_parcelas" name="numero_parcelas" value="1" required>
+                        </div>
+                    </div>
+
+                    <!-- Total da Operação e Valor por Parcela -->
+                    <div class="row">
+                        <div class="col-md-6 mb-3" id="campo-valor-direto" style="display: {% if lancamento.produto_servico %}none{% else %}block{% endif %};">
+                            <label class="form-label">Valor Total *</label>
+                            <input type="number" step="0.01" min="0" class="form-control" id="valor_direto" name="valor_direto" value="{{ "%.2f"|format(lancamento.valor) }}" {% if lancamento.produto_servico %}required{% endif %}>
+                            <small class="form-text text-muted">Digite o valor total do lançamento</small>
+                        </div>
+                        <div class="col-md-6 mb-3" id="campo-total-operacao" style="display: {% if lancamento.produto_servico %}block{% else %}none{% endif %};">
+                            <label class="form-label">Total da Operação</label>
+                            <input type="text" class="form-control" id="total_operacao" name="valor" value="{{ "%.2f"|format(lancamento.valor) }}" readonly style="background-color: #f8f9fa; font-weight: bold; color: #495057;">
+                            <small class="form-text text-muted">Calculado automaticamente: (Quantidade × Valor) - Desconto</small>
+                            </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Valor por Parcela</label>
+                            <input type="text" class="form-control" id="valor_parcela" value="{{ "%.2f"|format(lancamento.valor) }}" readonly style="background-color: #f8f9fa; color: #6c757d;">
+                            <small class="form-text text-muted">Valor dividido pelo número de parcelas</small>
+                        </div>
+                    </div>
+
+                    {% if lancamento.compra or lancamento.venda %}
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                <strong>Atenção:</strong> Este lançamento está vinculado a 
+                                {% if lancamento.compra %}uma compra{% else %}uma venda{% endif %}. 
+                                Alterações aqui podem afetar o status da transação relacionada.
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i>Salvar Alterações
+                        </button>
+                                <a href="{{ url_for('lancamentos') }}" class="btn btn-secondary">
+                                    <i class="fas fa-arrow-left me-2"></i>Voltar
+                                </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.suggestions-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #ced4da;
+    border-top: none;
+    border-radius: 0 0 0.375rem 0.375rem;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    z-index: 1000;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.suggestion-item {
+    padding: 0.5rem 0.75rem;
+    cursor: pointer;
+    border-bottom: 1px solid #f8f9fa;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.suggestion-item:hover {
+    background-color: #f8f9fa;
+}
+
+.suggestion-item:last-child {
+    border-bottom: none;
+}
+
+.suggestion-type {
+    font-size: 0.75rem;
+    color: #6c757d;
+    background-color: #e9ecef;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+}
+
+.suggestion-type.cliente {
+    background-color: #d1ecf1;
+    color: #0c5460;
+}
+
+.suggestion-type.fornecedor {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+.new-item {
+    background-color: #fff3cd;
+    color: #856404;
+    font-weight: 500;
+}
+
+.new-item:hover {
+    background-color: #ffeaa7;
+}
+</style>
+
+<!-- Modal para escolher tipo de novo cadastro -->
+<div class="modal fade" id="novoCadastroModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Novo Cadastro</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Como deseja cadastrar "<span id="nomeNovoCadastro"></span>"?</p>
+                <div class="d-grid gap-2">
+                    <button type="button" class="btn btn-primary" onclick="criarNovo('cliente')">
+                        <i class="fas fa-user me-2"></i>Como Cliente
+                    </button>
+                    <button type="button" class="btn btn-success" onclick="criarNovo('fornecedor')">
+                        <i class="fas fa-truck me-2"></i>Como Fornecedor
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let clientesFornecedores = {
+    clientes: [
+        {% for cliente in clientes %}
+        {id: {{ cliente.id }}, nome: "{{ cliente.nome }}", tipo: "cliente"},
+        {% endfor %}
+    ],
+    fornecedores: [
+        {% for fornecedor in fornecedores %}
+        {id: {{ fornecedor.id }}, nome: "{{ fornecedor.nome }}", tipo: "fornecedor"},
+        {% endfor %}
+    ]
+};
+
+let nomeNovoCadastro = '';
+const categoriaAtual = '{{ lancamento.categoria }}';
+
+document.addEventListener('DOMContentLoaded', function() {
+    const input = document.getElementById('cliente_fornecedor');
+    const suggestions = document.getElementById('suggestions');
+    
+    // Toggle do carrinho
+    const usarCarrinhoCheckbox = document.getElementById('usar_carrinho');
+    const carrinhoContainer = document.getElementById('carrinho-container');
+    const campoValorDireto = document.getElementById('campo-valor-direto');
+    const campoTotalOperacao = document.getElementById('campo-total-operacao');
+    const valorDiretoInput = document.getElementById('valor_direto');
+    const totalOperacaoInput = document.getElementById('total_operacao');
+    
+    function toggleCarrinho() {
+        if (!usarCarrinhoCheckbox || !carrinhoContainer) {
+            console.log('❌ Elementos não encontrados:', { usarCarrinhoCheckbox, carrinhoContainer });
+            return;
+        }
+        const usarCarrinho = usarCarrinhoCheckbox.checked;
+        console.log('🔄 Toggle carrinho:', usarCarrinho ? 'ATIVAR' : 'DESATIVAR');
+
+        if (usarCarrinho) {
+            // Mostrar carrinho
+            carrinhoContainer.style.setProperty('display', 'block', 'important');
+            console.log('✅ Carrinho EXIBIDO');
+
+            // Tornar o campo valor_direto readonly e copiar valor do carrinho
+            if (valorDiretoInput) {
+                valorDiretoInput.readOnly = true;
+                valorDiretoInput.style.backgroundColor = '#f8f9fa';
+                valorDiretoInput.style.fontWeight = '600';
+                // Sincronizar com o total do carrinho
+                const totalCarrinhoEl = document.getElementById('carrinho_total_lanc');
+                if (totalCarrinhoEl) {
+                    const valorCarrinho = parseFloat(totalCarrinhoEl.value.replace(',', '.')) || 0;
+                    valorDiretoInput.value = valorCarrinho.toFixed(2);
+                }
+            }
+
+            // Tornar campos do carrinho obrigatórios
+            const carrinhoInputs = carrinhoContainer.querySelectorAll('input[required], select[required]');
+            carrinhoInputs.forEach(inp => inp.required = true);
+
+            // Atualizar valor do campo hidden
+            calcularTotal();
+        } else {
+            // Ocultar carrinho
+            carrinhoContainer.style.setProperty('display', 'none', 'important');
+            console.log('✅ Carrinho OCULTADO');
+
+            // Tornar o campo valor_direto editável novamente
+            if (valorDiretoInput) {
+                valorDiretoInput.readOnly = false;
+                valorDiretoInput.style.backgroundColor = '';
+                valorDiretoInput.style.fontWeight = '';
+                valorDiretoInput.required = true;
+            }
+
+            // Remover required dos campos do carrinho
+            const carrinhoInputs = carrinhoContainer.querySelectorAll('input[required], select[required]');
+            carrinhoInputs.forEach(inp => inp.required = false);
+
+            // Atualizar valor do campo hidden com valor direto
+            if (valorDiretoInput && totalOperacaoInput) {
+                const valor = parseFloat(valorDiretoInput.value) || 0;
+                totalOperacaoInput.value = valor.toFixed(2);
+                calcularValorParcela();
+            }
+        }
+    }
+    
+    if (usarCarrinhoCheckbox && carrinhoContainer) {
+        usarCarrinhoCheckbox.addEventListener('change', toggleCarrinho);
+        toggleCarrinho();
+    }
+    
+    if (valorDiretoInput) {
+        valorDiretoInput.addEventListener('input', function() {
+            if (!usarCarrinhoCheckbox || !usarCarrinhoCheckbox.checked) {
+                const valor = parseFloat(this.value) || 0;
+                if (totalOperacaoInput) {
+                    totalOperacaoInput.value = valor.toFixed(2);
+                }
+                calcularValorParcela();
+            }
+        });
+    }
+    
+    // Atualizar categorias baseado no tipo selecionado
+    document.getElementById('tipo').addEventListener('change', function() {
+        const tipo = this.value;
+        const categoriaSelect = document.getElementById('categoria');
+        
+        categoriaSelect.innerHTML = '<option value="">Carregando categorias...</option>';
+        
+        if (!tipo) {
+            categoriaSelect.innerHTML = '<option value="">Selecione primeiro o tipo...</option>';
+            return;
+        }
+        
+        fetch(`/api/categorias/${tipo}`)
+            .then(response => response.json())
+            .then(data => {
+                categoriaSelect.innerHTML = '<option value="">Selecione uma categoria...</option>';
+                
+                if (data.categorias && data.categorias.length > 0) {
+                    data.categorias.forEach(categoria => {
+                        const option = document.createElement('option');
+                        option.value = categoria.nome;
+                        option.textContent = categoria.nome;
+                        if (categoria.nome === categoriaAtual) {
+                            option.selected = true;
+                        }
+                        categoriaSelect.appendChild(option);
+                    });
+                } else {
+                    categoriaSelect.innerHTML = '<option value="">Nenhuma categoria encontrada</option>';
+                }
+            })
+            .catch(error => {
+                console.error('Erro ao carregar categorias:', error);
+                categoriaSelect.innerHTML = '<option value="">Erro ao carregar categorias</option>';
+            });
+    });
+    
+    // Carregar categorias iniciais
+    const tipoSelect = document.getElementById('tipo');
+    if (tipoSelect && tipoSelect.value) {
+        tipoSelect.dispatchEvent(new Event('change'));
+    }
+    
+    function toNumber(el) {
+        if (!el) return 0;
+        const v = parseFloat(el.value.replace(',', '.'));
+        return isNaN(v) ? 0 : v;
+    }
+
+    function calcularTotal() {
+        let total = 0;
+        
+        if (usarCarrinhoCheckbox && usarCarrinhoCheckbox.checked) {
+            const totalCarrinho = document.getElementById('carrinho_total_lanc');
+            if (totalCarrinho) {
+                total = toNumber(totalCarrinho);
+            }
+        } else {
+            if (valorDiretoInput) {
+                total = parseFloat(valorDiretoInput.value) || 0;
+            }
+        }
+        
+        if (total < 0) total = 0;
+        
+        if (totalOperacaoInput) {
+            totalOperacaoInput.value = total.toFixed(2);
+        }
+        
+        if (campoTotalOperacao && campoTotalOperacao.style.display !== 'none') {
+            const totalOperacaoDisplay = document.getElementById('total_operacao');
+            if (totalOperacaoDisplay) {
+                totalOperacaoDisplay.value = total.toFixed(2).replace('.', ',');
+            }
+        }
+        
+        calcularValorParcela();
+    }
+    
+    function calcularValorParcela() {
+        const numeroParcelas = document.getElementById('numero_parcelas');
+        const valorParcela = document.getElementById('valor_parcela');
+        
+        if (numeroParcelas && valorParcela) {
+            let total = 0;
+            if (usarCarrinhoCheckbox && usarCarrinhoCheckbox.checked) {
+                const totalCarrinho = document.getElementById('carrinho_total_lanc');
+                if (totalCarrinho) {
+                    total = toNumber(totalCarrinho);
+                }
+            } else {
+                if (valorDiretoInput) {
+                    total = parseFloat(valorDiretoInput.value) || 0;
+                }
+            }
+            
+            const parcelas = parseInt(numeroParcelas.value) || 1;
+            const valorPorParcela = parcelas > 0 ? total / parcelas : 0;
+            valorParcela.value = valorPorParcela.toFixed(2).replace('.', ',');
+        }
+    }
+
+    // Carrinho dinâmico - usar o mesmo código do novo_lancamento.html
+    const itensBody = document.getElementById('itens-body-lanc');
+    const btnAdd = document.getElementById('btn-adicionar-item-lanc');
+    const totalCarrinho = document.getElementById('carrinho_total_lanc');
+    const itensContagem = document.getElementById('itens-contagem-lanc');
+
+    function calcCarrinho() {
+        let soma = 0;
+        if (itensBody) {
+            itensBody.querySelectorAll('.item-row-lanc').forEach(row => {
+                const p = parseFloat(row.querySelector('input[name="item_preco[]"]').value || '0');
+                const q = parseFloat(row.querySelector('input[name="item_qtd[]"]').value || '0');
+                const d = parseFloat(row.querySelector('input[name="item_desconto[]"]').value || '0');
+                const t = Math.max(p * q - d, 0);
+                const totalEl = row.querySelector('input[name="item_total[]"]');
+                if (totalEl) totalEl.value = t.toFixed(2);
+                soma += t;
+            });
+        }
+        if (totalCarrinho) totalCarrinho.value = soma.toFixed(2).replace('.', ',');
+
+        // Se carrinho estiver ativo, sincronizar com valor_direto
+        if (usarCarrinhoCheckbox && usarCarrinhoCheckbox.checked && valorDiretoInput) {
+            valorDiretoInput.value = soma.toFixed(2);
+        }
+
+        calcularTotal();
+    }
+
+    function toggleRemoveButtons() {
+        const rows = itensBody ? itensBody.querySelectorAll('.item-row-lanc') : [];
+        rows.forEach(r => { const b = r.querySelector('.btn-remover-item-lanc'); if (b) b.style.display = rows.length > 1 ? '' : 'none'; });
+        if (itensContagem) itensContagem.textContent = String(rows.length);
+    }
+
+    // Inicializar cálculos
+    if (itensBody) {
+        const firstRow = itensBody.querySelector('.item-row-lanc');
+        if (firstRow) {
+            toggleRemoveButtons();
+            calcCarrinho();
+            calcularTotal();
+        }
+    }
+    
+    // Adicionar listeners para tipo de pagamento e número de parcelas
+    const tipoPagamento = document.getElementById('tipo_pagamento');
+    const numeroParcelas = document.getElementById('numero_parcelas');
+    
+    if (tipoPagamento) {
+        tipoPagamento.addEventListener('change', calcularValorParcela);
+    }
+    
+    if (numeroParcelas) {
+        numeroParcelas.addEventListener('input', calcularValorParcela);
+        numeroParcelas.addEventListener('change', calcularValorParcela);
+    }
+    
+    // Autocomplete para cliente/fornecedor - usar o mesmo código do novo_lancamento.html
+    if (input) {
+        input.addEventListener('input', function() {
+            const query = this.value.toLowerCase().trim();
+            
+            if (query.length < 2) {
+                suggestions.style.display = 'none';
+                return;
+            }
+            
+            const matches = [];
+            
+            clientesFornecedores.clientes.forEach(item => {
+                if (item.nome.toLowerCase().includes(query)) {
+                    matches.push(item);
+                }
+            });
+            
+            clientesFornecedores.fornecedores.forEach(item => {
+                if (item.nome.toLowerCase().includes(query)) {
+                    matches.push(item);
+                }
+            });
+            
+            if (matches.length > 0 || query.length >= 2) {
+                showSuggestions(matches, query);
+            } else {
+                suggestions.style.display = 'none';
+            }
+        });
+    }
+    
+    document.addEventListener('click', function(e) {
+        if (input && !input.contains(e.target) && suggestions && !suggestions.contains(e.target)) {
+            suggestions.style.display = 'none';
+        }
+    });
+    
+    if (window.bootstrap && bootstrap.Tooltip) {
+        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        tooltipTriggerList.forEach(el => new bootstrap.Tooltip(el));
+    }
+});
+
+function showSuggestions(matches, query) {
+    const suggestions = document.getElementById('suggestions');
+    suggestions.innerHTML = '';
+    
+    matches.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'suggestion-item';
+        div.innerHTML = `
+            <span>${item.nome}</span>
+            <span class="suggestion-type ${item.tipo}">${item.tipo === 'cliente' ? 'Cliente' : 'Fornecedor'}</span>
+        `;
+        div.onclick = () => selectItem(item);
+        suggestions.appendChild(div);
+    });
+    
+    if (query.length >= 2) {
+        const div = document.createElement('div');
+        div.className = 'suggestion-item new-item';
+        div.innerHTML = `
+            <span><i class="fas fa-plus me-2"></i>Criar novo: "${query}"</span>
+        `;
+        div.onclick = () => showNovoCadastroModal(query);
+        suggestions.appendChild(div);
+    }
+    
+    suggestions.style.display = 'block';
+}
+
+function selectItem(item) {
+    const input = document.getElementById('cliente_fornecedor');
+    const clienteId = document.getElementById('cliente_id');
+    const fornecedorId = document.getElementById('fornecedor_id');
+    
+    input.value = item.nome;
+    
+    if (item.tipo === 'cliente') {
+        clienteId.value = item.id;
+        fornecedorId.value = '';
+    } else {
+        fornecedorId.value = item.id;
+        clienteId.value = '';
+    }
+    
+    document.getElementById('suggestions').style.display = 'none';
+}
+
+function showNovoCadastroModal(nome) {
+    nomeNovoCadastro = nome;
+    document.getElementById('nomeNovoCadastro').textContent = nome;
+    const modal = new bootstrap.Modal(document.getElementById('novoCadastroModal'));
+    modal.show();
+    document.getElementById('suggestions').style.display = 'none';
+}
+
+function criarNovo(tipo) {
+    const input = document.getElementById('cliente_fornecedor');
+    const clienteId = document.getElementById('cliente_id');
+    const fornecedorId = document.getElementById('fornecedor_id');
+    
+    fetch('/api/criar-cliente-fornecedor', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            nome: nomeNovoCadastro,
+            tipo: tipo
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            if (tipo === 'cliente') {
+                clientesFornecedores.clientes.push({
+                    id: data.id,
+                    nome: nomeNovoCadastro,
+                    tipo: 'cliente'
+                });
+                clienteId.value = data.id;
+                fornecedorId.value = '';
+            } else {
+                clientesFornecedores.fornecedores.push({
+                    id: data.id,
+                    nome: nomeNovoCadastro,
+                    tipo: 'fornecedor'
+                });
+                fornecedorId.value = data.id;
+                clienteId.value = '';
+            }
+            
+            input.value = nomeNovoCadastro;
+            
+            const modal = bootstrap.Modal.getInstance(document.getElementById('novoCadastroModal'));
+            modal.hide();
+            
+            alert(`${tipo === 'cliente' ? 'Cliente' : 'Fornecedor'} criado com sucesso!`);
+        } else {
+            alert('Erro ao criar ' + tipo + ': ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        alert('Erro ao criar ' + tipo);
+    });
+}
+
+    // Função para validar estoque
+    function validarEstoque(row) {
+        var qtdEl = row.querySelector('input[name="item_qtd[]"]');
+        var estoque = parseFloat(row.dataset.estoque);
+        var quantidade = parseFloat(qtdEl.value) || 0;
+        var qtdCell = qtdEl.closest('td');
+        var errorMsg = qtdCell.querySelector('.estoque-error-message');
+        
+        if (!isNaN(estoque) && quantidade > estoque) {
+            qtdEl.classList.add('estoque-invalido');
+            if (!errorMsg) {
+                errorMsg = document.createElement('small');
+                errorMsg.className = 'estoque-error-message';
+                qtdCell.appendChild(errorMsg);
+            }
+            errorMsg.textContent = 'Estoque disponível: ' + estoque;
+        } else {
+            limparValidacaoEstoque(row);
+        }
+    }
+    
+    // Função para limpar validação de estoque
+    function limparValidacaoEstoque(row) {
+        var qtdEl = row.querySelector('input[name="item_qtd[]"]');
+        var qtdCell = qtdEl ? qtdEl.closest('td') : null;
+        if (qtdEl) qtdEl.classList.remove('estoque-invalido');
+        if (qtdCell) {
+            var errorMsg = qtdCell.querySelector('.estoque-error-message');
+            if (errorMsg) errorMsg.remove();
+        }
+    }
+
+    function bindRow(row) {
+        row.querySelectorAll('input').forEach(inp => {
+            inp.addEventListener('input', function() {
+                calcCarrinho();
+                calcularTotal();
+                if (inp.name === 'item_qtd[]') {
+                    if (row.dataset.estoque) {
+                        validarEstoque(row);
+                    }
+                }
+    });
+});
+        
+        var qtdInput = row.querySelector('input[name="item_qtd[]"]');
+        if (qtdInput) {
+            qtdInput.addEventListener('change', function() {
+                if (row.dataset.estoque) {
+                    validarEstoque(row);
+                }
+            });
+        }
+        const btn = row.querySelector('.btn-remover-item-lanc');
+        if (btn) btn.addEventListener('click', () => { row.remove(); toggleRemoveButtons(); calcCarrinho(); calcularTotal(); });
+        
+        const tipoSelect = row.querySelector('select[name="item_tipo[]"]');
+        const nomeInput = row.querySelector('.item-nome') || row.querySelector('input[name="item_nome[]"]');
+        let sugestDiv = row.querySelector('.item-suggestions');
+        if (!sugestDiv && nomeInput && nomeInput.parentElement && nomeInput.parentElement.classList.contains('autocomplete-container')) {
+            sugestDiv = document.createElement('div');
+            sugestDiv.className = 'autocomplete-suggestions item-suggestions';
+            sugestDiv.style.display = 'none';
+            nomeInput.parentElement.appendChild(sugestDiv);
+        }
+        function buscarProdutos(query){
+            if (!query || query.length < 2) { if(sugestDiv){sugestDiv.style.display='none';sugestDiv.innerHTML='';} return; }
+            if (sugestDiv) {
+                sugestDiv.innerHTML = `<div class="autocomplete-loading"><div class="sugg-icon"><i class="fas fa-box"></i></div><div class="skel" style="max-width:180px"></div></div>`;
+                sugestDiv.style.display = 'block';
+            }
+            fetch(`/api/produtos/sugestoes?q=${encodeURIComponent(query)}`)
+                .then(r=>r.json())
+                .then(data=>{
+                    const itens = data.produtos||[];
+                    if(!sugestDiv) return;
+                    sugestDiv.innerHTML='';
+                    itens.forEach(item=>{
+                        const d=document.createElement('div');
+                        d.className='autocomplete-suggestion';
+                        d.innerHTML=`<div class="sugg-left"><span class="sugg-icon"><i class="fas fa-box"></i></span><span class="sugg-title"><strong>${item.nome}</strong></span></div><div class="sugg-meta">${item.estoque!==undefined?`<span class="badge-pill">Estoque: ${item.estoque}</span>`:''}</div>`;
+                        d.addEventListener('click',()=>{
+                            nomeInput.value=item.nome; sugestDiv.style.display='none';
+                            const precoEl=row.querySelector('input[name="item_preco[]"]');
+                            if(precoEl && item.preco_venda){ precoEl.value=item.preco_venda; }
+                            if(item.estoque !== undefined) {
+                                row.dataset.estoque = item.estoque;
+                                validarEstoque(row);
+                            } else {
+                                delete row.dataset.estoque;
+                                limparValidacaoEstoque(row);
+                            }
+                            calcCarrinho(); calcularTotal();
+                        });
+                        sugestDiv.appendChild(d);
+                    });
+                    if (query && (itens.length === 0 || itens.length < 5)) {
+                        const createDiv = document.createElement('div');
+                        createDiv.className = 'autocomplete-suggestion create-new';
+                        createDiv.innerHTML = `<i class="fas fa-plus me-2"></i><strong>Criar produto: "${query}"</strong><br><small class="text-muted">Será criado ao salvar o registro</small>`;
+                        createDiv.addEventListener('click', function(){
+                            nomeInput.value = query;
+                            sugestDiv.style.display='none';
+                            calcCarrinho(); calcularTotal();
+                        });
+                        sugestDiv.appendChild(createDiv);
+                    }
+                    sugestDiv.style.display = 'block';
+                }).catch(()=>{ if(sugestDiv){sugestDiv.style.display='none';} });
+        }
+        function onNomeInput(){ 
+            if (tipoSelect && tipoSelect.value === 'produto') {
+                buscarProdutos((nomeInput?.value||'').trim()); 
+            }
+        }
+        function toggleAutocomplete(){
+            if (!tipoSelect || !nomeInput) return;
+            if (tipoSelect.value === 'produto') {
+                nomeInput.setAttribute('placeholder','Digite o nome do produto');
+                if (nomeInput.dataset.autocompleteBound !== 'true') {
+                    nomeInput.addEventListener('input', onNomeInput);
+                    nomeInput.dataset.autocompleteBound = 'true';
+                }
+            } else {
+                nomeInput.setAttribute('placeholder','Descreva o serviço');
+                if (sugestDiv){sugestDiv.style.display='none';sugestDiv.innerHTML='';}
+                nomeInput.removeEventListener('input', onNomeInput);
+                nomeInput.dataset.autocompleteBound = 'false';
+            }
+        }
+        if (tipoSelect) { 
+            tipoSelect.addEventListener('change', toggleAutocomplete); 
+            toggleAutocomplete(); 
+        }
+        document.addEventListener('click', function(e){ 
+            if(sugestDiv && !e.target.closest('.autocomplete-container')) {
+                sugestDiv.style.display='none';
+            }
+        });
+        var btnClear = row.querySelector('.btn-clear-nome');
+        if (btnClear && nomeInput) {
+            btnClear.addEventListener('click', function(){
+                nomeInput.value='';
+                if (sugestDiv){sugestDiv.style.display='none';sugestDiv.innerHTML='';}
+                calcCarrinho(); calcularTotal();
+            });
+        }
+    }
+
+    // Configurar botão adicionar item
+    document.addEventListener('click', function(e) {
+        if (e.target && (e.target.id === 'btn-adicionar-item-lanc' || e.target.closest('#btn-adicionar-item-lanc'))) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            if (!itensBody) {
+                return;
+            }
+            const tr = document.createElement('tr');
+            tr.className = 'item-row-lanc';
+            tr.innerHTML = `
+                <td>
+                    <select class="form-select form-select-sm" name="item_tipo[]">
+                        <option value="produto" selected>Produto</option>
+                        <option value="servico">Serviço</option>
+                    </select>
+                </td>
+                <td>
+                    <div class="d-flex align-items-start gap-2">
+                        <div class="autocomplete-container flex-grow-1">
+                            <input type="text" class="form-control form-control-sm item-nome" name="item_nome[]" placeholder="Digite o nome do produto" required>
+                            <div class="autocomplete-suggestions item-suggestions" style="display:none;"></div>
+                        </div>
+                        <button type="button" class="btn btn-outline-secondary btn-sm input-clear-btn btn-clear-nome" title="Limpar campo" data-bs-toggle="tooltip">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <small class="text-muted d-block mt-1">Observações adicionais (opcional)</small>
+                    <input type="text" class="form-control form-control-sm mt-1" name="item_obs[]" placeholder="">
+                </td>
+                <td class="text-end">
+                    <input type="number" step="0.01" min="0" class="form-control form-control-sm text-end" name="item_preco[]" value="0.00" inputmode="decimal" required>
+                </td>
+                <td class="text-center">
+                    <input type="number" min="1" class="form-control form-control-sm text-center" name="item_qtd[]" value="1" required>
+                </td>
+                <td class="text-end">
+                    <input type="number" step="0.01" min="0" class="form-control form-control-sm text-end" name="item_desconto[]" value="0.00" inputmode="decimal">
+                </td>
+                <td class="text-end">
+                    <input type="text" class="form-control form-control-sm text-end" name="item_total[]" value="0.00" readonly style="background-color: #f8f9fa; padding-right: 2rem;">
+                    <button type="button" class="carrinho-remove-btn btn-remover-item-lanc" title="Remover item do carrinho" data-bs-toggle="tooltip">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>`;
+            itensBody.appendChild(tr);
+            bindRow(tr);
+            
+            if (window.bootstrap && bootstrap.Tooltip) {
+                const tooltips = tr.querySelectorAll('[data-bs-toggle="tooltip"]');
+                tooltips.forEach(function(el) {
+                    try {
+                        new bootstrap.Tooltip(el);
+                    } catch(e) {
+                        console.warn('Erro ao inicializar tooltip:', e);
+                    }
+                });
+            }
+            
+            toggleRemoveButtons();
+            calcCarrinho();
+            calcularTotal();
+            
+            tr.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+    });
+    
+    // Bind inicial das linhas existentes
+    if (itensBody) {
+        const rows = itensBody.querySelectorAll('.item-row-lanc');
+        rows.forEach(row => {
+            bindRow(row);
+        });
+        toggleRemoveButtons();
+        calcCarrinho();
+        calcularTotal();
+    }
+</script>
+{% endblock %} 

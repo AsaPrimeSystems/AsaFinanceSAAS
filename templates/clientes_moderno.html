@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+
+{% block title %}Clientes - Sistema de Gestão Financeira{% endblock %}
+
+{% block page_title %}Clientes{% endblock %}
+
+{% block content %}
+<div class="modern-panel">
+    <div class="modern-panel-header">
+        <h5 class="modern-panel-title">
+            <i class="fas fa-users"></i>
+            Clientes
+        </h5>
+        <div class="modern-panel-actions">
+            <a href="{{ url_for('novo_cliente') }}" class="btn btn-primary btn-sm">
+                <i class="fas fa-plus me-1"></i>Novo Cliente
+            </a>
+        </div>
+    </div>
+    
+    <div class="modern-filters">
+        <div class="modern-filter-group">
+            <label class="modern-filter-label">Buscar:</label>
+            <input type="text" class="modern-filter-input" id="filtro-busca" 
+                   placeholder="Nome, email ou telefone">
+        </div>
+        
+        <div class="modern-filter-group">
+            <button class="btn btn-primary btn-sm" onclick="aplicarFiltros()">
+                <i class="fas fa-search"></i>
+            </button>
+            <button class="btn btn-secondary btn-sm" onclick="limparFiltros()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    </div>
+    
+    <div class="modern-panel-controls">
+        <div class="modern-pagination-info">
+            Exibindo itens 1 - 50 de {{ clientes|length if clientes else 0 }}
+        </div>
+        <div class="modern-pagination-controls">
+            <button class="modern-pagination-btn" onclick="paginaAnterior()">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+            <span class="modern-page-selector">1</span>
+            <button class="modern-pagination-btn" onclick="proximaPagina()">
+                <i class="fas fa-chevron-right"></i>
+            </button>
+        </div>
+    </div>
+    
+    <div class="modern-batch-actions" id="batch-actions" style="display:none;">
+        <div class="modern-batch-info">
+            <span id="selected-count">0</span> cliente(s) selecionado(s)
+        </div>
+        <div class="modern-batch-buttons">
+            <button class="modern-batch-btn danger" id="btn-excluir-lote">
+                <i class="fas fa-trash me-1"></i>Excluir Selecionados
+            </button>
+            <button class="modern-batch-btn secondary" id="btn-deselecionar-todos">
+                <i class="fas fa-times me-1"></i>Deselecionar Todos
+            </button>
+        </div>
+    </div>
+    
+    <div class="modern-table-container">
+        <table class="modern-table">
+            <thead>
+                <tr>
+                    <th class="modern-checkbox-col">
+                        <input type="checkbox" id="select-all" class="modern-checkbox">
+                    </th>
+                    <th class="modern-data-col">Nome</th>
+                    <th class="modern-data-col">Email</th>
+                    <th class="modern-data-col">Telefone</th>
+                    <th class="modern-data-col">CPF/CNPJ</th>
+                    <th class="modern-actions-col">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if clientes %}
+                    {% for cliente in clientes %}
+                    <tr>
+                        <td class="modern-checkbox-col">
+                            <input type="checkbox" class="modern-checkbox cliente-checkbox" 
+                                   value="{{ cliente.id }}">
+                        </td>
+                        <td class="modern-data-col" title="{{ cliente.nome }}">
+                            <strong>{{ cliente.nome[:25] + '...' if cliente.nome|length > 25 else cliente.nome }}</strong>
+                        </td>
+                        <td class="modern-data-col" title="{{ cliente.email or '-' }}">
+                            {{ (cliente.email[:20] + '...' if cliente.email and cliente.email|length > 20 else cliente.email) or '-' }}
+                        </td>
+                        <td class="modern-data-col" title="{{ cliente.telefone or '-' }}">
+                            {{ cliente.telefone or '-' }}
+                        </td>
+                        <td class="modern-data-col" title="{{ cliente.cpf_cnpj or '-' }}">
+                            {{ cliente.cpf_cnpj or '-' }}
+                        </td>
+                        <td class="modern-actions-col">
+                            <button class="modern-action-btn edit" 
+                                    onclick="editarCliente({{ cliente.id }})"
+                                    title="Editar">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="modern-action-btn delete" 
+                                    onclick="excluirCliente({{ cliente.id }})"
+                                    title="Excluir">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="10" class="text-center py-4 text-muted">
+                            <i class="fas fa-users fa-2x mb-2"></i><br>
+                            Nenhum cliente encontrado
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+    
+    <div class="modern-panel-footer">
+        <div class="modern-totals">
+            <div>
+                <span class="modern-total-label">Total de Clientes:</span>
+                <span class="modern-total-value">{{ clientes|length if clientes else 0 }}</span>
+            </div>
+            <div>
+                <span class="modern-total-label">Clientes Ativos:</span>
+                <span class="modern-total-value positive">{{ clientes|selectattr('ativo')|list|length if clientes else 0 }}</span>
+            </div>
+            <div>
+                <span class="modern-total-label">Total em Receitas:</span>
+                <span class="modern-total-value positive">
+                    R$ {{ "%.2f"|format(clientes|sum(attribute='total_receitas') or 0) if clientes else '0,00' }}
+                </span>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block scripts %}
+<script>
+// Seleção em lote
+document.getElementById('select-all').addEventListener('change', function() {
+    const checkboxes = document.querySelectorAll('.cliente-checkbox');
+    checkboxes.forEach(checkbox => { checkbox.checked = this.checked; });
+    atualizarAcoesLote();
+});
+
+document.querySelectorAll('.cliente-checkbox').forEach(checkbox => {
+    checkbox.addEventListener('change', atualizarAcoesLote);
+});
+
+function atualizarAcoesLote() {
+    const selecionados = document.querySelectorAll('.cliente-checkbox:checked');
+    const batchActions = document.getElementById('batch-actions');
+    const selectedCount = document.getElementById('selected-count');
+    if (selecionados.length > 0) {
+        batchActions.classList.add('active');
+        batchActions.style.display = 'flex';
+        selectedCount.textContent = selecionados.length;
+    } else {
+        batchActions.classList.remove('active');
+        batchActions.style.display = 'none';
+    }
+}
+
+// Excluir em lote
+document.getElementById('btn-excluir-lote').addEventListener('click', function(e){
+    e.preventDefault();
+    const selecionados = Array.from(document.querySelectorAll('.cliente-checkbox:checked')).map(cb => cb.value);
+    if (selecionados.length === 0) return;
+    if (!confirm(`Excluir ${selecionados.length} cliente(s) selecionado(s)?`)) return;
+    fetch('/api/clientes/excluir-lote', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cliente_ids: selecionados })
+    }).then(r => r.json()).then(data => {
+        if (data.success) location.reload(); else alert(data.error || 'Erro ao excluir');
+    }).catch(() => alert('Erro ao excluir'));
+});
+
+// Deselecionar todos
+document.getElementById('btn-deselecionar-todos').addEventListener('click', function(e){
+    e.preventDefault();
+    document.getElementById('select-all').checked = false;
+    document.querySelectorAll('.cliente-checkbox').forEach(cb => cb.checked = false);
+    atualizarAcoesLote();
+});
+</script>
+{% endblock %}
+{% endblock %}

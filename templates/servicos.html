@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+
+{% block title %}Serviços - Sistema de Gestão Financeira{% endblock %}
+
+{% block page_title %}Serviços{% endblock %}
+
+{% block content %}
+<div class="row mb-3">
+    <div class="col-md-12">
+        <a href="{{ url_for('novo_servico') }}" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>Novo Serviço
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-cogs me-2"></i>Lista de Serviços
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if servicos %}
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Nome</th>
+                                <th>Descrição</th>
+                                <th>Preço</th>
+                                <th>Status</th>
+                                <th>Criado por</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for servico in servicos %}
+                            <tr>
+                                <td>{{ servico.nome }}</td>
+                                <td>{{ servico.descricao or '-' }}</td>
+                                <td>R$ {{ "%.2f"|format(servico.preco) }}</td>
+                                <td>
+                                    <span class="badge bg-{{ 'success' if servico.ativo else 'danger' }}">
+                                        {{ 'Ativo' if servico.ativo else 'Inativo' }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if servico.usuario_criador %}
+                                        <span class="badge bg-primary">
+                                            <i class="fas fa-user me-1"></i>{{ servico.usuario_criador.nome }}
+                                        </span>
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="btn-group" role="group">
+                                        <a href="{{ url_for('editar_servico', servico_id=servico.id) }}" class="btn btn-sm btn-info" title="Editar">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <button class="btn btn-sm btn-danger" title="Excluir" onclick="confirmarExclusaoServico({{ servico.id }}, '{{ servico.nome }}')">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="fas fa-cogs fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">Nenhum serviço encontrado</h5>
+                    <p class="text-muted">Clique em "Novo Serviço" para começar.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Confirmação de Exclusão -->
+<div class="modal fade" id="modalConfirmacaoExclusao" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirmar Exclusão</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p id="mensagemConfirmacao">Tem certeza que deseja excluir este serviço? Esta ação não pode ser desfeita.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-danger" id="btnConfirmarExclusao">Excluir</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function confirmarExclusaoServico(servicoId, servicoNome) {
+    const modal = new bootstrap.Modal(document.getElementById('modalConfirmacaoExclusao'));
+    const mensagem = document.getElementById('mensagemConfirmacao');
+    const btnConfirmar = document.getElementById('btnConfirmarExclusao');
+    
+    mensagem.textContent = `Tem certeza que deseja excluir o serviço "${servicoNome}"? Esta ação não pode ser desfeita.`;
+    
+    btnConfirmar.onclick = function() {
+        window.location.href = `/estoque/servico/${servicoId}/deletar`;
+    };
+    
+    modal.show();
+}
+</script>
+{% endblock %} 

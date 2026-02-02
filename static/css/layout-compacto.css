@@ -1,0 +1,812 @@
+/* ===== LAYOUT COMPACTO MODERNO - OPÇÃO 1 ===== */
+
+/* Container principal - corrigir margem */
+.modern-panel {
+    background: #ffffff !important;
+    border: 1px solid #e0e6ed !important;
+    border-radius: 12px !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+/* Cabeçalho do painel - mais compacto */
+.modern-panel-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    color: white !important;
+    padding: 15px 20px !important;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.1) !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+    border-radius: 12px 12px 0 0 !important;
+}
+
+.modern-panel-title {
+    font-size: 18px !important;
+    font-weight: 700 !important;
+    margin: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important;
+}
+
+.modern-panel-title i {
+    font-size: 20px !important;
+    opacity: 0.95 !important;
+}
+
+.modern-panel-actions .btn {
+    padding: 8px 16px !important;
+    font-size: 13px !important;
+    border-radius: 6px !important;
+    font-weight: 600 !important;
+}
+
+/* Seção de filtros - layout horizontal compacto */
+.modern-filters {
+    background: linear-gradient(to bottom, #f8f9fa 0%, #f1f3f5 100%) !important;
+    border-bottom: 2px solid #e0e6ed !important;
+    padding: 15px 20px !important;
+    display: flex !important;
+    align-items: flex-end !important;
+    gap: 15px !important;
+    flex-wrap: wrap !important;
+}
+
+.modern-filter-group {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 6px !important;
+    flex: 1 !important;
+    min-width: 160px !important;
+}
+
+.modern-filter-label {
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    color: #7f8c8d !important;
+    white-space: nowrap !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.3px !important;
+}
+
+.modern-filter-input,
+.modern-filter-input select,
+.modern-filter-input input {
+    font-size: 13px !important;
+    padding: 8px 12px !important;
+    border: 1px solid #ddd !important;
+    border-radius: 6px !important;
+    height: 36px !important;
+    width: 100% !important;
+    background: #ffffff !important;
+    transition: all 0.2s ease !important;
+}
+
+.modern-filter-input:focus,
+.modern-filter-input select:focus,
+.modern-filter-input input:focus {
+    border-color: #667eea !important;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15) !important;
+    outline: none !important;
+}
+
+/* Botões de filtro */
+.modern-filter-group .btn {
+    height: 36px !important;
+    padding: 0 16px !important;
+    white-space: nowrap !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+}
+
+/* Grupo de botões sem label */
+.modern-filter-group:has(.btn) {
+    flex: 0 0 auto !important;
+    min-width: auto !important;
+}
+
+/* Seção de busca */
+.search-section {
+    padding: 15px 20px !important;
+    background: white !important;
+    border-bottom: 1px solid #e0e6ed !important;
+}
+
+.search-input-group {
+    display: flex !important;
+    gap: 10px !important;
+    align-items: center !important;
+}
+
+.search-input {
+    flex: 1 !important;
+    padding: 10px 15px !important;
+    border: 1px solid #ddd !important;
+    border-radius: 6px !important;
+    font-size: 13px !important;
+    height: 40px !important;
+}
+
+.search-input:focus {
+    border-color: #667eea !important;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15) !important;
+    outline: none !important;
+}
+
+.search-btn {
+    padding: 10px 20px !important;
+    background: #667eea !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 6px !important;
+    font-size: 13px !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+    height: 40px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.search-btn:hover {
+    background: #5568d3 !important;
+}
+
+/* Controles de paginação */
+.modern-panel-controls {
+    background: #f8f9fa !important;
+    border-bottom: 1px solid #e0e6ed !important;
+    padding: 12px 20px !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+}
+
+.modern-pagination-info {
+    font-size: 12px !important;
+    color: #6c757d !important;
+    font-weight: 500 !important;
+}
+
+.modern-pagination-controls {
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+}
+
+.modern-pagination-btn {
+    width: 32px !important;
+    height: 32px !important;
+    border: 1px solid #ddd !important;
+    background: white !important;
+    border-radius: 6px !important;
+    cursor: pointer !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    transition: all 0.2s ease !important;
+}
+
+.modern-pagination-btn:hover {
+    background: #667eea !important;
+    color: white !important;
+    border-color: #667eea !important;
+}
+
+.modern-page-selector {
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    color: #2c3e50 !important;
+    padding: 0 10px !important;
+}
+
+/* Ações em lote */
+.modern-batch-actions {
+    background: #fff3cd !important;
+    border-bottom: 2px solid #ffc107 !important;
+    padding: 12px 20px !important;
+    /* display: none definido via inline style no HTML, NÃO usar !important aqui */
+    justify-content: space-between !important;
+    align-items: center !important;
+    width: 100% !important;
+    position: relative !important;
+    z-index: 10 !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    min-height: 50px !important;
+}
+
+.modern-batch-info {
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    color: #856404 !important;
+}
+
+.modern-batch-buttons {
+    display: flex !important;
+    gap: 10px !important;
+}
+
+.modern-batch-btn {
+    padding: 6px 14px !important;
+    border: none !important;
+    border-radius: 6px !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+}
+
+.modern-batch-btn.success {
+    background: #28a745 !important;
+    color: white !important;
+}
+
+.modern-batch-btn.danger {
+    background: #dc3545 !important;
+    color: white !important;
+}
+
+.modern-batch-btn.secondary {
+    background: #6c757d !important;
+    color: white !important;
+}
+
+/* Container da tabela */
+.modern-table-container {
+    overflow-x: auto !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+/* Tabela compacta */
+.modern-table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    font-size: 13px !important;
+    background: #ffffff !important;
+}
+
+.modern-table thead {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    color: white !important;
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 10 !important;
+}
+
+.modern-table tbody {
+    background: #ffffff !important;
+}
+
+.modern-table th {
+    padding: 12px 10px !important;
+    font-weight: 600 !important;
+    font-size: 12px !important;
+    text-align: left !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.3px !important;
+    white-space: nowrap !important;
+}
+
+.modern-table td {
+    padding: 12px 10px !important;
+    border-bottom: 1px solid #f0f0f0 !important;
+    vertical-align: middle !important;
+    background: #ffffff !important;
+}
+
+.modern-table tbody tr {
+    transition: background-color 0.2s ease !important;
+    background: #ffffff !important;
+}
+
+.modern-table tbody tr:hover {
+    background: #f8f9fa !important;
+}
+
+/* Linha de totalizadores */
+.modern-totals-row {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%) !important;
+    border-top: 2px solid #667eea !important;
+    border-bottom: 2px solid #667eea !important;
+    font-weight: 600 !important;
+}
+
+.modern-totals-cell {
+    padding: 12px 20px !important;
+}
+
+/* Container aprimorado com layout em grid */
+.totals-container-enhanced {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 10px !important;
+}
+
+.totals-header {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding-bottom: 8px !important;
+    border-bottom: 1px solid #dee2e6 !important;
+}
+
+.totals-title {
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    color: #2c3e50 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
+}
+
+/* Grid com duas colunas (Receitas | Despesas) */
+.totals-grid {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 15px !important;
+}
+
+/* Grupos de Receitas e Despesas */
+.totals-group {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 6px !important;
+    padding: 8px 12px !important;
+    border-radius: 8px !important;
+    background: #ffffff !important;
+    border: 1px solid #e0e6ed !important;
+}
+
+.receitas-group {
+    border-left: 3px solid #28a745 !important;
+}
+
+.despesas-group {
+    border-left: 3px solid #dc3545 !important;
+}
+
+.group-title {
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
+    margin-bottom: 4px !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+}
+
+.receitas-group .group-title {
+    color: #28a745 !important;
+}
+
+.despesas-group .group-title {
+    color: #dc3545 !important;
+}
+
+.group-title i {
+    font-size: 10px !important;
+}
+
+/* Itens individuais */
+.group-items {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 4px !important;
+}
+
+.total-item {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    font-size: 11px !important;
+}
+
+.item-label {
+    color: #6c757d !important;
+    font-weight: 500 !important;
+}
+
+.item-value {
+    font-weight: 700 !important;
+    font-family: 'Courier New', monospace !important;
+    font-size: 11px !important;
+}
+
+/* Cores específicas para receitas */
+.receita-total,
+.receita-realizada,
+.receita-vencer,
+.receita-vencida,
+.receita-agendada {
+    color: #28a745 !important;
+}
+
+/* Cores específicas para despesas */
+.despesa-total,
+.despesa-realizada,
+.despesa-vencer,
+.despesa-vencida,
+.despesa-agendada {
+    color: #dc3545 !important;
+}
+
+/* Valores legados (manter compatibilidade) */
+.totals-container {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 20px !important;
+    align-items: center !important;
+}
+
+.totals-section {
+    display: flex !important;
+    gap: 20px !important;
+    flex-wrap: wrap !important;
+}
+
+.totals-section strong {
+    font-size: 12px !important;
+    color: #6c757d !important;
+}
+
+.total-value,
+.status-value {
+    font-weight: 700 !important;
+    margin-left: 5px !important;
+}
+
+.total-value.positive,
+.status-value.positive {
+    color: #28a745 !important;
+}
+
+.total-value.negative,
+.status-value.negative {
+    color: #dc3545 !important;
+}
+
+.modern-panel .status-value.pending,
+span.status-value.pending {
+    color: #000000 !important;
+    background: #ffc107 !important;
+    padding: 4px 10px !important;
+    border-radius: 6px !important;
+    font-weight: 600 !important;
+    display: inline-block !important;
+}
+
+.modern-panel .status-value.overdue,
+span.status-value.overdue {
+    color: #ffffff !important;
+    background: #e74c3c !important;
+    padding: 4px 10px !important;
+    border-radius: 6px !important;
+    font-weight: 600 !important;
+    display: inline-block !important;
+}
+
+.modern-panel .status-value.scheduled,
+span.status-value.scheduled {
+    color: #ffffff !important;
+    background: #17a2b8 !important;
+    padding: 4px 10px !important;
+    border-radius: 6px !important;
+    font-weight: 600 !important;
+    display: inline-block !important;
+}
+
+.modern-panel .status-value.positive,
+span.status-value.positive {
+    color: #ffffff !important;
+    background: #28a745 !important;
+    padding: 4px 10px !important;
+    border-radius: 6px !important;
+    font-weight: 600 !important;
+    display: inline-block !important;
+}
+
+.modern-panel .status-value.negative,
+span.status-value.negative {
+    color: #ffffff !important;
+    background: #dc3545 !important;
+    padding: 4px 10px !important;
+    border-radius: 6px !important;
+    font-weight: 600 !important;
+    display: inline-block !important;
+}
+
+/* Responsividade para totalizadores */
+@media (max-width: 992px) {
+    .totals-grid {
+        grid-template-columns: 1fr !important;
+        gap: 10px !important;
+    }
+
+    .modern-totals-cell {
+        padding: 10px 15px !important;
+    }
+
+    .totals-title {
+        font-size: 12px !important;
+    }
+
+    .group-title {
+        font-size: 10px !important;
+    }
+
+    .total-item {
+        font-size: 10px !important;
+    }
+
+    .item-value {
+        font-size: 10px !important;
+    }
+}
+
+/* Total values - cores com fundo colorido */
+.modern-panel .total-value.positive,
+span.total-value.positive {
+    color: #ffffff !important;
+    background: #28a745 !important;
+    padding: 4px 10px !important;
+    border-radius: 6px !important;
+    font-weight: 600 !important;
+    display: inline-block !important;
+}
+
+.modern-panel .total-value.negative,
+span.total-value.negative {
+    color: #ffffff !important;
+    background: #dc3545 !important;
+    padding: 4px 10px !important;
+    border-radius: 6px !important;
+    font-weight: 600 !important;
+    display: inline-block !important;
+}
+
+/* Colunas específicas */
+.modern-checkbox-col {
+    width: 40px !important;
+    text-align: center !important;
+}
+
+.modern-date-col {
+    width: 100px !important;
+    white-space: nowrap !important;
+}
+
+.modern-data-col {
+    min-width: 150px !important;
+}
+
+.modern-value-col {
+    width: 120px !important;
+    text-align: right !important;
+    font-weight: 600 !important;
+}
+
+.modern-value-col.negative {
+    color: #dc3545 !important;
+}
+
+.modern-value-col.positive {
+    color: #28a745 !important;
+}
+
+.modern-status-col {
+    width: 120px !important;
+    text-align: center !important;
+}
+
+.modern-actions-col {
+    width: 140px !important;
+    text-align: center !important;
+}
+
+/* Checkbox customizado */
+.modern-checkbox {
+    width: 18px !important;
+    height: 18px !important;
+    cursor: pointer !important;
+    accent-color: #667eea !important;
+}
+
+/* Badges de status */
+.modern-status-badge {
+    padding: 5px 12px !important;
+    border-radius: 12px !important;
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.3px !important;
+    display: inline-block !important;
+}
+
+.modern-status-badge.pending {
+    background: #fff3cd !important;
+    color: #856404 !important;
+}
+
+.modern-status-badge.overdue {
+    background: #f8d7da !important;
+    color: #721c24 !important;
+}
+
+.modern-status-badge.completed {
+    background: #d4edda !important;
+    color: #155724 !important;
+}
+
+.modern-status-badge.scheduled {
+    background: #d1ecf1 !important;
+    color: #0c5460 !important;
+}
+
+/* Botões de ação */
+.modern-action-btn {
+    padding: 6px 10px !important;
+    border: none !important;
+    border-radius: 5px !important;
+    font-size: 13px !important;
+    cursor: pointer !important;
+    margin: 0 3px !important;
+    transition: all 0.2s ease !important;
+    background: transparent !important;
+}
+
+.modern-action-btn.edit {
+    color: #007bff !important;
+}
+
+.modern-action-btn.edit:hover {
+    background: #007bff !important;
+    color: white !important;
+}
+
+.modern-action-btn.check {
+    color: #28a745 !important;
+}
+
+.modern-action-btn.check:hover {
+    background: #28a745 !important;
+    color: white !important;
+}
+
+.modern-action-btn.delete {
+    color: #dc3545 !important;
+}
+
+.modern-action-btn.delete:hover {
+    background: #dc3545 !important;
+    color: white !important;
+}
+
+/* Rodapé com totais */
+.modern-panel-footer {
+    background: linear-gradient(to bottom, #f8f9fa 0%, #e9ecef 100%) !important;
+    border-top: 2px solid #667eea !important;
+    padding: 15px 20px !important;
+}
+
+.modern-totals {
+    display: flex !important;
+    justify-content: space-around !important;
+    flex-wrap: wrap !important;
+    gap: 20px !important;
+}
+
+.modern-totals > div {
+    text-align: center !important;
+}
+
+.modern-total-label {
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    color: #6c757d !important;
+    text-transform: uppercase !important;
+    display: block !important;
+    margin-bottom: 5px !important;
+}
+
+.modern-total-value {
+    font-size: 20px !important;
+    font-weight: 700 !important;
+}
+
+.modern-total-value.positive {
+    color: #28a745 !important;
+}
+
+.modern-total-value.negative {
+    color: #dc3545 !important;
+}
+
+/* Badges de tipo */
+.badge {
+    padding: 5px 10px !important;
+    border-radius: 6px !important;
+    font-size: 11px !important;
+    font-weight: 600 !important;
+}
+
+/* Responsividade */
+@media (max-width: 1400px) {
+    .modern-filter-group {
+        min-width: 140px !important;
+    }
+}
+
+@media (max-width: 1200px) {
+    .modern-filters {
+        gap: 12px !important;
+    }
+
+    .modern-filter-group {
+        min-width: 130px !important;
+        flex: 1 1 calc(25% - 12px) !important;
+    }
+}
+
+@media (max-width: 992px) {
+    .modern-filter-group {
+        flex: 1 1 calc(33.333% - 12px) !important;
+    }
+}
+
+@media (max-width: 768px) {
+    .modern-panel {
+        margin: 0 !important;
+        border-radius: 8px !important;
+    }
+
+    .modern-panel-header {
+        padding: 12px 15px !important;
+        flex-direction: column !important;
+        gap: 10px !important;
+    }
+
+    .modern-filters {
+        padding: 12px 15px !important;
+    }
+
+    .modern-filter-group {
+        flex: 1 1 calc(50% - 12px) !important;
+        min-width: 120px !important;
+    }
+
+    .search-section {
+        padding: 12px 15px !important;
+    }
+
+    .modern-table {
+        font-size: 12px !important;
+    }
+
+    .modern-table th,
+    .modern-table td {
+        padding: 8px 6px !important;
+    }
+
+    .modern-totals {
+        flex-direction: column !important;
+        gap: 15px !important;
+    }
+}
+
+@media (max-width: 576px) {
+    .modern-filter-group {
+        flex: 1 1 100% !important;
+    }
+}

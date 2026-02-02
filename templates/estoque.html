@@ -1,0 +1,263 @@
+{% extends "base.html" %}
+
+{% block title %}Estoque - Sistema de Gestão Financeira{% endblock %}
+
+{% block page_title %}Controle de Estoque{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Controle de Estoque</h5>
+                <div class="btn-group" role="group">
+                    <a href="{{ url_for('novo_produto') }}" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Novo Produto
+                    </a>
+                    <a href="{{ url_for('sincronizar_estoque') }}" class="btn btn-info">
+                        <i class="fas fa-sync-alt"></i> Sincronizar Estoque
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                <!-- Tabs -->
+                <ul class="nav nav-tabs mb-4" id="estoqueTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="produtos-tab" data-bs-toggle="tab" data-bs-target="#produtos" type="button" role="tab">
+                            <i class="fas fa-box me-1"></i>Produtos
+                        </button>
+                    </li>
+
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="ajuste-tab" data-bs-toggle="tab" data-bs-target="#ajuste" type="button" role="tab">
+                            <i class="fas fa-exchange-alt me-1"></i>Ajuste de Estoque
+                        </button>
+                    </li>
+                </ul>
+
+                <!-- Tab Content -->
+                <div class="tab-content" id="estoqueTabContent">
+                    <!-- Tab Produtos -->
+                    <div class="tab-pane fade show active" id="produtos" role="tabpanel">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                    <input type="text" class="form-control" id="searchProdutos" placeholder="Buscar produtos...">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover" id="produtosTable">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Nome</th>
+                                        <th>Descrição</th>
+                                        <th>Preço de Custo</th>
+                                        <th>Preço de Venda</th>
+                                        <th>Estoque</th>
+                                        <th>Criado por</th>
+                                        <th>Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for produto in produtos %}
+                                    <tr>
+                                        <td>{{ produto.nome }}</td>
+                                        <td>{{ produto.descricao or '-' }}</td>
+                                        <td>R$ {{ "%.2f"|format(produto.preco_custo) }}</td>
+                                        <td>R$ {{ "%.2f"|format(produto.preco_venda) }}</td>
+                                        <td>
+                                            {% set estoque_qtd = produto.estoque or 0 %}
+                                            {% if estoque_qtd == 0 %}
+                                                <span class="badge bg-danger">
+                                                    Sem estoque
+                                                </span>
+                                            {% elif estoque_qtd >= 1 and estoque_qtd <= 5 %}
+                                                <span class="badge bg-warning">
+                                                    Estoque baixo
+                                                </span>
+                                            {% else %}
+                                                <span class="badge bg-success">
+                                                    Em estoque
+                                                </span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if produto.usuario_criador %}
+                                                <span class="badge bg-primary">
+                                                    <i class="fas fa-user me-1"></i>{{ produto.usuario_criador.nome }}
+                                                </span>
+                                            {% else %}
+                                                <span class="text-muted">-</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <div class="btn-group" role="group">
+                                                <a href="{{ url_for('editar_produto', produto_id=produto.id) }}" class="btn btn-sm btn-info" title="Editar">
+                                                    <i class="fas fa-edit"></i>
+                                                </a>
+                                                <a href="{{ url_for('ajustar_estoque', produto_id=produto.id) }}" class="btn btn-sm btn-warning" title="Ajustar Estoque">
+                                                    <i class="fas fa-boxes"></i>
+                                                </a>
+                                                <button class="btn btn-sm btn-danger" title="Excluir" onclick="confirmarExclusaoProduto({{ produto.id }}, '{{ produto.nome }}')">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Tab Ajuste de Estoque -->
+                    <div class="tab-pane fade" id="ajuste" role="tabpanel">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="produtoAjuste" class="form-label">Selecione o Produto</label>
+                                    <select class="form-select" id="produtoAjuste">
+                                        <option value="">Escolha um produto...</option>
+                                        {% for produto in produtos %}
+                                        <option value="{{ produto.id }}">{{ produto.nome }} (Estoque: {{ produto.estoque }})</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="tipoAjuste" class="form-label">Tipo de Ajuste</label>
+                                    <select class="form-select" id="tipoAjuste">
+                                        <option value="entrada">Entrada</option>
+                                        <option value="saida">Saída</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="quantidadeAjuste" class="form-label">Quantidade</label>
+                                    <input type="number" class="form-control" id="quantidadeAjuste" min="1" value="1">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="motivoAjuste" class="form-label">Motivo</label>
+                                    <input type="text" class="form-control" id="motivoAjuste" placeholder="Motivo do ajuste...">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="text-end">
+                            <button type="button" class="btn btn-primary" onclick="realizarAjuste()">
+                                <i class="fas fa-save me-1"></i>Realizar Ajuste
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Confirmação de Exclusão -->
+<div class="modal fade" id="confirmacaoModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-exclamation-triangle me-2"></i>Confirmar Exclusão</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Tem certeza que deseja excluir este item? Esta ação não pode ser desfeita.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-danger" id="confirmarExclusao">Confirmar Exclusão</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Busca em tempo real
+    const searchProdutos = document.getElementById('searchProdutos');
+    const produtosTable = document.getElementById('produtosTable');
+
+    if (searchProdutos) {
+        searchProdutos.addEventListener('keyup', function() {
+            const searchTerm = this.value.toLowerCase();
+            const rows = produtosTable.querySelectorAll('tbody tr');
+            
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(searchTerm) ? '' : 'none';
+            });
+        });
+    }
+});
+
+// Funções para ações dos botões
+function confirmarExclusaoProduto(id, nome) {
+    const modalElement = document.getElementById('confirmacaoModal');
+    const modal = new bootstrap.Modal(modalElement);
+    const mensagem = document.querySelector('#confirmacaoModal .modal-body p');
+    const btnConfirmar = document.getElementById('confirmarExclusao');
+    
+    mensagem.textContent = `Tem certeza que deseja excluir o produto "${nome}"? Esta ação não pode ser desfeita.`;
+    
+    // Limpar eventos anteriores
+    btnConfirmar.onclick = null;
+    
+    // Adicionar novo evento
+    btnConfirmar.onclick = function() {
+        modal.hide();
+        window.location.href = '/estoque/produto/' + id + '/deletar';
+    };
+    
+    modal.show();
+}
+
+function realizarAjuste() {
+    const produtoId = document.getElementById('produtoAjuste').value;
+    const tipoAjuste = document.getElementById('tipoAjuste').value;
+    const quantidade = document.getElementById('quantidadeAjuste').value;
+    const motivo = document.getElementById('motivoAjuste').value;
+
+    if (!produtoId || !quantidade || !motivo) {
+        alert('Por favor, preencha todos os campos obrigatórios.');
+        return;
+    }
+
+    // Enviar ajuste via AJAX
+    fetch('/estoque/ajuste/' + produtoId, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            tipo_ajuste: tipoAjuste,
+            quantidade: quantidade,
+            motivo: motivo
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Erro ao realizar ajuste: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        alert('Erro ao realizar ajuste.');
+    });
+}
+</script>
+{% endblock %} 
