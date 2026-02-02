@@ -5606,11 +5606,7 @@ def perfil():
         telefone = request.form.get('telefone', '')
         tipo_empresa = request.form['tipo_empresa']
         
-        usuario_existente = Usuario.query.filter_by(email=email).first()
-        if usuario_existente and usuario_existente.id != usuario.id:
-            flash('Email já cadastrado.', 'error')
-            return redirect(url_for('perfil'))
-        
+        # Removida validação de email único global para permitir múltiplos perfis com mesmo email
         usuario.nome = nome
         usuario.email = email
         usuario.telefone = telefone
@@ -8167,10 +8163,8 @@ def novo_usuario_empresa():
             flash('Nome de usuário já cadastrado para esta empresa.', 'error')
             return redirect(url_for('novo_usuario_empresa'))
         
-        # Verificar se email já existe na empresa
-        if Usuario.query.filter_by(empresa_id=usuario_atual.empresa_id, email=email).first():
-            flash('Email já cadastrado para esta empresa.', 'error')
-            return redirect(url_for('novo_usuario_empresa'))
+        # Removida validação de email único por empresa
+        # Validar categoria personalizada se selecionada
         
         # Validar categoria personalizada se selecionada
         if tipo == 'categoria_personalizada':
@@ -8244,11 +8238,8 @@ def editar_usuario_empresa(user_id):
             flash('Nome de usuário já cadastrado para esta empresa.', 'error')
             return redirect(url_for('editar_usuario_empresa', user_id=user_id))
         
-        # Verificar se email já existe (exceto para o próprio usuário)
-        email_existente = Usuario.query.filter_by(empresa_id=usuario_atual.empresa_id, email=usuario.email).first()
-        if email_existente and email_existente.id != usuario.id:
-            flash('Email já cadastrado para esta empresa.', 'error')
-            return redirect(url_for('editar_usuario_empresa', user_id=user_id))
+        # Removida validação de email único por empresa
+        # Se uma nova senha foi fornecida
         
         # Se uma nova senha foi fornecida
         if request.form.get('nova_senha'):
@@ -15490,22 +15481,54 @@ def admin_excluir_conta(conta_id):
         if conta.tipo_conta == 'admin':
             return jsonify({'success': False, 'message': 'Não é possível excluir a conta administrativa'})
         
-        # Excluir vínculos relacionados
+        # Pegar todos os usuários da conta para limpeza de dependências
+        usuarios = Usuario.query.filter_by(empresa_id=conta_id).all()
+        usuarios_ids = [u.id for u in usuarios]
+        
+        if usuarios_ids:
+            # 1. Limpar dependências financeiras (Parcelas dependem de Lancamento/Venda/Compra)
+            Parcela.query.filter(Parcela.usuario_id.in_(usuarios_ids)).delete(synchronize_session=False)
+            
+            # 2. Limpar Lançamentos, Vendas e Compras
+            Lancamento.query.filter_by(empresa_id=conta_id).delete(synchronize_session=False)
+            Venda.query.filter(Venda.usuario_id.in_(usuarios_ids)).delete(synchronize_session=False)
+            Compra.query.filter(Compra.usuario_id.in_(usuarios_ids)).delete(synchronize_session=False)
+            
+            # 3. Limpar Cadastros (Cliente, Fornecedor, Produto, Servico)
+            Cliente.query.filter(Cliente.usuario_id.in_(usuarios_ids)).delete(synchronize_session=False)
+            Fornecedor.query.filter(Fornecedor.usuario_id.in_(usuarios_ids)).delete(synchronize_session=False)
+            Produto.query.filter(Produto.usuario_id.in_(usuarios_ids)).delete(synchronize_session=False)
+            Servico.query.filter(Servico.usuario_id.in_(usuarios_ids)).delete(synchronize_session=False)
+            
+            # 4. Limpar Infraestrutura e Logs
+            PlanoConta.query.filter(PlanoConta.usuario_id.in_(usuarios_ids)).delete(synchronize_session=False)
+            ContaCaixa.query.filter(ContaCaixa.usuario_id.in_(usuarios_ids)).delete(synchronize_session=False)
+            Importacao.query.filter(Importacao.usuario_id.in_(usuarios_ids)).delete(synchronize_session=False)
+            Permissao.query.filter(Permissao.usuario_id.in_(usuarios_ids)).delete(synchronize_session=False)
+            EventLog.query.filter(EventLog.usuario_id.in_(usuarios_ids)).delete(synchronize_session=False)
+            Vinculo.query.filter(Vinculo.usuario_id.in_(usuarios_ids)).delete(synchronize_session=False)
+
+        # 5. Limpar Categorias e Vínculos da Empresa
+        CategoriaUsuario.query.filter_by(empresa_id=conta_id).delete(synchronize_session=False)
         VinculoContador.query.filter(
             or_(
                 VinculoContador.contador_id == conta_id,
                 VinculoContador.empresa_id == conta_id
             )
-        ).delete()
+        ).delete(synchronize_session=False)
         
-        # Excluir sub-usuários se for contador
-        if conta.tipo_conta == 'contador_bpo':
-            SubUsuarioContador.query.filter_by(contador_id=conta_id).delete()
+        # 6. Limpar Registros de Pagamento e Vouchers
+        Pagamento.query.filter_by(empresa_id=conta_id).delete(synchronize_session=False)
+        VoucherUso.query.filter_by(empresa_id=conta_id).delete(synchronize_session=False)
         
-        # Excluir usuários da conta
-        Usuario.query.filter_by(empresa_id=conta_id).delete()
+        # 7. Excluir sub-usuários se for contador
+        sub_usuarios = SubUsuarioContador.query.filter_by(contador_id=conta_id).all()
+        for sub in sub_usuarios:
+            PermissaoSubUsuario.query.filter_by(sub_usuario_id=sub.id).delete(synchronize_session=False)
+            db.session.delete(sub)
         
-        # Excluir a conta
+        # 8. Finalmente excluir usuários e a conta
+        Usuario.query.filter_by(empresa_id=conta_id).delete(synchronize_session=False)
         db.session.delete(conta)
         db.session.commit()
         
@@ -16424,12 +16447,8 @@ def contador_criar_sub_usuario():
         flash('Nome de usuário já cadastrado. Escolha outro.', 'error')
         return redirect(url_for('dashboard_contador'))
     
-    # Verificar se email já existe (se fornecido)
-    if email:
-        sub_existente_email = SubUsuarioContador.query.filter_by(email=email).first()
-        if sub_existente_email:
-            flash('Email já cadastrado.', 'error')
-            return redirect(url_for('dashboard_contador'))
+    # Removida validação de email único para sub-usuários
+    # Criar sub-usuário
     
     # Criar sub-usuário
     senha_hash = generate_password_hash(senha)
