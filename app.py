@@ -4716,7 +4716,29 @@ def nova_conta():
         pai_id = request.form.get('pai_id')
         
         pai_id = int(pai_id) if pai_id and pai_id != "" else None
-        
+
+        # VALIDAÇÃO: Conta analítica DEVE ter uma conta sintética como pai
+        if natureza == 'analitica':
+            if not pai_id:
+                flash('❌ Conta analítica deve estar vinculada a uma conta sintética (pai)!', 'error')
+                planos_sinteticos = PlanoConta.query.filter(
+                    PlanoConta.empresa_id == empresa_id,
+                    PlanoConta.natureza == 'sintetica',
+                    PlanoConta.ativo == True
+                ).order_by(PlanoConta.tipo, PlanoConta.codigo).all()
+                return render_template('nova_conta.html', usuario=usuario, planos_sinteticos=planos_sinteticos)
+
+            # Verificar se o pai é sintético
+            pai = db.session.get(PlanoConta, pai_id)
+            if not pai or pai.natureza != 'sintetica':
+                flash('❌ Conta analítica só pode ser filha de uma conta sintética!', 'error')
+                planos_sinteticos = PlanoConta.query.filter(
+                    PlanoConta.empresa_id == empresa_id,
+                    PlanoConta.natureza == 'sintetica',
+                    PlanoConta.ativo == True
+                ).order_by(PlanoConta.tipo, PlanoConta.codigo).all()
+                return render_template('nova_conta.html', usuario=usuario, planos_sinteticos=planos_sinteticos)
+
         nivel = 1
         if pai_id:
             pai = db.session.get(PlanoConta, pai_id)
@@ -4833,7 +4855,31 @@ def editar_conta(conta_id):
         
         try:
             pai_id = int(pai_id) if pai_id and pai_id != "" else None
-            
+
+            # VALIDAÇÃO: Conta analítica DEVE ter uma conta sintética como pai
+            if natureza == 'analitica':
+                if not pai_id:
+                    flash('❌ Conta analítica deve estar vinculada a uma conta sintética (pai)!', 'error')
+                    planos_sinteticos = PlanoConta.query.filter(
+                        PlanoConta.empresa_id == empresa_id,
+                        PlanoConta.natureza == 'sintetica',
+                        PlanoConta.ativo == True,
+                        PlanoConta.id != conta.id
+                    ).order_by(PlanoConta.tipo, PlanoConta.codigo).all()
+                    return render_template('editar_conta.html', usuario=usuario, conta=conta, planos_sinteticos=planos_sinteticos)
+
+                # Verificar se o pai é sintético
+                pai = db.session.get(PlanoConta, pai_id)
+                if not pai or pai.natureza != 'sintetica':
+                    flash('❌ Conta analítica só pode ser filha de uma conta sintética!', 'error')
+                    planos_sinteticos = PlanoConta.query.filter(
+                        PlanoConta.empresa_id == empresa_id,
+                        PlanoConta.natureza == 'sintetica',
+                        PlanoConta.ativo == True,
+                        PlanoConta.id != conta.id
+                    ).order_by(PlanoConta.tipo, PlanoConta.codigo).all()
+                    return render_template('editar_conta.html', usuario=usuario, conta=conta, planos_sinteticos=planos_sinteticos)
+
             nivel = 1
             if pai_id:
                 pai = db.session.get(PlanoConta, pai_id)
