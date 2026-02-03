@@ -1992,6 +1992,7 @@ def admin_usuarios():
         try:
             empresas = Empresa.query.filter(Empresa.tipo_conta != 'admin').order_by(Empresa.id.desc()).all()
         except Exception as e:
+            db.session.rollback()
             app.logger.error(f"Erro ao buscar empresas com ordenação: {str(e)}")
             empresas = Empresa.query.filter(Empresa.tipo_conta != 'admin').all()
         
@@ -2004,6 +2005,7 @@ def admin_usuarios():
                 
                 usuarios_empresa = Usuario.query.filter_by(empresa_id=empresa.id).order_by(Usuario.nome).all()
             except Exception as e:
+                db.session.rollback()
                 app.logger.error(f"Erro ao buscar usuários da empresa {empresa.id}: {str(e)}")
                 usuarios_empresa = Usuario.query.filter_by(empresa_id=empresa.id).all()
             
@@ -2572,6 +2574,7 @@ def verificar_empresas_orfas():
                     db.session.delete(empresa)
                     app.logger.info(f"Empresa órfã {empresa.razao_social} (CNPJ: {empresa.cnpj}) deletada.")
                 except Exception as e:
+                    db.session.rollback()
                     app.logger.error(f"Erro ao deletar empresa {empresa.razao_social}: {str(e)}")
             
             db.session.commit()
@@ -2614,6 +2617,7 @@ def novo_lancamento():
                         contas_caixa_local = []
                         usuarios_ids_local = []
                 except Exception:
+                    db.session.rollback()
                     contas_caixa_local = []
                     usuarios_ids_local = []
                 try:
@@ -2632,6 +2636,7 @@ def novo_lancamento():
                         categorias_receita_local = []
                         categorias_despesa_local = []
                 except Exception:
+                    db.session.rollback()
                     clientes_local = []
                     fornecedores_local = []
                     produtos_local = []
@@ -4121,6 +4126,7 @@ def buscar_produtos_empresa(empresa_id):
         exemplo = [p.nome for p in produtos[:5]]
         app.logger.info(f"Exemplos de produtos: {exemplo}")
     except Exception:
+        db.session.rollback()
         pass
     
     # Adicionar informação do usuário que criou cada produto
@@ -4277,6 +4283,7 @@ def sincronizar_estoque():
         else:
             flash(f'Erro ao sincronizar estoque: {mensagem}', 'error')
     except Exception as e:
+        db.session.rollback()
         flash(f'Erro ao sincronizar estoque: {str(e)}', 'error')
     
     return redirect(url_for('estoque'))
@@ -5311,6 +5318,7 @@ def toggle_venda_realizado(venda_id):
                 else:
                     print(f"❌ Erro ao criar lançamento financeiro para venda {venda.id}")
             except Exception as e:
+                db.session.rollback()
                 print(f"❌ Erro ao criar lançamento financeiro: {str(e)}")
         
         # ATUALIZAR ESTOQUE baseado no status da venda (sem criar produtos)
@@ -5605,6 +5613,7 @@ def nova_compra():
         app.logger.info(f"Usuário {usuario.nome} (ID: {usuario.id}) acessando nova_compra")
         
     except Exception as e:
+        db.session.rollback()
         app.logger.error(f"Erro ao validar sessão do usuário: {str(e)}")
         session.clear()
         flash('Erro na validação da sessão. Faça login novamente.', 'error')
@@ -5893,6 +5902,7 @@ def toggle_compra_realizado(compra_id):
                 else:
                     print(f"❌ Erro ao criar lançamento financeiro para compra {compra.id}")
             except Exception as e:
+                db.session.rollback()
                 print(f"❌ Erro ao criar lançamento financeiro: {str(e)}")
         
         # ATUALIZAR ESTOQUE baseado no status da compra (sem criar produtos)
@@ -8053,6 +8063,7 @@ def exportar_relatorio_produtos(formato):
                 return send_file(arquivo, as_attachment=True, download_name=f"relatorio_produtos_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf")
         
     except Exception as e:
+        db.session.rollback()
         app.logger.error(f"Erro ao exportar relatório de produtos: {str(e)}")
         flash('Erro ao exportar relatório.', 'error')
         return redirect(url_for('relatorio_produtos'))
@@ -9556,6 +9567,7 @@ def admin_backup():
             else:
                 flash('Erro ao criar backup.', 'error')
         except Exception as e:
+            db.session.rollback()
             flash(f'Erro ao criar backup: {str(e)}', 'error')
         
         return redirect(url_for('admin_backup'))
@@ -10590,6 +10602,7 @@ def api_categorias(tipo):
         return jsonify({'categorias': categorias_list})
 
     except Exception as e:
+        db.session.rollback()
         app.logger.error(f"Erro ao buscar categorias: {str(e)}")
         return jsonify({'error': 'Erro interno do servidor'}), 500
 
@@ -10625,6 +10638,7 @@ def api_buscar_clientes():
         return jsonify({'clientes': clientes_list})
     
     except Exception as e:
+        db.session.rollback()
         app.logger.error(f"Erro ao buscar clientes: {str(e)}")
         return jsonify({'error': 'Erro interno do servidor'}), 500
 
@@ -10659,6 +10673,7 @@ def api_buscar_fornecedores():
         return jsonify({'fornecedores': fornecedores_list})
     
     except Exception as e:
+        db.session.rollback()
         app.logger.error(f"Erro ao buscar fornecedores: {str(e)}")
         return jsonify({'error': 'Erro interno do servidor'}), 500
 
@@ -14036,6 +14051,7 @@ def api_criar_lancamento_financeiro(tipo, id):
             return jsonify({'success': False, 'error': 'Erro ao criar lançamento financeiro'}), 500
             
     except Exception as e:
+        db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/criar_lancamentos_existentes')
@@ -14079,6 +14095,7 @@ def criar_lancamentos_existentes():
                     if lancamento:
                         lancamentos_criados += 1
             except Exception as e:
+                db.session.rollback()
                 print(f"Erro ao criar lançamento para venda {venda.id}: {e}")
                 continue
         
@@ -15954,6 +15971,7 @@ def api_session_data():
         return jsonify({'success': True, 'data': data})
         
     except Exception as e:
+        db.session.rollback()
         app.logger.error(f"Erro na API session-data: {str(e)}")
         return jsonify({'success': False, 'message': 'Erro interno do servidor'}), 500
 
@@ -16232,6 +16250,7 @@ def listar_vouchers():
 
         return jsonify({'sucesso': True, 'vouchers': dados}), 200
     except Exception as e:
+        db.session.rollback()
         app.logger.error(f"Erro ao listar vouchers: {str(e)}")
         return jsonify({'erro': str(e)}), 500
 
@@ -16476,6 +16495,7 @@ def listar_usos_vouchers():
 
         return jsonify({'sucesso': True, 'usos': dados}), 200
     except Exception as e:
+        db.session.rollback()
         app.logger.error(f"Erro ao listar usos de vouchers: {str(e)}")
         return jsonify({'erro': str(e)}), 500
 
