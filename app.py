@@ -85,10 +85,12 @@ def verificar_coluna_existe(tabela, coluna):
             """), {'tabela': tabela, 'coluna': coluna})
             return result.fetchone() is not None
         else:  # sqlite
-            columns = []  # Usar verificar_coluna_existe() para PostgreSQL compatibilidade
+            result = db.session.execute(text(f"PRAGMA table_info({tabela})"))
+            columns = [row[1] for row in result.fetchall()]
             return coluna in columns
     except Exception as e:
         print(f"⚠️ Aviso: Não foi possível verificar coluna {coluna}: {e}")
+        db.session.rollback()  # Rollback em caso de erro
         return False
 
 # Criar todas as tabelas automaticamente
@@ -119,6 +121,7 @@ with app.app_context():
     except Exception as e:
         print(f"⚠️ Aviso: Não foi possível verificar/adicionar coluna: {str(e)}")
         print("Execute o script ATUALIZAR_BANCO_TIPO_PRODUTO.bat manualmente se necessário.")
+        db.session.rollback()
     
     # Verificar e adicionar coluna 'usuario' na tabela sub_usuario_contador se não existir
     try:
@@ -212,7 +215,7 @@ with app.app_context():
             db.session.execute(text("ALTER TABLE lancamento ADD COLUMN usuario_ultima_edicao_id INTEGER"))
             colunas_adicionadas.append('usuario_ultima_edicao_id')
 
-        if 'data_ultima_edicao' not in columns:
+        if not verificar_coluna_existe('lancamento', 'data_ultima_edicao'):
             print("Adicionando coluna 'data_ultima_edicao' na tabela lancamento...")
             db.session.execute(text("ALTER TABLE lancamento ADD COLUMN data_ultima_edicao DATETIME"))
             colunas_adicionadas.append('data_ultima_edicao')
@@ -253,18 +256,8 @@ with app.app_context():
         tabelas = ['cliente', 'fornecedor', 'venda', 'compra']
 
         for tabela in tabelas:
-            # Verificar se empresa_id já existe na tabela
-            if db_type == 'sqlite':
-                columns = []  # Usar verificar_coluna_existe() para PostgreSQL compatibilidade
-            else:  # PostgreSQL
-                result = db.session.execute(text("""
-                    SELECT column_name
-                    FROM information_schema.columns
-                    WHERE table_name = :tabela
-                """), {'tabela': tabela})
-                columns = [row[0] for row in result.fetchall()]
-
-            if 'empresa_id' not in columns:
+            # Verificar se empresa_id já existe na tabela usando a função helper
+            if not verificar_coluna_existe(tabela, 'empresa_id'):
                 print(f"Adicionando coluna 'empresa_id' na tabela {tabela}...")
 
                 # Adicionar coluna empresa_id
@@ -311,10 +304,8 @@ with app.app_context():
         tabelas_nf = ['lancamento', 'venda', 'compra']
 
         for tabela in tabelas_nf:
-            # Verificar se nota_fiscal já existe na tabela
-            columns = []  # Usar verificar_coluna_existe() para PostgreSQL compatibilidade
-
-            if 'nota_fiscal' not in columns:
+            # Verificar se nota_fiscal já existe na tabela usando a função helper
+            if not verificar_coluna_existe(tabela, 'nota_fiscal'):
                 print(f"Adicionando coluna 'nota_fiscal' na tabela {tabela}...")
                 db.session.execute(text(f"ALTER TABLE {tabela} ADD COLUMN nota_fiscal VARCHAR(50)"))
                 db.session.commit()
@@ -330,9 +321,6 @@ with app.app_context():
     # ============================================================================
     try:
         # 1. Colunas para plano_conta
-        result = db.session.execute(text("PRAGMA table_info(plano_conta)"))
-        columns = [row[1] for row in result.fetchall()]
-        
         novas_colunas_pc = {
             'codigo': 'VARCHAR(50)',
             'natureza': 'VARCHAR(20) DEFAULT "analitica"',
@@ -340,9 +328,9 @@ with app.app_context():
             'pai_id': 'INTEGER',
             'empresa_id': 'INTEGER'
         }
-        
+
         for col, tipo in novas_colunas_pc.items():
-            if col not in columns:
+            if not verificar_coluna_existe('plano_conta', col):
                 print(f"Adicionando coluna '{col}' na tabela plano_conta...")
                 db.session.execute(text(f"ALTER TABLE plano_conta ADD COLUMN {col} {tipo}"))
                 db.session.commit()
