@@ -861,6 +861,40 @@ class Pagamento(db.Model):
     def __repr__(self):
         return f'<Pagamento {self.external_reference} - {self.status}>'
 
+class DreConfiguracao(db.Model):
+    """Modelo para configuração da DRE - Demonstração do Resultado do Exercício"""
+    __tablename__ = 'dre_configuracao'
+
+    id = db.Column(db.Integer, primary_key=True)
+    empresa_id = db.Column(db.Integer, db.ForeignKey('empresa.id'), nullable=False)
+    plano_conta_id = db.Column(db.Integer, db.ForeignKey('plano_conta.id'), nullable=True)
+
+    # Configuração da linha
+    codigo = db.Column(db.String(20), nullable=False)  # Código único da linha (ex: "010", "020")
+    descricao = db.Column(db.String(200), nullable=False)  # Descrição customizada
+    tipo_linha = db.Column(db.String(20), default='conta')  # 'conta', 'subtotal', 'total'
+    formula = db.Column(db.String(500), nullable=True)  # Para linhas de total. Ex: "(+) 010 020 (-) 030"
+    operacao = db.Column(db.String(10), nullable=True)  # '+', '-', '=' (para indicar se soma/subtrai/total)
+
+    # Ordenação e hierarquia
+    ordem = db.Column(db.Integer, nullable=False)  # Ordem de exibição
+    nivel = db.Column(db.Integer, default=1)  # Nível de indentação (1, 2, 3...)
+
+    # Formatação
+    negrito = db.Column(db.Boolean, default=False)  # Se deve aparecer em negrito
+    linha_acima = db.Column(db.Boolean, default=False)  # Se tem linha acima
+    linha_abaixo = db.Column(db.Boolean, default=False)  # Se tem linha abaixo
+
+    ativo = db.Column(db.Boolean, default=True)
+    data_criacao = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Relacionamentos
+    empresa = db.relationship('Empresa', backref='dre_configuracoes')
+    plano_conta = db.relationship('PlanoConta', backref='linhas_dre')
+
+    def __repr__(self):
+        return f'<DreConfiguracao {self.codigo} - {self.descricao}>'
+
 # ===== INICIALIZAÇÃO DOS SERVIÇOS =====
 def obter_modelos():
     """Retorna dicionário com todos os modelos para os serviços"""
@@ -1430,6 +1464,9 @@ def registro():
                 cpf_final = None
                 cnpj_final = documento
         
+        # Buscar plano padrão (Básico 30 Dias)
+        plano_padrao = Plano.query.filter_by(codigo='basico_30d', ativo=True).first()
+
         # Criar empresa
         nova_empresa = Empresa(
             tipo_pessoa=tipo_pessoa,
@@ -1443,9 +1480,10 @@ def registro():
             tipo_empresa=tipo_empresa,
             tipo_conta=tipo_conta,
             dias_assinatura=30,
-            data_inicio_assinatura=datetime.utcnow()  # Definir data de início ao criar
+            data_inicio_assinatura=datetime.utcnow(),  # Definir data de início ao criar
+            plano_id=plano_padrao.id if plano_padrao else None  # Atribuir plano padrão
         )
-        
+
         db.session.add(nova_empresa)
         db.session.flush()  # Para obter o ID da empresa
         
@@ -6759,6 +6797,151 @@ def relatorios():
         return redirect(url_for('admin_dashboard'))
     
     return render_template('relatorios.html', usuario=usuario)
+
+@app.route('/dre/visualizar')
+def dre_visualizar():
+    """Visualizar DRE - Demonstração do Resultado do Exercício"""
+    if 'usuario_id' not in session:
+        return redirect(url_for('login'))
+
+    usuario = db.session.get(Usuario, session['usuario_id'])
+    empresa_id = obter_empresa_id_sessao(session, usuario)
+
+    # Buscar configuração da DRE
+    linhas_config = DreConfiguracao.query.filter_by(
+        empresa_id=empresa_id,
+        ativo=True
+    ).order_by(DreConfiguracao.ordem).all()
+
+    # Obter período do filtro (padrão: mês atual)
+    data_fim = datetime.now().date()
+    data_inicio = data_fim.replace(day=1)  # Primeiro dia do mês
+
+    if request.args.get('data_inicio'):
+        data_inicio = datetime.strptime(request.args.get('data_inicio'), '%Y-%m-%d').date()
+    if request.args.get('data_fim'):
+        data_fim = datetime.strptime(request.args.get('data_fim'), '%Y-%m-%d').date()
+
+    # Buscar todos os usuários da empresa para filtrar lançamentos
+    usuarios_empresa = Usuario.query.filter_by(empresa_id=empresa_id, ativo=True).all()
+    usuarios_ids = [u.id for u in usuarios_empresa]
+
+    # Calcular valores das linhas
+    linhas_dre = []
+    for linha_config in linhas_config:
+        valor = 0
+
+        if linha_config.tipo_linha == 'conta' and linha_config.plano_conta_id:
+            # Buscar lançamentos da conta
+            lancamentos = Lancamento.query.filter(
+                Lancamento.plano_conta_id == linha_config.plano_conta_id,
+                Lancamento.usuario_id.in_(usuarios_ids),
+                Lancamento.data_realizada.between(data_inicio, data_fim),
+                Lancamento.realizado == True
+            ).all()
+
+            # Somar valores (receitas positivas, despesas negativas)
+            for lanc in lancamentos:
+                if lanc.tipo == 'receita':
+                    valor += lanc.valor
+                else:
+                    valor -= lanc.valor
+
+        elif linha_config.tipo_linha in ['subtotal', 'total'] and linha_config.formula:
+            # Calcular fórmula (implementação simplificada)
+            # A fórmula contém códigos de outras linhas
+            # Ex: "(+) 010 020 (-) 030" significa: 010 + 020 - 030
+            pass  # Por agora, deixar 0 (pode ser implementado depois)
+
+        linhas_dre.append({
+            'codigo': linha_config.codigo,
+            'descricao': linha_config.descricao,
+            'tipo_linha': linha_config.tipo_linha,
+            'operacao': linha_config.operacao,
+            'valor': valor,
+            'nivel': linha_config.nivel,
+            'linha_acima': linha_config.linha_acima,
+            'linha_abaixo': linha_config.linha_abaixo
+        })
+
+    return render_template('dre_visualizar.html',
+                         linhas_dre=linhas_dre,
+                         data_inicio=data_inicio.strftime('%d/%m/%Y'),
+                         data_fim=data_fim.strftime('%d/%m/%Y'))
+
+@app.route('/dre/configurar', methods=['GET', 'POST'])
+def dre_configurar():
+    """Configurar DRE - adicionar/remover contas"""
+    if 'usuario_id' not in session:
+        return redirect(url_for('login'))
+
+    usuario = db.session.get(Usuario, session['usuario_id'])
+    empresa_id = obter_empresa_id_sessao(session, usuario)
+
+    if request.method == 'POST':
+        # Remover configurações antigas
+        DreConfiguracao.query.filter_by(empresa_id=empresa_id).delete()
+
+        # Adicionar novas configurações
+        novas_contas = request.form.getlist('novas_contas[]')
+        linhas_existentes = request.form.getlist('linhas[]')
+
+        # Combinar linhas existentes e novas
+        todas_linhas = linhas_existentes + novas_contas
+
+        for ordem, item in enumerate(todas_linhas, start=1):
+            # Se for ID de linha existente, buscar
+            if item.isdigit() and int(item) in [l.id for l in DreConfiguracao.query.all()]:
+                linha_antiga = db.session.get(DreConfiguracao, int(item))
+                nova_linha = DreConfiguracao(
+                    empresa_id=empresa_id,
+                    plano_conta_id=linha_antiga.plano_conta_id,
+                    codigo=linha_antiga.codigo,
+                    descricao=linha_antiga.descricao,
+                    tipo_linha=linha_antiga.tipo_linha,
+                    operacao=linha_antiga.operacao,
+                    ordem=ordem,
+                    nivel=linha_antiga.nivel
+                )
+            else:
+                # Nova conta do plano de contas
+                plano_conta = db.session.get(PlanoConta, int(item))
+                if plano_conta:
+                    nova_linha = DreConfiguracao(
+                        empresa_id=empresa_id,
+                        plano_conta_id=plano_conta.id,
+                        codigo=plano_conta.codigo or f"{ordem:03d}",
+                        descricao=plano_conta.nome,
+                        tipo_linha='conta',
+                        operacao='(+)' if plano_conta.tipo == 'receita' else '(-)',
+                        ordem=ordem,
+                        nivel=1
+                    )
+                else:
+                    continue
+
+            db.session.add(nova_linha)
+
+        db.session.commit()
+        flash('Configuração da DRE salva com sucesso!', 'success')
+        return redirect(url_for('dre_visualizar'))
+
+    # GET - Exibir formulário de configuração
+    # Buscar contas do plano de contas (apenas analíticas)
+    contas_disponiveis = PlanoConta.query.filter_by(
+        empresa_id=empresa_id,
+        natureza='analitica'
+    ).order_by(PlanoConta.tipo, PlanoConta.codigo).all()
+
+    # Buscar linhas já configuradas
+    linhas_dre = DreConfiguracao.query.filter_by(
+        empresa_id=empresa_id,
+        ativo=True
+    ).order_by(DreConfiguracao.ordem).all()
+
+    return render_template('dre_configurar.html',
+                         contas_disponiveis=contas_disponiveis,
+                         linhas_dre=linhas_dre)
 
 @app.route('/relatorios/saldos')
 def relatorio_saldos():

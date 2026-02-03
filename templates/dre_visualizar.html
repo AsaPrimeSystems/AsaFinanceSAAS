@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+
+{% block title %}DRE - Demonstração do Resultado do Exercício{% endblock %}
+
+{% block content %}
+<style>
+    .dre-container {
+        background: #fff;
+        padding: 2rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .dre-header {
+        text-align: center;
+        border-bottom: 3px double #000;
+        padding-bottom: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .dre-header h2 {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin: 0;
+        color: #000;
+    }
+
+    .dre-periodo {
+        font-size: 0.9rem;
+        color: #666;
+        margin-top: 0.5rem;
+    }
+
+    .dre-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-family: Arial, sans-serif;
+        font-size: 0.9rem;
+    }
+
+    .dre-table tbody tr {
+        border-bottom: 1px solid #e0e0e0;
+    }
+
+    .dre-table tbody tr:last-child {
+        border-bottom: none;
+    }
+
+    .dre-linha {
+        padding: 0.4rem 0.75rem;
+    }
+
+    /* Níveis de indentação */
+    .dre-linha.nivel-1 { padding-left: 1rem; }
+    .dre-linha.nivel-2 { padding-left: 2.5rem; }
+    .dre-linha.nivel-3 { padding-left: 4rem; }
+
+    /* Tipos de linha */
+    .dre-linha.tipo-conta {
+        font-weight: 400;
+    }
+
+    .dre-linha.tipo-subtotal {
+        font-weight: 600;
+        background: #f9f9f9;
+    }
+
+    .dre-linha.tipo-total {
+        font-weight: 700;
+        background: #f5f5f5;
+        border-top: 1px solid #000;
+        border-bottom: 1px solid #000;
+    }
+
+    .dre-linha.linha-acima {
+        border-top: 1px solid #ccc;
+    }
+
+    .dre-linha.linha-abaixo {
+        border-bottom: 1px solid #ccc;
+    }
+
+    .dre-codigo {
+        width: 10%;
+        font-family: 'Courier New', monospace;
+        color: #666;
+    }
+
+    .dre-operacao {
+        width: 5%;
+        text-align: center;
+        color: #999;
+    }
+
+    .dre-descricao {
+        width: 55%;
+    }
+
+    .dre-valor {
+        width: 30%;
+        text-align: right;
+        font-family: 'Courier New', monospace;
+        white-space: nowrap;
+    }
+
+    .valor-positivo {
+        color: #2e7d32;
+    }
+
+    .valor-negativo {
+        color: #c62828;
+    }
+
+    .valor-neutro {
+        color: #000;
+    }
+
+    .btn-config {
+        margin-top: 1rem;
+    }
+
+    .sem-configuracao {
+        text-align: center;
+        padding: 3rem;
+        color: #666;
+    }
+
+    .sem-configuracao i {
+        font-size: 3rem;
+        color: #ddd;
+        margin-bottom: 1rem;
+    }
+</style>
+
+<div class="container-fluid">
+    <div class="card shadow-sm">
+        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+            <h4 class="mb-0"><i class="fas fa-file-invoice me-2"></i>DRE - Demonstração do Resultado do Exercício</h4>
+            <div>
+                <a href="{{ url_for('dre_configurar') }}" class="btn btn-primary btn-sm">
+                    <i class="fas fa-cog"></i> Configurar DRE
+                </a>
+                <button onclick="window.print()" class="btn btn-outline-light btn-sm">
+                    <i class="fas fa-print"></i> Imprimir
+                </button>
+            </div>
+        </div>
+
+        <div class="card-body">
+            {% if linhas_dre %}
+            <div class="dre-container">
+                <div class="dre-header">
+                    <h2>{{ session.empresa_nome }}</h2>
+                    <div class="dre-periodo">
+                        Demonstração do Resultado do Exercício<br>
+                        Período: {{ data_inicio }} a {{ data_fim }}
+                    </div>
+                </div>
+
+                <table class="dre-table">
+                    <tbody>
+                        {% for linha in linhas_dre %}
+                        <tr class="dre-linha tipo-{{ linha.tipo_linha }} nivel-{{ linha.nivel }} {% if linha.linha_acima %}linha-acima{% endif %} {% if linha.linha_abaixo %}linha-abaixo{% endif %}">
+                            <td class="dre-codigo">{{ linha.codigo }}</td>
+                            <td class="dre-operacao">{{ linha.operacao or '' }}</td>
+                            <td class="dre-descricao">{{ linha.descricao }}</td>
+                            <td class="dre-valor
+                                {% if linha.valor > 0 %}valor-positivo
+                                {% elif linha.valor < 0 %}valor-negativo
+                                {% else %}valor-neutro
+                                {% endif %}">
+                                {{ "%.2f"|format(linha.valor|abs) }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="sem-configuracao">
+                <div><i class="fas fa-file-invoice"></i></div>
+                <h5>DRE não configurada</h5>
+                <p>Configure as contas que farão parte da sua Demonstração de Resultado do Exercício.</p>
+                <a href="{{ url_for('dre_configurar') }}" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Configurar DRE Agora
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

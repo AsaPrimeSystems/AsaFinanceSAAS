@@ -34,7 +34,12 @@
       "Bash(if [ -f .gitignore ])",
       "Bash(then echo \"Arquivo .gitignore já existe\")",
       "Bash(else echo \"Arquivo .gitignore não existe\")",
-      "Bash(fi:*)"
+      "Bash(fi:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(open:*)",
+      "Bash(git reset:*)"
     ],
     "deny": [],
     "ask": []

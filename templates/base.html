@@ -19,40 +19,47 @@
         .subscription-badge {
             display: flex;
             flex-direction: column;
-            gap: 0.25rem;
+            gap: 0.15rem;
+            padding: 0.35rem 0.6rem;
+            background: #f8f9fa;
+            border-radius: 6px;
+            border-left: 3px solid #ffd700;
         }
 
         .subscription-plan {
             display: flex;
             align-items: center;
-            gap: 0.4rem;
+            gap: 0.3rem;
             font-weight: 600;
-            font-size: 0.95rem;
+            font-size: 0.75rem;
         }
 
         .subscription-plan i {
             color: #ffd700;
+            font-size: 0.7rem;
         }
 
         .plan-name {
             color: #2c3e50;
+            white-space: nowrap;
         }
 
         .subscription-days-info {
             display: flex;
             align-items: baseline;
-            gap: 0.3rem;
-            font-size: 0.85rem;
+            gap: 0.25rem;
+            font-size: 0.7rem;
         }
 
         .subscription-days {
             font-weight: 700;
-            font-size: 1.1rem;
+            font-size: 0.9rem;
             color: #3498db;
         }
 
         .subscription-text {
             color: #7f8c8d;
+            font-size: 0.65rem;
         }
     </style>
 </head>
@@ -116,17 +123,12 @@
                     <div class="company-subscription">
                         <div class="subscription-badge">
                             <div class="subscription-plan">
-                                {% if session.get('plano_nome') %}
-                                    <i class="fas fa-star"></i>
-                                    <span class="plan-name">{{ session.get('plano_nome') }}</span>
-                                {% else %}
-                                    <i class="fas fa-calendar-check"></i>
-                                    <span class="plan-name">Assinatura Ativa</span>
-                                {% endif %}
+                                <i class="fas fa-star"></i>
+                                <span class="plan-name">{{ session.get('plano_nome') or 'Plano Básico' }}</span>
                             </div>
                             <div class="subscription-days-info">
                                 <span class="subscription-days">{{ session.get('dias_assinatura', 0) }}</span>
-                                <span class="subscription-text">dias restantes</span>
+                                <span class="subscription-text">dias</span>
                             </div>
                         </div>
                     </div>
