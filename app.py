@@ -2489,7 +2489,7 @@ def excluir_lancamentos_lote():
         # Buscar lançamentos que pertencem à empresa do usuário
         lancamentos = Lancamento.query.filter(
             Lancamento.id.in_(ids),
-            Lancamento.usuario_id.in_(usuarios_ids)
+            Lancamento.empresa_id == empresa_id
         ).all()
 
         if not lancamentos:
@@ -3054,12 +3054,12 @@ def novo_lancamento():
     # Buscar clientes, fornecedores, produtos, serviços e plano de contas da empresa vinculada
     try:
         if usuarios_ids:
-            clientes = Cliente.query.filter(Cliente.usuario_id.in_(usuarios_ids)).order_by(Cliente.nome).all()
-            fornecedores = Fornecedor.query.filter(Fornecedor.usuario_id.in_(usuarios_ids)).order_by(Fornecedor.nome).all()
+            clientes = Cliente.query.filter(Cliente.empresa_id == empresa_id).order_by(Cliente.nome).all()
+            fornecedores = Fornecedor.query.filter(Fornecedor.empresa_id == empresa_id).order_by(Fornecedor.nome).all()
             produtos = Produto.query.filter(Produto.usuario_id.in_(usuarios_ids), Produto.ativo==True).order_by(Produto.nome).all()
             servicos = Servico.query.filter(Servico.usuario_id.in_(usuarios_ids), Servico.ativo==True).order_by(Servico.nome).all()
-            categorias_receita = PlanoConta.query.filter(PlanoConta.usuario_id.in_(usuarios_ids), PlanoConta.tipo=='receita', PlanoConta.ativo==True).order_by(PlanoConta.nome).all()
-            categorias_despesa = PlanoConta.query.filter(PlanoConta.usuario_id.in_(usuarios_ids), PlanoConta.tipo=='despesa', PlanoConta.ativo==True).order_by(PlanoConta.nome).all()
+            categorias_receita = PlanoConta.query.filter(PlanoConta.empresa_id == empresa_id, PlanoConta.tipo=='receita', PlanoConta.ativo==True).order_by(PlanoConta.nome).all()
+            categorias_despesa = PlanoConta.query.filter(PlanoConta.empresa_id == empresa_id, PlanoConta.tipo=='despesa', PlanoConta.ativo==True).order_by(PlanoConta.nome).all()
         else:
             clientes = []
             fornecedores = []
@@ -3200,7 +3200,7 @@ def editar_lancamento(lancamento_id):
                         lancamento.categoria = pc.nome
                 else:
                     # Caso venha como nome, buscar o ID
-                    pc = PlanoConta.query.filter(PlanoConta.usuario_id.in_(usuarios_ids), PlanoConta.nome == categoria_input, PlanoConta.tipo == lancamento.tipo).first()
+                    pc = PlanoConta.query.filter(PlanoConta.empresa_id == empresa_id, PlanoConta.nome == categoria_input, PlanoConta.tipo == lancamento.tipo).first()
                     if pc:
                         if pc.natureza == 'sintetica':
                             flash('Não é permitido lançar em contas sintéticas', 'error')
@@ -3700,7 +3700,7 @@ def acao_em_lote_lancamentos():
         # Buscar lançamentos da empresa
         lancamentos = Lancamento.query.filter(
             Lancamento.id.in_(lancamentos_ids),
-            Lancamento.usuario_id.in_(usuarios_ids)
+            Lancamento.empresa_id == empresa_id
         ).all()
         
         if not lancamentos:
@@ -3854,7 +3854,7 @@ def clientes():
         # Calcular totais de receitas e despesas para cada cliente
         lancamentos = Lancamento.query.filter(
             Lancamento.cliente_id == cliente.id,
-            Lancamento.usuario_id.in_(usuarios_ids)
+            Lancamento.empresa_id == empresa_id
         ).all()
         
         cliente.total_receitas = sum([l.valor for l in lancamentos if l.tipo == 'receita'])
@@ -3945,7 +3945,7 @@ def deletar_cliente(cliente_id):
     usuarios_empresa = Usuario.query.filter_by(empresa_id=empresa_id, ativo=True).all()
     usuarios_ids = [u.id for u in usuarios_empresa]
     
-    cliente = Cliente.query.filter(Cliente.id==cliente_id, Cliente.usuario_id.in_(usuarios_ids)).first()
+    cliente = Cliente.query.filter(Cliente.id==cliente_id, Cliente.empresa_id == empresa_id).first()
     if not cliente:
         flash('Cliente não encontrado.', 'danger')
         return redirect(url_for('clientes'))
@@ -3997,7 +3997,7 @@ def fornecedores():
         # Calcular totais de compras e pagamentos para cada fornecedor
         lancamentos = Lancamento.query.filter(
             Lancamento.fornecedor_id == fornecedor.id,
-            Lancamento.usuario_id.in_(usuarios_ids)
+            Lancamento.empresa_id == empresa_id
         ).all()
         
         fornecedor.total_compras = sum([l.valor for l in lancamentos if l.tipo == 'despesa'])
@@ -4088,7 +4088,7 @@ def deletar_fornecedor(fornecedor_id):
     usuarios_empresa = Usuario.query.filter_by(empresa_id=empresa_id, ativo=True).all()
     usuarios_ids = [u.id for u in usuarios_empresa]
     
-    fornecedor = Fornecedor.query.filter(Fornecedor.id==fornecedor_id, Fornecedor.usuario_id.in_(usuarios_ids)).first()
+    fornecedor = Fornecedor.query.filter(Fornecedor.id==fornecedor_id, Fornecedor.empresa_id == empresa_id).first()
     if not fornecedor:
         flash('Fornecedor não encontrado.', 'danger')
         return redirect(url_for('fornecedores'))
@@ -4622,9 +4622,9 @@ def plano_contas():
     usuarios_empresa = Usuario.query.filter_by(empresa_id=empresa_id, ativo=True).all()
     usuarios_ids = [u.id for u in usuarios_empresa]
 
-    # Carregar plano de contas de todos os usuários da empresa
+    # Carregar plano de contas da empresa (filtro correto para acesso contador)
     contas = PlanoConta.query.filter(
-        PlanoConta.usuario_id.in_(usuarios_ids),
+        PlanoConta.empresa_id == empresa_id,
         PlanoConta.ativo == True
     ).order_by(PlanoConta.tipo, PlanoConta.codigo, PlanoConta.nome).all()
 
@@ -4742,7 +4742,7 @@ def nova_conta():
         return redirect(url_for('plano_contas'))
     
     planos_sinteticos = PlanoConta.query.filter(
-        PlanoConta.usuario_id.in_(usuarios_ids),
+        PlanoConta.empresa_id == empresa_id,
         PlanoConta.natureza == 'sintetica',
         PlanoConta.ativo == True
     ).order_by(PlanoConta.tipo, PlanoConta.codigo).all()
@@ -4856,7 +4856,7 @@ def editar_conta(conta_id):
             return redirect(url_for('editar_conta', conta_id=conta_id))
     
     planos_sinteticos = PlanoConta.query.filter(
-        PlanoConta.usuario_id.in_(usuarios_ids),
+        PlanoConta.empresa_id == empresa_id,
         PlanoConta.natureza == 'sintetica',
         PlanoConta.ativo == True,
         PlanoConta.id != conta.id  # Não pode ser pai de si mesmo
@@ -5197,7 +5197,7 @@ def nova_venda():
         usuarios_ids = [u.id for u in usuarios_empresa]
         
         # Verificar se o cliente pertence à empresa
-        cliente = Cliente.query.filter(Cliente.id==cliente_id, Cliente.usuario_id.in_(usuarios_ids)).first()
+        cliente = Cliente.query.filter(Cliente.id==cliente_id, Cliente.empresa_id == empresa_id).first()
         if not cliente:
             flash('Cliente não encontrado.', 'danger')
             return redirect(url_for('vendas'))
@@ -5280,7 +5280,7 @@ def nova_venda():
     usuarios_empresa = Usuario.query.filter_by(empresa_id=empresa_id, ativo=True).all()
     usuarios_ids = [u.id for u in usuarios_empresa]
     
-    clientes = Cliente.query.filter(Cliente.usuario_id.in_(usuarios_ids)).order_by(Cliente.nome).all()
+    clientes = Cliente.query.filter(Cliente.empresa_id == empresa_id).order_by(Cliente.nome).all()
     produtos = Produto.query.filter(Produto.usuario_id.in_(usuarios_ids)).order_by(Produto.nome).all()
     servicos = Servico.query.filter(Servico.usuario_id.in_(usuarios_ids), Servico.ativo==True).order_by(Servico.nome).all()
     contas_caixa = ContaCaixa.query.filter(ContaCaixa.usuario_id.in_(usuarios_ids), ContaCaixa.ativo==True).order_by(ContaCaixa.nome).all()
@@ -5769,7 +5769,7 @@ def nova_compra():
         usuarios_ids = [u.id for u in usuarios_empresa]
         
         # Verificar se o fornecedor pertence à empresa
-        fornecedor = Fornecedor.query.filter(Fornecedor.id==fornecedor_id, Fornecedor.usuario_id.in_(usuarios_ids)).first()
+        fornecedor = Fornecedor.query.filter(Fornecedor.id==fornecedor_id, Fornecedor.empresa_id == empresa_id).first()
         if not fornecedor:
             flash('Fornecedor não encontrado.', 'danger')
             return redirect(url_for('compras'))
@@ -5864,7 +5864,7 @@ def nova_compra():
     usuarios_empresa = Usuario.query.filter_by(empresa_id=empresa_id, ativo=True).all()
     usuarios_ids = [u.id for u in usuarios_empresa]
     
-    fornecedores = Fornecedor.query.filter(Fornecedor.usuario_id.in_(usuarios_ids)).order_by(Fornecedor.nome).all()
+    fornecedores = Fornecedor.query.filter(Fornecedor.empresa_id == empresa_id).order_by(Fornecedor.nome).all()
     produtos = Produto.query.filter(Produto.usuario_id.in_(usuarios_ids)).order_by(Produto.nome).all()
     servicos = Servico.query.filter(Servico.usuario_id.in_(usuarios_ids), Servico.ativo==True).order_by(Servico.nome).all()
     contas_caixa = ContaCaixa.query.filter(ContaCaixa.usuario_id.in_(usuarios_ids), ContaCaixa.ativo==True).order_by(ContaCaixa.nome).all()
@@ -6233,7 +6233,7 @@ def calcular_preco_medio_produto(nome_produto, usuario_id):
     # ATUALIZAÇÃO: Buscar todas as compras para este produto (independente do status realizado)
     compras_todas = Compra.query.filter(
         Compra.produto == nome_produto,
-        Compra.usuario_id.in_(usuarios_ids),
+        Compra.empresa_id == empresa_id,
         Compra.tipo_compra == 'mercadoria'
     ).all()
     
@@ -6287,7 +6287,7 @@ def calcular_estoque_produto(nome_produto, usuario_id):
             Compra.produto == nome_produto_base,
             Compra.produto.like(f'%{nome_produto_base}%')
         ),
-        Compra.usuario_id.in_(usuarios_ids),
+        Compra.empresa_id == empresa_id,
         Compra.tipo_compra == 'mercadoria'
     ).all()
 
@@ -6298,7 +6298,7 @@ def calcular_estoque_produto(nome_produto, usuario_id):
             Venda.produto == nome_produto_base,
             Venda.produto.like(f'%{nome_produto_base}%')
         ),
-        Venda.usuario_id.in_(usuarios_ids),
+        Venda.empresa_id == empresa_id,
         Venda.tipo_venda == 'produto'
     ).all()
     
@@ -6846,7 +6846,7 @@ def dre_visualizar():
             # Buscar lançamentos da conta
             lancamentos = Lancamento.query.filter(
                 Lancamento.plano_conta_id == linha_config.plano_conta_id,
-                Lancamento.usuario_id.in_(usuarios_ids),
+                Lancamento.empresa_id == empresa_id,
                 Lancamento.data_realizada.between(data_inicio, data_fim),
                 Lancamento.realizado == True
             ).all()
@@ -6992,7 +6992,7 @@ def relatorio_saldos():
             data_fim_str = ''
     
     # Construir query base
-    query = Lancamento.query.filter(Lancamento.usuario_id.in_(usuarios_ids))
+    query = Lancamento.query.filter(Lancamento.empresa_id == empresa_id)
     
     # Aplicar filtros de data se fornecidos
     # Filtrar por data_prevista (data de vencimento/agendamento)
@@ -7207,7 +7207,7 @@ def exportar_relatorio_saldos(formato):
             pass
     
     # Construir query base
-    query = Lancamento.query.filter(Lancamento.usuario_id.in_(usuarios_ids))
+    query = Lancamento.query.filter(Lancamento.empresa_id == empresa_id)
     
     # Aplicar filtros de data se fornecidos
     if data_inicio:
@@ -7358,7 +7358,7 @@ def relatorio_lancamentos():
     query = Lancamento.query.options(
         joinedload(Lancamento.compra).joinedload(Compra.fornecedor),
         joinedload(Lancamento.venda).joinedload(Venda.cliente)
-    ).filter(Lancamento.usuario_id.in_(usuarios_ids))
+    ).filter(Lancamento.empresa_id == empresa_id)
     
     # Aplicar filtros
     if tipo_filtro:
@@ -7463,7 +7463,7 @@ def exportar_relatorio_lancamentos(formato):
     data_fim_str = request.args.get('data_fim', '')
     
     # Construir query base
-    query = Lancamento.query.filter(Lancamento.usuario_id.in_(usuarios_ids))
+    query = Lancamento.query.filter(Lancamento.empresa_id == empresa_id)
     
     # Aplicar filtros
     if tipo_filtro:
@@ -7666,7 +7666,7 @@ def relatorio_clientes():
                     Lancamento.query
                     .outerjoin(Venda, Lancamento.venda_id == Venda.id)
                     .filter(
-                        Lancamento.usuario_id.in_(usuarios_ids),
+                        Lancamento.empresa_id == empresa_id,
                         or_(Lancamento.cliente_id == cliente.id, Venda.cliente_id == cliente.id)
                     )
                 )
@@ -7880,7 +7880,7 @@ def exportar_relatorio_clientes(formato):
     filtro_ordenacao = request.args.get('ordenacao', 'nome')
     
     # Buscar clientes
-    query = Cliente.query.filter(Cliente.usuario_id.in_(usuarios_ids), Cliente.ativo == True)
+    query = Cliente.query.filter(Cliente.empresa_id == empresa_id, Cliente.ativo == True)
     
     # Aplicar filtro de status
     if filtro_status == 'com_saldo':
@@ -7896,7 +7896,7 @@ def exportar_relatorio_clientes(formato):
             # Buscar lançamentos do cliente
             lancamentos = Lancamento.query.filter(
                 Lancamento.cliente_id == cliente.id,
-                Lancamento.usuario_id.in_(usuarios_ids)
+                Lancamento.empresa_id == empresa_id
             ).all()
             
             # Calcular totais
@@ -8120,7 +8120,7 @@ def relatorio_estoque():
     for produto in produtos:
         # Buscar todas as compras deste produto (para calcular preço médio)
         compras_produto = Compra.query.filter(
-            Compra.usuario_id.in_(usuarios_ids),
+            Compra.empresa_id == empresa_id,
             Compra.produto == produto.nome,
             Compra.tipo_compra == 'mercadoria'
         )
@@ -8141,7 +8141,7 @@ def relatorio_estoque():
 
             # Vendas (saída): somar quantidade de vendas até data_filtro
             vendas = Venda.query.filter(
-                Venda.usuario_id.in_(usuarios_ids),
+                Venda.empresa_id == empresa_id,
                 Venda.produto == produto.nome,
                 Venda.tipo_venda == 'produto',
                 Venda.data_prevista <= data_filtro
@@ -8342,7 +8342,7 @@ def relatorio_fornecedores():
                     Lancamento.query
                     .outerjoin(Compra, Lancamento.compra_id == Compra.id)
                     .filter(
-                        Lancamento.usuario_id.in_(usuarios_ids),
+                        Lancamento.empresa_id == empresa_id,
                         or_(Lancamento.fornecedor_id == fornecedor.id, Compra.fornecedor_id == fornecedor.id)
                     )
                 )
@@ -10591,7 +10591,7 @@ def api_categorias(tipo):
         usuarios_ids = [u.id for u in usuarios_empresa]
 
         categorias = PlanoConta.query.filter(
-            PlanoConta.usuario_id.in_(usuarios_ids),
+            PlanoConta.empresa_id == empresa_id,
             PlanoConta.tipo == tipo,
             PlanoConta.natureza == 'analitica',
             PlanoConta.ativo == True
@@ -10972,24 +10972,24 @@ def api_exportar_backup_geral():
         ws_resumo.cell(row=4, column=1).alignment = subtitulo_align
         
         # Contar registros
-        total_lancamentos = Lancamento.query.filter(Lancamento.usuario_id.in_(usuarios_ids)).count()
-        total_vendas = Venda.query.filter(Venda.usuario_id.in_(usuarios_ids)).count()
-        total_compras = Compra.query.filter(Compra.usuario_id.in_(usuarios_ids)).count()
-        total_clientes = Cliente.query.filter(Cliente.usuario_id.in_(usuarios_ids)).count()
-        total_fornecedores = Fornecedor.query.filter(Fornecedor.usuario_id.in_(usuarios_ids)).count()
+        total_lancamentos = Lancamento.query.filter(Lancamento.empresa_id == empresa_id).count()
+        total_vendas = Venda.query.filter(Venda.empresa_id == empresa_id).count()
+        total_compras = Compra.query.filter(Compra.empresa_id == empresa_id).count()
+        total_clientes = Cliente.query.filter(Cliente.empresa_id == empresa_id).count()
+        total_fornecedores = Fornecedor.query.filter(Fornecedor.empresa_id == empresa_id).count()
         total_contas_caixa = ContaCaixa.query.filter(ContaCaixa.usuario_id.in_(usuarios_ids)).count()
         total_produtos = Produto.query.filter(Produto.usuario_id.in_(usuarios_ids)).count()
         
         # Calcular totais financeiros
         lancamentos_receita = Lancamento.query.filter(
-            Lancamento.usuario_id.in_(usuarios_ids),
+            Lancamento.empresa_id == empresa_id,
             Lancamento.tipo == 'receita',
             Lancamento.realizado == True
         ).all()
         total_receitas = sum(l.valor for l in lancamentos_receita)
         
         lancamentos_despesa = Lancamento.query.filter(
-            Lancamento.usuario_id.in_(usuarios_ids),
+            Lancamento.empresa_id == empresa_id,
             Lancamento.tipo == 'despesa',
             Lancamento.realizado == True
         ).all()
@@ -11040,7 +11040,7 @@ def api_exportar_backup_geral():
             cell.alignment = Alignment(horizontal="center", vertical="center")
         
         # Buscar lançamentos
-        lancamentos = Lancamento.query.filter(Lancamento.usuario_id.in_(usuarios_ids)).order_by(Lancamento.data_prevista.desc()).all()
+        lancamentos = Lancamento.query.filter(Lancamento.empresa_id == empresa_id).order_by(Lancamento.data_prevista.desc()).all()
         
         for row, lancamento in enumerate(lancamentos, 2):
             ws_lancamentos.cell(row=row, column=1, value=lancamento.id)
@@ -11087,7 +11087,7 @@ def api_exportar_backup_geral():
             cell.alignment = Alignment(horizontal="center", vertical="center")
         
         # Buscar vendas
-        vendas = Venda.query.filter(Venda.usuario_id.in_(usuarios_ids)).order_by(Venda.data_criacao.desc()).all()
+        vendas = Venda.query.filter(Venda.empresa_id == empresa_id).order_by(Venda.data_criacao.desc()).all()
         
         for row, venda in enumerate(vendas, 2):
             ws_vendas.cell(row=row, column=1, value=venda.id)
@@ -11128,7 +11128,7 @@ def api_exportar_backup_geral():
             cell.alignment = Alignment(horizontal="center", vertical="center")
         
         # Buscar compras
-        compras = Compra.query.filter(Compra.usuario_id.in_(usuarios_ids)).order_by(Compra.data_criacao.desc()).all()
+        compras = Compra.query.filter(Compra.empresa_id == empresa_id).order_by(Compra.data_criacao.desc()).all()
         
         for row, compra in enumerate(compras, 2):
             ws_compras.cell(row=row, column=1, value=compra.id)
@@ -11202,7 +11202,7 @@ def api_exportar_backup_geral():
             cell.alignment = Alignment(horizontal="center", vertical="center")
         
         # Buscar clientes
-        clientes = Cliente.query.filter(Cliente.usuario_id.in_(usuarios_ids)).all()
+        clientes = Cliente.query.filter(Cliente.empresa_id == empresa_id).all()
         
         for row, cliente in enumerate(clientes, 2):
             ws_clientes.cell(row=row, column=1, value=cliente.id)
@@ -11234,7 +11234,7 @@ def api_exportar_backup_geral():
             cell.alignment = Alignment(horizontal="center", vertical="center")
         
         # Buscar fornecedores
-        fornecedores = Fornecedor.query.filter(Fornecedor.usuario_id.in_(usuarios_ids)).all()
+        fornecedores = Fornecedor.query.filter(Fornecedor.empresa_id == empresa_id).all()
         
         for row, fornecedor in enumerate(fornecedores, 2):
             ws_fornecedores.cell(row=row, column=1, value=fornecedor.id)
@@ -11752,11 +11752,11 @@ def api_preview_importacao():
         ).all()}
         
         clientes_cache = {c.nome.lower(): c for c in Cliente.query.filter(
-            Cliente.usuario_id.in_(usuarios_ids)
+            Cliente.empresa_id == empresa_id
         ).all()}
         
         fornecedores_cache = {f.nome.lower(): f for f in Fornecedor.query.filter(
-            Fornecedor.usuario_id.in_(usuarios_ids)
+            Fornecedor.empresa_id == empresa_id
         ).all()}
         
         # Processar linhas para prévia
@@ -12199,11 +12199,11 @@ def api_importar_dados():
         ).all()}
         
         clientes_cache = {c.nome.lower(): c for c in Cliente.query.filter(
-            Cliente.usuario_id.in_(usuarios_ids)
+            Cliente.empresa_id == empresa_id
         ).all()}
         
         fornecedores_cache = {f.nome.lower(): f for f in Fornecedor.query.filter(
-            Fornecedor.usuario_id.in_(usuarios_ids)
+            Fornecedor.empresa_id == empresa_id
         ).all()}
         
         # Processar linhas
@@ -12992,7 +12992,7 @@ def buscar_ou_criar_categoria_plano_contas(nome_categoria, tipo_lancamento, usua
         
         # Verificar se a categoria já existe
         categoria_existe = PlanoConta.query.filter(
-            PlanoConta.usuario_id.in_(usuarios_ids),
+            PlanoConta.empresa_id == empresa_id,
             PlanoConta.tipo == tipo_lancamento,
             PlanoConta.nome == nome_original,
             PlanoConta.ativo == True
@@ -13289,7 +13289,7 @@ def api_lancamentos_agendados():
         
         # Buscar lançamentos agendados para hoje que ainda não foram confirmados como realizados
         lancamentos_agendados = Lancamento.query.filter(
-            Lancamento.usuario_id.in_(usuarios_ids),
+            Lancamento.empresa_id == empresa_id,
             Lancamento.data_realizada == hoje,
             Lancamento.realizado == False  # Apenas os que ainda não foram confirmados
         ).order_by(Lancamento.data_realizada.asc()).all()
@@ -14073,13 +14073,13 @@ def criar_lancamentos_existentes():
         
         # Buscar vendas sem lançamentos financeiros (limitando para evitar loops)
         vendas_sem_lancamento = Venda.query.filter(
-            Venda.usuario_id.in_(usuarios_ids),
+            Venda.empresa_id == empresa_id,
             ~Venda.id.in_(db.session.query(Lancamento.venda_id).filter(Lancamento.venda_id.isnot(None)))
         ).limit(100).all()  # Limite de 100 para evitar loops
         
         # Buscar compras sem lançamentos financeiros (limitando para evitar loops)
         compras_sem_lancamento = Compra.query.filter(
-            Compra.usuario_id.in_(usuarios_ids),
+            Compra.empresa_id == empresa_id,
             ~Compra.id.in_(db.session.query(Lancamento.compra_id).filter(Lancamento.compra_id.isnot(None)))
         ).limit(100).all()  # Limite de 100 para evitar loops
         
@@ -15784,7 +15784,7 @@ def exportar_backup_geral():
             joinedload(Lancamento.fornecedor),
             joinedload(Lancamento.venda),
             joinedload(Lancamento.compra)
-        ).filter(Lancamento.usuario_id.in_(usuarios_ids)).order_by(Lancamento.data_prevista).all()
+        ).filter(Lancamento.empresa_id == empresa_id).order_by(Lancamento.data_prevista).all()
         
         for lancamento in lancamentos:
             # Determinar status
@@ -15824,7 +15824,7 @@ def exportar_backup_geral():
         ws_clientes = wb.create_sheet("Clientes")
         ws_clientes.append(["Nome", "Email", "Telefone", "CPF/CNPJ", "Endereço", "Data Criação"])
         
-        clientes = Cliente.query.filter(Cliente.usuario_id.in_(usuarios_ids), Cliente.ativo == True).all()
+        clientes = Cliente.query.filter(Cliente.empresa_id == empresa_id, Cliente.ativo == True).all()
         for cliente in clientes:
             ws_clientes.append([
                 cliente.nome,
@@ -15839,7 +15839,7 @@ def exportar_backup_geral():
         ws_fornecedores = wb.create_sheet("Fornecedores")
         ws_fornecedores.append(["Nome", "Email", "Telefone", "CPF/CNPJ", "Endereço", "Data Criação"])
         
-        fornecedores = Fornecedor.query.filter(Fornecedor.usuario_id.in_(usuarios_ids), Fornecedor.ativo == True).all()
+        fornecedores = Fornecedor.query.filter(Fornecedor.empresa_id == empresa_id, Fornecedor.ativo == True).all()
         for fornecedor in fornecedores:
             ws_fornecedores.append([
                 fornecedor.nome,
@@ -15871,7 +15871,7 @@ def exportar_backup_geral():
         ws_vendas = wb.create_sheet("Vendas")
         ws_vendas.append(["ID", "Cliente", "Produto", "Quantidade", "Valor", "Data", "Observações", "Status"])
         
-        vendas = Venda.query.options(joinedload(Venda.cliente)).filter(Venda.usuario_id.in_(usuarios_ids)).all()
+        vendas = Venda.query.options(joinedload(Venda.cliente)).filter(Venda.empresa_id == empresa_id).all()
         for venda in vendas:
             ws_vendas.append([
                 venda.id,
@@ -15888,7 +15888,7 @@ def exportar_backup_geral():
         ws_compras = wb.create_sheet("Compras")
         ws_compras.append(["ID", "Fornecedor", "Produto", "Quantidade", "Valor", "Data", "Observações", "Status"])
         
-        compras = Compra.query.options(joinedload(Compra.fornecedor)).filter(Compra.usuario_id.in_(usuarios_ids)).all()
+        compras = Compra.query.options(joinedload(Compra.fornecedor)).filter(Compra.empresa_id == empresa_id).all()
         for compra in compras:
             ws_compras.append([
                 compra.id,
@@ -16171,17 +16171,17 @@ def admin_excluir_conta(conta_id):
             
             # 2. Limpar Lançamentos, Vendas e Compras
             Lancamento.query.filter_by(empresa_id=conta_id).delete(synchronize_session=False)
-            Venda.query.filter(Venda.usuario_id.in_(usuarios_ids)).delete(synchronize_session=False)
-            Compra.query.filter(Compra.usuario_id.in_(usuarios_ids)).delete(synchronize_session=False)
+            Venda.query.filter(Venda.empresa_id == empresa_id).delete(synchronize_session=False)
+            Compra.query.filter(Compra.empresa_id == empresa_id).delete(synchronize_session=False)
             
             # 3. Limpar Cadastros (Cliente, Fornecedor, Produto, Servico)
-            Cliente.query.filter(Cliente.usuario_id.in_(usuarios_ids)).delete(synchronize_session=False)
-            Fornecedor.query.filter(Fornecedor.usuario_id.in_(usuarios_ids)).delete(synchronize_session=False)
+            Cliente.query.filter(Cliente.empresa_id == empresa_id).delete(synchronize_session=False)
+            Fornecedor.query.filter(Fornecedor.empresa_id == empresa_id).delete(synchronize_session=False)
             Produto.query.filter(Produto.usuario_id.in_(usuarios_ids)).delete(synchronize_session=False)
             Servico.query.filter(Servico.usuario_id.in_(usuarios_ids)).delete(synchronize_session=False)
             
             # 4. Limpar Infraestrutura e Logs
-            PlanoConta.query.filter(PlanoConta.usuario_id.in_(usuarios_ids)).delete(synchronize_session=False)
+            PlanoConta.query.filter(PlanoConta.empresa_id == empresa_id).delete(synchronize_session=False)
             ContaCaixa.query.filter(ContaCaixa.usuario_id.in_(usuarios_ids)).delete(synchronize_session=False)
             Importacao.query.filter(Importacao.usuario_id.in_(usuarios_ids)).delete(synchronize_session=False)
             Permissao.query.filter(Permissao.usuario_id.in_(usuarios_ids)).delete(synchronize_session=False)
