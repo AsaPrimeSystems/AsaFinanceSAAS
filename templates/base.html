@@ -14,6 +14,47 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+
+    <style>
+        .subscription-badge {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .subscription-plan {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .subscription-plan i {
+            color: #ffd700;
+        }
+
+        .plan-name {
+            color: #2c3e50;
+        }
+
+        .subscription-days-info {
+            display: flex;
+            align-items: baseline;
+            gap: 0.3rem;
+            font-size: 0.85rem;
+        }
+
+        .subscription-days {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: #3498db;
+        }
+
+        .subscription-text {
+            color: #7f8c8d;
+        }
+    </style>
 </head>
 <body>
     {% if session.usuario_id or session.sub_usuario_id %}
@@ -74,9 +115,19 @@
                     {% if session.get('tipo_conta') and session.get('tipo_conta') != 'admin' and session.get('dias_assinatura') is not none %}
                     <div class="company-subscription">
                         <div class="subscription-badge">
-                            <i class="fas fa-calendar-check"></i>
-                            <span class="subscription-days">{{ session.get('dias_assinatura', 0) }}</span>
-                            <span class="subscription-text">dias restantes de assinatura</span>
+                            <div class="subscription-plan">
+                                {% if session.get('plano_nome') %}
+                                    <i class="fas fa-star"></i>
+                                    <span class="plan-name">{{ session.get('plano_nome') }}</span>
+                                {% else %}
+                                    <i class="fas fa-calendar-check"></i>
+                                    <span class="plan-name">Assinatura Ativa</span>
+                                {% endif %}
+                            </div>
+                            <div class="subscription-days-info">
+                                <span class="subscription-days">{{ session.get('dias_assinatura', 0) }}</span>
+                                <span class="subscription-text">dias restantes</span>
+                            </div>
                         </div>
                     </div>
                     {% endif %}

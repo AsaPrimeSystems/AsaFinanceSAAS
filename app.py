@@ -372,11 +372,13 @@ class Empresa(db.Model):
     tipo_conta = db.Column(db.String(20), default='empresa')  # empresa, pessoa_fisica, contador_bpo, admin
     dias_assinatura = db.Column(db.Integer, default=30)  # Dias restantes de assinatura
     data_inicio_assinatura = db.Column(db.DateTime, nullable=True)  # Data de início da assinatura para cálculo automático
+    plano_id = db.Column(db.Integer, db.ForeignKey('plano.id'), nullable=True)  # Plano de assinatura ativo
     ativo = db.Column(db.Boolean, default=True)
     data_criacao = db.Column(db.DateTime, default=datetime.utcnow)
-    
+
     # Relacionamentos
     usuarios = db.relationship('Usuario', backref='empresa', lazy=True)
+    plano_ativo = db.relationship('Plano', foreign_keys=[plano_id], backref='empresas_ativas')
 
 class Usuario(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -1225,7 +1227,15 @@ def login():
             session['empresa_cnpj'] = empresa.cnpj
             session['tipo_conta'] = empresa.tipo_conta if hasattr(empresa, 'tipo_conta') else 'empresa'
             session['dias_assinatura'] = empresa.dias_assinatura if hasattr(empresa, 'dias_assinatura') else 30
-            
+
+            # Informações do plano ativo
+            if hasattr(empresa, 'plano_ativo') and empresa.plano_ativo:
+                session['plano_nome'] = empresa.plano_ativo.nome
+                session['plano_codigo'] = empresa.plano_ativo.codigo
+            else:
+                session['plano_nome'] = None
+                session['plano_codigo'] = None
+
             app.logger.info(f"Login realizado com sucesso - Usuário: {usuario.nome}, Empresa: {empresa.razao_social}")
             
             if usuario.tipo == 'admin':
