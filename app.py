@@ -15543,30 +15543,64 @@ def api_lancamentos_totais():
 @app.route('/lancamentos/<int:lancamento_id>/toggle-status', methods=['POST'])
 def api_toggle_lancamento_status(lancamento_id):
     """Rota para alternar status do lançamento via AJAX"""
-    if 'usuario_id' not in session:
+    # Verificar se está logado (pode ser usuario_id ou sub_usuario_id)
+    if 'usuario_id' not in session and 'sub_usuario_id' not in session:
         return jsonify({'success': False, 'message': 'Usuário não autenticado'}), 401
     
-    usuario = db.session.get(Usuario, session['usuario_id'])
-    if not usuario:
-        return jsonify({'success': False, 'message': 'Usuário não encontrado'}), 401
-    
-    # Obter empresa_id correta da sessão (considera acesso_contador)
-    empresa_id_correta = obter_empresa_id_sessao(session, usuario)
-    if not empresa_id_correta:
-        return jsonify({'success': False, 'message': 'Erro ao obter empresa associada'}), 400
-    
-    # Buscar todos os usuários da empresa correta
-    usuarios_empresa = Usuario.query.filter_by(empresa_id=empresa_id_correta, ativo=True).all()
-    usuarios_ids = [u.id for u in usuarios_empresa]
-    
-    # Buscar lançamento pela empresa_id correta
-    lancamento = Lancamento.query.filter(
-        Lancamento.id == lancamento_id,
-        Lancamento.empresa_id == empresa_id_correta
-    ).first()
+    # Buscar lançamento primeiro (sem filtrar por empresa ainda)
+    lancamento = Lancamento.query.filter(Lancamento.id == lancamento_id).first()
     
     if not lancamento:
         return jsonify({'success': False, 'message': 'Lançamento não encontrado'}), 404
+    
+    # Verificar permissão de acesso
+    tipo_conta = session.get('tipo_conta')
+    tipo_usuario = session.get('usuario_tipo')
+    
+    tem_permissao = False
+    
+    # Caso 1: Usuário normal acessando seus próprios lançamentos
+    if 'usuario_id' in session:
+        usuario = db.session.get(Usuario, session['usuario_id'])
+        if usuario:
+            empresa_id_correta = obter_empresa_id_sessao(session, usuario)
+            if lancamento.empresa_id == empresa_id_correta:
+                tem_permissao = True
+    
+    # Caso 2: Contador/BPO acessando lançamentos de empresa vinculada
+    if not tem_permissao and (tipo_conta == 'contador_bpo' or tipo_usuario == 'sub_contador'):
+        if tipo_usuario == 'sub_contador':
+            # Sub-usuário: verificar se tem permissão para esta empresa
+            sub_usuario_id = session.get('sub_usuario_id')
+            contador_id = session.get('contador_id')
+            
+            permissao = PermissaoSubUsuario.query.filter_by(
+                sub_usuario_id=sub_usuario_id,
+                empresa_id=lancamento.empresa_id
+            ).first()
+            
+            if permissao:
+                # Verificar se o vínculo está autorizado
+                vinculo = VinculoContador.query.filter_by(
+                    contador_id=contador_id,
+                    empresa_id=lancamento.empresa_id,
+                    status='autorizado'
+                ).first()
+                if vinculo:
+                    tem_permissao = True
+        else:
+            # Usuário principal do contador: verificar vínculo autorizado
+            contador_id = session.get('empresa_id')
+            vinculo = VinculoContador.query.filter_by(
+                contador_id=contador_id,
+                empresa_id=lancamento.empresa_id,
+                status='autorizado'
+            ).first()
+            if vinculo:
+                tem_permissao = True
+    
+    if not tem_permissao:
+        return jsonify({'success': False, 'message': 'Sem permissão para acessar este lançamento'}), 403
     
     try:
         # Verificar se foi passado um novo status específico
