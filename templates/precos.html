@@ -24,7 +24,6 @@
             background-color: #f8f9fa;
         }
 
-        /* Navbar */
         .navbar {
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             background-color: #fff;
@@ -36,23 +35,18 @@
             color: var(--primary-color) !important;
         }
 
-        /* Botão de Login na navbar */
         .navbar .btn-primary {
             background-color: var(--primary-color) !important;
             border-color: var(--primary-color) !important;
             color: white !important;
-            opacity: 1 !important;
             padding: 8px 20px !important;
             border-radius: 5px !important;
         }
 
         .navbar .btn-primary:hover {
             background-color: var(--primary-hover) !important;
-            border-color: var(--primary-hover) !important;
-            opacity: 1 !important;
         }
 
-        /* Header */
         .page-header {
             background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-hover) 100%);
             color: white;
@@ -71,36 +65,11 @@
             opacity: 0.95;
         }
 
-        /* Conteúdo */
         .pricing-section {
             padding: 60px 0;
         }
 
-        .pricing-toggle {
-            text-align: center;
-            margin-bottom: 40px;
-        }
-
-        .pricing-toggle .btn-group {
-            background-color: white;
-            border-radius: 50px;
-            padding: 5px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-
-        .pricing-toggle .btn {
-            border-radius: 50px;
-            padding: 10px 30px;
-            border: none;
-            font-weight: 600;
-        }
-
-        .pricing-toggle .btn.active {
-            background-color: var(--primary-color);
-            color: white;
-        }
-
-        /* Cards de Preço */
+        /* Cards de Planos */
         .preco-card {
             background: white;
             border-radius: 15px;
@@ -112,6 +81,7 @@
             height: 100%;
             display: flex;
             flex-direction: column;
+            position: relative;
         }
 
         .preco-card:hover {
@@ -122,7 +92,6 @@
         .preco-card.destaque {
             border: 2px solid var(--primary-color);
             transform: scale(1.05);
-            position: relative;
         }
 
         .preco-card.destaque::before {
@@ -141,10 +110,48 @@
         }
 
         .preco-card h5 {
-            font-weight: 600;
-            margin-bottom: 20px;
+            font-weight: 700;
+            margin-bottom: 10px;
             color: #212529;
-            font-size: 1.5rem;
+            font-size: 1.8rem;
+        }
+
+        .preco-card .subtitle {
+            color: #6c757d;
+            font-size: 0.9rem;
+            margin-bottom: 30px;
+        }
+
+        /* Seletor de Duração */
+        .duracao-selector {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 25px;
+        }
+
+        .duracao-btn {
+            flex: 1;
+            padding: 8px 10px;
+            border: 2px solid #e9ecef;
+            background: white;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #495057;
+        }
+
+        .duracao-btn:hover {
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+
+        .duracao-btn.active {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+            color: white;
         }
 
         .preco-valor {
@@ -186,13 +193,16 @@
             font-size: 1.1rem;
         }
 
+        .preco-card li i.fa-times {
+            color: #6c757d;
+        }
+
         .preco-card .btn {
             margin-top: auto;
             padding: 12px 30px;
             font-weight: 600;
         }
 
-        /* Botões primários roxos */
         .btn-primary {
             background-color: var(--primary-color) !important;
             border-color: var(--primary-color) !important;
@@ -202,7 +212,6 @@
         .btn-primary:hover {
             background-color: var(--primary-hover) !important;
             border-color: var(--primary-hover) !important;
-            color: white !important;
         }
 
         .btn-outline-primary {
@@ -212,37 +221,7 @@
 
         .btn-outline-primary:hover {
             background-color: var(--primary-color) !important;
-            border-color: var(--primary-color) !important;
             color: white !important;
-        }
-
-        /* Comparação de Planos */
-        .comparison-table {
-            background: white;
-            border-radius: 15px;
-            overflow: hidden;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            margin-top: 60px;
-        }
-
-        .comparison-table table {
-            margin-bottom: 0;
-        }
-
-        .comparison-table th {
-            background-color: #f8f9fa;
-            font-weight: 600;
-            padding: 20px;
-            border: none;
-        }
-
-        .comparison-table td {
-            padding: 20px;
-            border-color: #e9ecef;
-        }
-
-        .comparison-table tr:hover {
-            background-color: #f8f9fa;
         }
 
         /* Seção Contador */
@@ -278,22 +257,6 @@
             background-color: #f0f0f0;
         }
 
-        /* FAQ */
-        .faq-section {
-            padding: 60px 0;
-        }
-
-        .accordion-button:not(.collapsed) {
-            background-color: var(--primary-color);
-            color: white;
-        }
-
-        .accordion-button:focus {
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
-        }
-
-        /* Footer */
         footer {
             background-color: #212529;
             color: white;
@@ -310,7 +273,6 @@
             text-decoration: underline;
         }
 
-        /* Responsivo */
         @media (max-width: 768px) {
             .preco-card.destaque {
                 transform: scale(1);
@@ -322,6 +284,11 @@
 
             .page-header h1 {
                 font-size: 1.8rem;
+            }
+
+            .duracao-btn {
+                font-size: 0.75rem;
+                padding: 6px 8px;
             }
         }
     </style>
@@ -345,7 +312,7 @@
                         <a class="nav-link" href="/precos">Preços e Assinaturas</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link btn btn-primary text-white ms-2" href="/login" style="opacity: 1 !important;">Log In / Cadastre-se</a>
+                        <a class="nav-link btn btn-primary text-white ms-2" href="/login">Log In / Cadastre-se</a>
                     </li>
                 </ul>
             </div>
@@ -363,230 +330,112 @@
     <!-- Pricing Section -->
     <section class="pricing-section">
         <div class="container">
-            <!-- Pessoa Física e Jurídica -->
-            <div class="mb-5">
-                <h2 class="text-center mb-4">Pessoa Física e Pessoa Jurídica</h2>
-                <div class="row g-4">
-                    <div class="col-md-6 col-lg-4">
-                        <div class="preco-card">
-                            <h5>30 Dias</h5>
-                            <div class="preco-valor">R$ 49,90</div>
-                            <div class="preco-periodo">por mês</div>
-                            <ul>
-                                <li><i class="fas fa-check"></i>Acesso completo</li>
-                                <li><i class="fas fa-check"></i>Até 5 usuários</li>
-                                <li><i class="fas fa-check"></i>Lançamentos ilimitados</li>
-                                <li><i class="fas fa-check"></i>Relatórios básicos</li>
-                                <li><i class="fas fa-check"></i>Suporte por email</li>
-                                <li><i class="fas fa-times text-muted"></i>Integração com APIs</li>
-                            </ul>
-                            <a href="/checkout/30d" class="btn btn-outline-primary">Assinar Agora</a>
-                        </div>
-                    </div>
+            <h2 class="text-center mb-5">Planos para Pessoa Física e Jurídica</h2>
 
-                    <div class="col-md-6 col-lg-4">
-                        <div class="preco-card destaque">
-                            <h5>90 Dias</h5>
-                            <div class="preco-valor">R$ 99,90</div>
-                            <div class="preco-periodo">por trimestre</div>
-                            <ul>
-                                <li><i class="fas fa-check"></i>Tudo do plano 30 dias</li>
-                                <li><i class="fas fa-check"></i>Até 10 usuários</li>
-                                <li><i class="fas fa-check"></i>Relatórios avançados</li>
-                                <li><i class="fas fa-check"></i>Backup automático</li>
-                                <li><i class="fas fa-check"></i>Suporte prioritário</li>
-                                <li><i class="fas fa-times text-muted"></i>Integração com APIs</li>
-                            </ul>
-                            <a href="/checkout/90d" class="btn btn-primary">Assinar Agora</a>
-                        </div>
-                    </div>
+            <div class="row g-4">
+                <!-- Plano Básico -->
+                <div class="col-md-6 col-lg-4">
+                    <div class="preco-card" data-plan="basico">
+                        <h5>Básico</h5>
+                        <div class="subtitle">Ideal para começar</div>
 
-                    <div class="col-md-6 col-lg-4">
-                        <div class="preco-card">
-                            <h5>Anual</h5>
-                            <div class="preco-valor">R$ 300,00</div>
-                            <div class="preco-periodo">por ano</div>
-                            <ul>
-                                <li><i class="fas fa-check"></i>Tudo do plano 90 dias</li>
-                                <li><i class="fas fa-check"></i>Usuários ilimitados</li>
-                                <li><i class="fas fa-check"></i>Relatórios premium</li>
-                                <li><i class="fas fa-check"></i>Integração com APIs</li>
-                                <li><i class="fas fa-check"></i>Suporte 24/7</li>
-                                <li><i class="fas fa-check"></i>Consultoria gratuita</li>
-                            </ul>
-                            <a href="/checkout/anual" class="btn btn-outline-primary">Assinar Agora</a>
+                        <div class="duracao-selector">
+                            <button class="duracao-btn active" data-duration="30d" data-price="49.90">30 dias</button>
+                            <button class="duracao-btn" data-duration="90d" data-price="139.70">90 dias</button>
+                            <button class="duracao-btn" data-duration="anual" data-price="539.00">Anual</button>
                         </div>
+
+                        <div class="preco-valor">R$ <span class="price-value">49,90</span></div>
+                        <div class="preco-periodo">por <span class="period-text">mês</span></div>
+
+                        <ul>
+                            <li><i class="fas fa-check"></i>Lançamentos ilimitados</li>
+                            <li><i class="fas fa-check"></i>Gestão de clientes</li>
+                            <li><i class="fas fa-check"></i>Vendas e compras</li>
+                            <li><i class="fas fa-check"></i>Controle de estoque</li>
+                            <li><i class="fas fa-check"></i>Relatórios básicos</li>
+                            <li><i class="fas fa-check"></i>Até 3 usuários</li>
+                            <li><i class="fas fa-check"></i>Suporte por email</li>
+                            <li><i class="fas fa-times"></i>Relatórios avançados</li>
+                            <li><i class="fas fa-times"></i>Backup automático</li>
+                        </ul>
+
+                        <button class="btn btn-outline-primary btn-assinar" data-plan="basico" data-duration="30d">Assinar Agora</button>
+                    </div>
+                </div>
+
+                <!-- Plano Plus -->
+                <div class="col-md-6 col-lg-4">
+                    <div class="preco-card destaque" data-plan="plus">
+                        <h5>Plus</h5>
+                        <div class="subtitle">Mais completo</div>
+
+                        <div class="duracao-selector">
+                            <button class="duracao-btn active" data-duration="30d" data-price="59.90">30 dias</button>
+                            <button class="duracao-btn" data-duration="90d" data-price="167.70">90 dias</button>
+                            <button class="duracao-btn" data-duration="anual" data-price="647.00">Anual</button>
+                        </div>
+
+                        <div class="preco-valor">R$ <span class="price-value">59,90</span></div>
+                        <div class="preco-periodo">por <span class="period-text">mês</span></div>
+
+                        <ul>
+                            <li><i class="fas fa-check"></i>Tudo do plano Básico</li>
+                            <li><i class="fas fa-check"></i>Relatórios avançados</li>
+                            <li><i class="fas fa-check"></i>Backup automático</li>
+                            <li><i class="fas fa-check"></i>Plano de contas</li>
+                            <li><i class="fas fa-check"></i>Até 8 usuários</li>
+                            <li><i class="fas fa-check"></i>Suporte prioritário</li>
+                            <li><i class="fas fa-check"></i>Múltiplas contas caixa</li>
+                            <li><i class="fas fa-times"></i>API de integração</li>
+                            <li><i class="fas fa-times"></i>Suporte 24/7</li>
+                        </ul>
+
+                        <button class="btn btn-primary btn-assinar" data-plan="plus" data-duration="30d">Assinar Agora</button>
+                    </div>
+                </div>
+
+                <!-- Plano Premium -->
+                <div class="col-md-6 col-lg-4">
+                    <div class="preco-card" data-plan="premium">
+                        <h5>Premium</h5>
+                        <div class="subtitle">Recursos completos</div>
+
+                        <div class="duracao-selector">
+                            <button class="duracao-btn active" data-duration="30d" data-price="79.90">30 dias</button>
+                            <button class="duracao-btn" data-duration="90d" data-price="223.70">90 dias</button>
+                            <button class="duracao-btn" data-duration="anual" data-price="863.00">Anual</button>
+                        </div>
+
+                        <div class="preco-valor">R$ <span class="price-value">79,90</span></div>
+                        <div class="preco-periodo">por <span class="period-text">mês</span></div>
+
+                        <ul>
+                            <li><i class="fas fa-check"></i>Tudo do plano Plus</li>
+                            <li><i class="fas fa-check"></i>Usuários ilimitados</li>
+                            <li><i class="fas fa-check"></i>API de integração</li>
+                            <li><i class="fas fa-check"></i>Suporte 24/7</li>
+                            <li><i class="fas fa-check"></i>Consultoria gratuita</li>
+                            <li><i class="fas fa-check"></i>Relatórios personalizados</li>
+                            <li><i class="fas fa-check"></i>Dashboard avançado</li>
+                            <li><i class="fas fa-check"></i>Backup em nuvem</li>
+                            <li><i class="fas fa-check"></i>Treinamento online</li>
+                        </ul>
+
+                        <button class="btn btn-outline-primary btn-assinar" data-plan="premium" data-duration="30d">Assinar Agora</button>
                     </div>
                 </div>
             </div>
 
-            <!-- Contador/BPO -->
+            <!-- Seção Contador/BPO -->
             <div class="contador-section">
                 <div class="container">
                     <h3><i class="fas fa-calculator me-2"></i>Contador/BPO</h3>
                     <p>Preços personalizados conforme a quantidade de empresas vinculadas</p>
-                    <p>Oferecemos soluções customizadas para contadores e escritórios de contabilidade com múltiplas empresas vinculadas.</p>
+                    <p>Oferecemos soluções customizadas para contadores e escritórios de contabilidade.</p>
                     <a href="/login" class="btn">Solicitar Proposta</a>
                 </div>
             </div>
-
-            <!-- Comparação de Planos -->
-            <div class="comparison-table">
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>Funcionalidade</th>
-                            <th class="text-center">30 Dias</th>
-                            <th class="text-center">90 Dias</th>
-                            <th class="text-center">Anual</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td><strong>Lançamentos Financeiros</strong></td>
-                            <td class="text-center"><i class="fas fa-check text-success"></i></td>
-                            <td class="text-center"><i class="fas fa-check text-success"></i></td>
-                            <td class="text-center"><i class="fas fa-check text-success"></i></td>
-                        </tr>
-                        <tr>
-                            <td><strong>Gestão de Clientes</strong></td>
-                            <td class="text-center"><i class="fas fa-check text-success"></i></td>
-                            <td class="text-center"><i class="fas fa-check text-success"></i></td>
-                            <td class="text-center"><i class="fas fa-check text-success"></i></td>
-                        </tr>
-                        <tr>
-                            <td><strong>Controle de Estoque</strong></td>
-                            <td class="text-center"><i class="fas fa-check text-success"></i></td>
-                            <td class="text-center"><i class="fas fa-check text-success"></i></td>
-                            <td class="text-center"><i class="fas fa-check text-success"></i></td>
-                        </tr>
-                        <tr>
-                            <td><strong>Vendas e Compras</strong></td>
-                            <td class="text-center"><i class="fas fa-check text-success"></i></td>
-                            <td class="text-center"><i class="fas fa-check text-success"></i></td>
-                            <td class="text-center"><i class="fas fa-check text-success"></i></td>
-                        </tr>
-                        <tr>
-                            <td><strong>Relatórios em PDF/Excel</strong></td>
-                            <td class="text-center"><i class="fas fa-check text-success"></i></td>
-                            <td class="text-center"><i class="fas fa-check text-success"></i></td>
-                            <td class="text-center"><i class="fas fa-check text-success"></i></td>
-                        </tr>
-                        <tr>
-                            <td><strong>Número de Usuários</strong></td>
-                            <td class="text-center">Até 5</td>
-                            <td class="text-center">Até 10</td>
-                            <td class="text-center">Ilimitado</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Backup Automático</strong></td>
-                            <td class="text-center"><i class="fas fa-times text-danger"></i></td>
-                            <td class="text-center"><i class="fas fa-check text-success"></i></td>
-                            <td class="text-center"><i class="fas fa-check text-success"></i></td>
-                        </tr>
-                        <tr>
-                            <td><strong>Relatórios Avançados</strong></td>
-                            <td class="text-center"><i class="fas fa-times text-danger"></i></td>
-                            <td class="text-center"><i class="fas fa-check text-success"></i></td>
-                            <td class="text-center"><i class="fas fa-check text-success"></i></td>
-                        </tr>
-                        <tr>
-                            <td><strong>Integração com APIs</strong></td>
-                            <td class="text-center"><i class="fas fa-times text-danger"></i></td>
-                            <td class="text-center"><i class="fas fa-times text-danger"></i></td>
-                            <td class="text-center"><i class="fas fa-check text-success"></i></td>
-                        </tr>
-                        <tr>
-                            <td><strong>Suporte</strong></td>
-                            <td class="text-center">Email</td>
-                            <td class="text-center">Prioritário</td>
-                            <td class="text-center">24/7</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </section>
-
-    <!-- FAQ -->
-    <section class="faq-section bg-light">
-        <div class="container">
-            <h2 class="text-center mb-5">Perguntas Frequentes sobre Preços</h2>
-            <div class="row">
-                <div class="col-lg-8 offset-lg-2">
-                    <div class="accordion" id="faqAccordion">
-                        <div class="accordion-item">
-                            <h2 class="accordion-header">
-                                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
-                                    Posso mudar de plano a qualquer momento?
-                                </button>
-                            </h2>
-                            <div id="faq1" class="accordion-collapse collapse show" data-bs-parent="#faqAccordion">
-                                <div class="accordion-body">
-                                    Sim! Você pode fazer upgrade ou downgrade de plano a qualquer momento. O valor será ajustado proporcionalmente no próximo período de cobrança.
-                                </div>
-                            </div>
-                        </div>
-                        <div class="accordion-item">
-                            <h2 class="accordion-header">
-                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
-                                    Há período de teste gratuito?
-                                </button>
-                            </h2>
-                            <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
-                                <div class="accordion-body">
-                                    Sim! Oferecemos 7 dias de teste gratuito com acesso completo a todas as funcionalidades. Sem necessidade de cartão de crédito.
-                                </div>
-                            </div>
-                        </div>
-                        <div class="accordion-item">
-                            <h2 class="accordion-header">
-                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
-                                    Quais são as formas de pagamento?
-                                </button>
-                            </h2>
-                            <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
-                                <div class="accordion-body">
-                                    Aceitamos cartão de crédito (Visa, Mastercard, Elo), transferência bancária e boleto. Todos os pagamentos são processados de forma segura.
-                                </div>
-                            </div>
-                        </div>
-                        <div class="accordion-item">
-                            <h2 class="accordion-header">
-                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq4">
-                                    Há desconto para pagamento anual?
-                                </button>
-                            </h2>
-                            <div id="faq4" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
-                                <div class="accordion-body">
-                                    Sim! O plano anual oferece uma economia de aproximadamente 40% em relação ao pagamento mensal. Além disso, oferecemos descontos especiais para múltiplas assinaturas.
-                                </div>
-                            </div>
-                        </div>
-                        <div class="accordion-item">
-                            <h2 class="accordion-header">
-                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq5">
-                                    O que acontece quando minha assinatura expira?
-                                </button>
-                            </h2>
-                            <div id="faq5" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
-                                <div class="accordion-body">
-                                    Você receberá notificações antes da expiração. Após expirar, sua conta será bloqueada, mas seus dados permanecerão seguros por 30 dias. Você pode reativar a qualquer momento.
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- CTA Final -->
-    <section class="py-5 bg-primary text-white text-center">
-        <div class="container">
-            <h2 class="mb-3">Pronto para começar?</h2>
-            <p class="mb-4">Crie sua conta agora e comece a gerenciar suas finanças de forma profissional.</p>
-            <a href="/registro" class="btn btn-light btn-lg">Criar Conta Gratuitamente</a>
         </div>
     </section>
 
@@ -620,5 +469,46 @@
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Lógica de seleção de duração e atualização de preços
+        document.querySelectorAll('.duracao-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const card = this.closest('.preco-card');
+                const plan = card.dataset.plan;
+
+                // Remove active de todos os botões deste card
+                card.querySelectorAll('.duracao-btn').forEach(b => b.classList.remove('active'));
+
+                // Adiciona active no botão clicado
+                this.classList.add('active');
+
+                // Atualiza o preço
+                const price = this.dataset.price;
+                const duration = this.dataset.duration;
+                card.querySelector('.price-value').textContent = price.replace('.', ',');
+
+                // Atualiza o texto do período
+                let periodText = 'mês';
+                if (duration === '90d') periodText = 'trimestre';
+                if (duration === 'anual') periodText = 'ano';
+                card.querySelector('.period-text').textContent = periodText;
+
+                // Atualiza o botão de assinar
+                const btnAssinar = card.querySelector('.btn-assinar');
+                btnAssinar.dataset.duration = duration;
+            });
+        });
+
+        // Lógica do botão assinar
+        document.querySelectorAll('.btn-assinar').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const plan = this.dataset.plan;
+                const duration = this.dataset.duration;
+
+                // Redireciona para o checkout (ajuste conforme necessário)
+                window.location.href = `/checkout/${plan}/${duration}`;
+            });
+        });
+    </script>
 </body>
 </html>
