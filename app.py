@@ -228,6 +228,109 @@ with app.app_context():
         print(f"⚠️ Aviso: Não foi possível verificar/adicionar colunas de rastreamento: {str(e)}")
         db.session.rollback()
 
+    # ============================================================================
+    # MIGRAÇÃO: Adicionar empresa_id a Cliente, Fornecedor, Venda, Compra
+    # Para correção do bug BPO - isolamento multi-tenant
+    # ============================================================================
+    try:
+        from sqlalchemy import text
+
+        # Lista de tabelas que precisam do empresa_id
+        tabelas = ['cliente', 'fornecedor', 'venda', 'compra']
+
+        for tabela in tabelas:
+            # Verificar se empresa_id já existe na tabela
+            result = db.session.execute(text(f"PRAGMA table_info({tabela})"))
+            columns = [row[1] for row in result.fetchall()]
+
+            if 'empresa_id' not in columns:
+                print(f"Adicionando coluna 'empresa_id' na tabela {tabela}...")
+
+                # Adicionar coluna empresa_id
+                db.session.execute(text(f"ALTER TABLE {tabela} ADD COLUMN empresa_id INTEGER"))
+                db.session.commit()
+                print(f"✅ Coluna 'empresa_id' adicionada na tabela {tabela}!")
+
+                # Preencher empresa_id com base no usuario_id
+                print(f"Preenchendo empresa_id na tabela {tabela} com base no usuario_id...")
+                db.session.execute(text(f"""
+                    UPDATE {tabela}
+                    SET empresa_id = (
+                        SELECT empresa_id FROM usuario WHERE usuario.id = {tabela}.usuario_id
+                    )
+                    WHERE empresa_id IS NULL
+                """))
+                db.session.commit()
+                print(f"✅ Registros da tabela {tabela} atualizados com empresa_id!")
+            else:
+                print(f"✓ Coluna 'empresa_id' já existe na tabela {tabela}!")
+
+    except Exception as e:
+        print(f"⚠️ Aviso: Não foi possível verificar/adicionar empresa_id: {str(e)}")
+        db.session.rollback()
+
+    # ============================================================================
+    # MIGRAÇÃO: Adicionar nota_fiscal a Lancamento, Venda, Compra
+    # ============================================================================
+    try:
+        from sqlalchemy import text
+
+        # Lista de tabelas que precisam do nota_fiscal
+        tabelas_nf = ['lancamento', 'venda', 'compra']
+
+        for tabela in tabelas_nf:
+            # Verificar se nota_fiscal já existe na tabela
+            result = db.session.execute(text(f"PRAGMA table_info({tabela})"))
+            columns = [row[1] for row in result.fetchall()]
+
+            if 'nota_fiscal' not in columns:
+                print(f"Adicionando coluna 'nota_fiscal' na tabela {tabela}...")
+                db.session.execute(text(f"ALTER TABLE {tabela} ADD COLUMN nota_fiscal VARCHAR(50)"))
+                db.session.commit()
+                print(f"✅ Coluna 'nota_fiscal' adicionada na tabela {tabela}!")
+            else:
+                print(f"✓ Coluna 'nota_fiscal' já existe na tabela {tabela}!")
+
+    except Exception as e:
+        print(f"⚠️ Aviso: Não foi possível verificar/adicionar nota_fiscal: {str(e)}")
+        db.session.rollback()
+    # ============================================================================
+    # MIGRAÇÃO: Hierarquia no Plano de Contas
+    # ============================================================================
+    try:
+        # 1. Colunas para plano_conta
+        result = db.session.execute(text("PRAGMA table_info(plano_conta)"))
+        columns = [row[1] for row in result.fetchall()]
+        
+        novas_colunas_pc = {
+            'codigo': 'VARCHAR(50)',
+            'natureza': 'VARCHAR(20) DEFAULT "analitica"',
+            'nivel': 'INTEGER DEFAULT 1',
+            'pai_id': 'INTEGER',
+            'empresa_id': 'INTEGER'
+        }
+        
+        for col, tipo in novas_colunas_pc.items():
+            if col not in columns:
+                print(f"Adicionando coluna '{col}' na tabela plano_conta...")
+                db.session.execute(text(f"ALTER TABLE plano_conta ADD COLUMN {col} {tipo}"))
+                db.session.commit()
+                print(f"✅ Coluna '{col}' adicionada!")
+
+        # 2. Coluna para lancamento
+        result = db.session.execute(text("PRAGMA table_info(lancamento)"))
+        columns = [row[1] for row in result.fetchall()]
+        
+        if 'plano_conta_id' not in columns:
+            print("Adicionando coluna 'plano_conta_id' na tabela lancamento...")
+            db.session.execute(text("ALTER TABLE lancamento ADD COLUMN plano_conta_id INTEGER"))
+            db.session.commit()
+            print("✅ Coluna 'plano_conta_id' adicionada!")
+
+    except Exception as e:
+        print(f"⚠️ Aviso: Não foi possível verificar/adicionar colunas de hierarquia: {str(e)}")
+        db.session.rollback()
+
     print("Banco de dados inicializado com todas as tabelas")
 
 # Modelos do banco de dados
@@ -286,6 +389,7 @@ class Lancamento(db.Model):
     conta_caixa_id = db.Column(db.Integer, db.ForeignKey('conta_caixa.id'), nullable=True)  # Relacionamento com conta caixa
     cliente_id = db.Column(db.Integer, db.ForeignKey('cliente.id'), nullable=True)  # Relacionamento com cliente
     fornecedor_id = db.Column(db.Integer, db.ForeignKey('fornecedor.id'), nullable=True)  # Relacionamento com fornecedor
+    nota_fiscal = db.Column(db.String(50), nullable=True)  # Campo para nota fiscal
     
     # Campos adicionais para mais detalhamento
     observacoes = db.Column(db.Text, nullable=True)  # Observações adicionais
@@ -298,6 +402,9 @@ class Lancamento(db.Model):
     usuario_criacao_id = db.Column(db.Integer, db.ForeignKey('usuario.id'), nullable=True)  # Usuário que criou
     usuario_ultima_edicao_id = db.Column(db.Integer, db.ForeignKey('usuario.id'), nullable=True)  # Último usuário que editou
     data_ultima_edicao = db.Column(db.DateTime, nullable=True)  # Data da última edição
+
+    # Plano de contas (ID)
+    plano_conta_id = db.Column(db.Integer, db.ForeignKey('plano_conta.id'), nullable=True)
 
     # Relacionamentos
     usuario = db.relationship('Usuario', backref='lancamentos', lazy=True, foreign_keys=[usuario_id])
@@ -312,8 +419,9 @@ class Cliente(db.Model):
     cpf_cnpj = db.Column(db.String(20))
     endereco = db.Column(db.Text)
     usuario_id = db.Column(db.Integer, db.ForeignKey('usuario.id'), nullable=False)
+    empresa_id = db.Column(db.Integer, db.ForeignKey('empresa.id'), nullable=False)  # Multi-tenancy
     data_criacao = db.Column(db.DateTime, default=datetime.utcnow)
-    
+
     # Relacionamentos
     lancamentos = db.relationship('Lancamento', backref='cliente', lazy=True)
 
@@ -325,8 +433,9 @@ class Fornecedor(db.Model):
     cpf_cnpj = db.Column(db.String(20))
     endereco = db.Column(db.Text)
     usuario_id = db.Column(db.Integer, db.ForeignKey('usuario.id'), nullable=False)
+    empresa_id = db.Column(db.Integer, db.ForeignKey('empresa.id'), nullable=False)  # Multi-tenancy
     data_criacao = db.Column(db.DateTime, default=datetime.utcnow)
-    
+
     # Relacionamentos
     lancamentos = db.relationship('Lancamento', backref='fornecedor', lazy=True)
 
@@ -353,11 +462,20 @@ class Servico(db.Model):
 class PlanoConta(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nome = db.Column(db.String(200), nullable=False)
+    codigo = db.Column(db.String(50))
     tipo = db.Column(db.String(20), nullable=False)  # receita ou despesa
     descricao = db.Column(db.Text)
+    natureza = db.Column(db.String(20), default='analitica')  # sintetica ou analitica
+    nivel = db.Column(db.Integer, default=1)
+    pai_id = db.Column(db.Integer, db.ForeignKey('plano_conta.id'), nullable=True)
     ativo = db.Column(db.Boolean, default=True)
     usuario_id = db.Column(db.Integer, db.ForeignKey('usuario.id'), nullable=False)
+    empresa_id = db.Column(db.Integer, db.ForeignKey('empresa.id'), nullable=True)
     data_criacao = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relacionamentos
+    filhos = db.relationship('PlanoConta', backref=db.backref('pai', remote_side=[id]), lazy='dynamic')
+    lancamentos = db.relationship('Lancamento', backref='plano_conta', lazy=True)
 
 class Importacao(db.Model):
     __tablename__ = 'importacao'
@@ -385,9 +503,16 @@ class ContaCaixa(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nome = db.Column(db.String(200), nullable=False)
     tipo = db.Column(db.String(50), nullable=False)  # conta_corrente, poupanca, caixa_fisico, cartao_credito, etc.
-    banco = db.Column(db.String(100))  # Nome do banco
-    agencia = db.Column(db.String(20))  # Número da agência
-    conta = db.Column(db.String(20))  # Número da conta
+    produto_servico = db.Column(db.String(200))
+    tipo_produto_servico = db.Column(db.String(50))
+    
+    # Campo para nota fiscal
+    nota_fiscal = db.Column(db.String(50))
+    
+    # Plano de contas (ID)
+    plano_conta_id = db.Column(db.Integer, db.ForeignKey('plano_conta.id'), nullable=True)
+    
+    # Relacionamentos
     saldo_inicial = db.Column(db.Float, default=0.0)
     saldo_atual = db.Column(db.Float, default=0.0)
     ativo = db.Column(db.Boolean, default=True)
@@ -431,15 +556,17 @@ class Venda(db.Model):
     realizado = db.Column(db.Boolean, default=False)
     observacoes = db.Column(db.Text)
     usuario_id = db.Column(db.Integer, db.ForeignKey('usuario.id'), nullable=False)
+    empresa_id = db.Column(db.Integer, db.ForeignKey('empresa.id'), nullable=False)  # Multi-tenancy
+    nota_fiscal = db.Column(db.String(50), nullable=True)  # Campo para nota fiscal
     data_criacao = db.Column(db.DateTime, default=datetime.utcnow)
-    
+
     # Novos campos para pagamento parcelado e desconto
     tipo_pagamento = db.Column(db.String(20), default='a_vista')  # a_vista ou parcelado
     numero_parcelas = db.Column(db.Integer, default=1)  # Número de parcelas
     valor_parcela = db.Column(db.Float)  # Valor de cada parcela
     desconto = db.Column(db.Float, default=0.0)  # Valor do desconto
     valor_final = db.Column(db.Float)  # Valor final após desconto
-    
+
     # Relacionamentos
     cliente = db.relationship('Cliente', backref='vendas')
     usuario = db.relationship('Usuario', backref='vendas', lazy=True)
@@ -459,13 +586,15 @@ class Compra(db.Model):
     realizado = db.Column(db.Boolean, default=False)
     observacoes = db.Column(db.Text)
     usuario_id = db.Column(db.Integer, db.ForeignKey('usuario.id'), nullable=False)
+    empresa_id = db.Column(db.Integer, db.ForeignKey('empresa.id'), nullable=False)  # Multi-tenancy
+    nota_fiscal = db.Column(db.String(50), nullable=True)  # Campo para nota fiscal
     data_criacao = db.Column(db.DateTime, default=datetime.utcnow)
-    
+
     # Novos campos para pagamento parcelado
     tipo_pagamento = db.Column(db.String(20), default='a_vista')  # a_vista ou parcelado
     numero_parcelas = db.Column(db.Integer, default=1)  # Número de parcelas
     valor_parcela = db.Column(db.Float)  # Valor de cada parcela
-    
+
     # Relacionamentos
     fornecedor = db.relationship('Fornecedor', backref='compras')
     usuario = db.relationship('Usuario', backref='compras', lazy=True)
@@ -801,13 +930,21 @@ def criar_parcelas_automaticas(venda_ou_compra, tipo, usuario_id):
         from flask import session as flask_session
         empresa_id = obter_empresa_id_sessao(flask_session, usuario) if usuario else None
         
+        # Determinar plano_conta_id base para as parcelas
+        tipo_lancamento = 'receita' if tipo == 'venda' else 'despesa'
+        categoria_nome = 'Vendas' if tipo == 'venda' else 'Compras'
+        
+        pc = buscar_plano_conta_automatico(usuario_id, tipo_lancamento, categoria_nome)
+        plano_conta_id = pc.id if pc else None
+        
         # Criar lançamento financeiro para cada parcela
         for parcela in parcelas_criadas:
             lancamento = Lancamento(
                 descricao=f"{tipo.title()} - Parcela {parcela.numero}/{entidade.numero_parcelas} - {entidade.produto}",
                 valor=parcela.valor,
-                tipo='receita' if tipo == 'venda' else 'despesa',
-                categoria='Vendas' if tipo == 'venda' else 'Compras',
+                tipo=tipo_lancamento,
+                categoria=categoria_nome,
+                plano_conta_id=plano_conta_id,
                 data_prevista=parcela.data_vencimento,
                 realizado=False,
                 usuario_id=usuario_id,
@@ -2086,10 +2223,29 @@ def lancamentos():
         except ValueError:
             return None
 
+    hoje_completo = datetime.now()
+    hoje = hoje_completo.date()
+    
+    # Datas padrão: primeiro e último dia do mês corrente
+    primeiro_dia_mes = hoje.replace(day=1)
+    import calendar
+    ultimo_dia_mes = hoje.replace(day=calendar.monthrange(hoje.year, hoje.month)[1])
+
     data_inicio_raw = request.args.get('data_inicio', '')
     data_fim_raw = request.args.get('data_fim', '')
-    data_inicio_obj = _parse_data(data_inicio_raw)
-    data_fim_obj = _parse_data(data_fim_raw)
+    
+    # Se não houver filtros de data e não houver busca, usar o mês corrente como padrão
+    if not data_inicio_raw and not data_fim_raw and not request.args.get('busca') and not request.args.get('nota_fiscal'):
+        data_inicio_obj = primeiro_dia_mes
+        data_fim_obj = ultimo_dia_mes
+        # Atualizar strings para exibir no template
+        data_inicio_str = primeiro_dia_mes.strftime('%d/%m/%Y')
+        data_fim_str = ultimo_dia_mes.strftime('%d/%m/%Y')
+    else:
+        data_inicio_obj = _parse_data(data_inicio_raw)
+        data_fim_obj = _parse_data(data_fim_raw)
+        data_inicio_str = data_inicio_raw
+        data_fim_str = data_fim_raw
 
     # Se ambas as datas foram passadas e estão invertidas, corrigir a ordem
     if data_inicio_obj and data_fim_obj and data_inicio_obj > data_fim_obj:
@@ -2128,6 +2284,16 @@ def lancamentos():
                 Lancamento.data_prevista < hoje
             )
         )
+    
+    # Filtro por Nota Fiscal (Suporte a múltiplos NFs separados por ponto e vírgula)
+    nf_raw = request.args.get('nota_fiscal', '').strip()
+    if nf_raw:
+        nfs = [n.strip() for n in nf_raw.split(';') if n.strip()]
+        if nfs:
+            if len(nfs) == 1:
+                query = query.filter(Lancamento.nota_fiscal.ilike(f'%{nfs[0]}%'))
+            else:
+                query = query.filter(Lancamento.nota_fiscal.in_(nfs))
     
     # Filtro por busca (descrição, cliente, fornecedor ou valor)
     busca = request.args.get('busca')
@@ -2191,24 +2357,20 @@ def lancamentos():
     saldo_vencido = abs(receitas_vencidas - despesas_vencidas)  # Valor absoluto
     saldo_agendado = abs(receitas_agendadas - despesas_agendadas)  # Valor absoluto
     
-    # Buscar categorias para filtros
-    categorias_receitas = db.session.query(PlanoConta.nome).filter(
-        PlanoConta.usuario_id.in_(usuarios_ids),
-        PlanoConta.tipo == 'receita',
+    # Buscar categorias para filtros (todas analíticas da empresa)
+    categorias_plano = PlanoConta.query.filter(
+        PlanoConta.empresa_id == empresa_id_correta,
+        PlanoConta.natureza == 'analitica',
         PlanoConta.ativo == True
-    ).distinct().all()
+    ).order_by(PlanoConta.codigo).all()
     
-    categorias_despesas = db.session.query(PlanoConta.nome).filter(
-        PlanoConta.usuario_id.in_(usuarios_ids),
-        PlanoConta.tipo == 'despesa',
-        PlanoConta.ativo == True
-    ).distinct().all()
-    
-    categorias = [cat[0] for cat in categorias_receitas + categorias_despesas]
+    # Criar lista de strings formatadas para compatibilidade ou objetos para o novo template
+    # Para o template moderno, melhor passar os objetos
 
     return render_template('lancamentos_moderno.html', usuario=usuario, lancamentos=lancamentos,
                           total_receitas=receitas_totais, total_despesas=despesas_totais,
-                          saldo_atual=saldo_atual, categorias=categorias, hoje=hoje,
+                          saldo_atual=saldo_atual, categorias=categorias_plano, hoje=hoje,
+                          data_inicio=data_inicio_str, data_fim=data_fim_str,
                           # Valores separados para receitas
                           receita_total=receitas_totais,
                           receita_realizada=receitas_realizadas,
@@ -2557,32 +2719,50 @@ def novo_lancamento():
             if not tipo or tipo not in ['receita', 'despesa']:
                 return render_form({'tipo': 'Tipo deve ser receita ou despesa'})
             
-            categoria = request.form.get('categoria', '').strip()
-            if not categoria:
+            categoria_input = request.form.get('categoria', '').strip()
+            if not categoria_input:
                 return render_form({'categoria': 'Categoria é obrigatória'})
+            
+            plano_conta_id = None
+            categoria_nome = categoria_input
+            
+            # Tentar converter para ID se for numérico
+            if categoria_input.isdigit():
+                plano_conta_id = int(categoria_input)
+                pc = db.session.get(PlanoConta, plano_conta_id)
+                if pc:
+                    categoria_nome = pc.nome
+            else:
+                # Caso venha como nome (compatibilidade), buscar o ID
+                empresa_id_sessao = obter_empresa_id_sessao(session, usuario)
+                usuarios_empresa = Usuario.query.filter_by(empresa_id=empresa_id_sessao, ativo=True).all()
+                u_ids = [u.id for u in usuarios_empresa]
+                pc = PlanoConta.query.filter(PlanoConta.usuario_id.in_(u_ids), PlanoConta.nome == categoria_input, PlanoConta.tipo == tipo).first()
+                if pc:
+                    plano_conta_id = pc.id
+            
+            # Validação: só permitir analíticas (opcional, já filtrado no front)
+            if plano_conta_id:
+                pc = db.session.get(PlanoConta, plano_conta_id)
+                if pc and pc.natureza == 'sintetica':
+                    return render_form({'categoria': 'Não é permitido lançar em contas sintéticas'})
             
             # Se categoria não existe no plano de contas, criar automaticamente
             empresa_id_para_categoria = obter_empresa_id_sessao(session, usuario)
             usuarios_empresa = Usuario.query.filter_by(empresa_id=empresa_id_para_categoria, ativo=True).all()
             usuarios_ids = [u.id for u in usuarios_empresa]
             
-            categoria_existe = PlanoConta.query.filter(
-                PlanoConta.usuario_id.in_(usuarios_ids),
-                PlanoConta.tipo == tipo,
-                PlanoConta.nome == categoria,
-                PlanoConta.ativo == True
-            ).first()
-            
-            if not categoria_existe:
+            if not plano_conta_id:
                 # Criar categoria automaticamente
                 nova_categoria = PlanoConta(
-                    nome=categoria,
+                    nome=categoria_nome,
                     tipo=tipo,
                     descricao=f"Categoria criada automaticamente para lançamento",
                     usuario_id=usuario.id
                 )
                 db.session.add(nova_categoria)
                 db.session.flush()  # Para obter o ID sem fazer commit ainda
+                plano_conta_id = nova_categoria.id
             
             data_prevista_str = request.form.get('data_prevista', '').strip()
             if not data_prevista_str:
@@ -2666,14 +2846,18 @@ def novo_lancamento():
             if not empresa_id_correta:
                 return render_form({'__all__': 'Usuário não possui empresa associada'})
             
+            nota_fiscal = request.form.get('nota_fiscal', '').strip() or None
+            
             novo_lancamento = Lancamento(
                 descricao=descricao,
                 valor=valor_total_calculado,
                 tipo=tipo,
-                categoria=categoria,
+                categoria=categoria_nome,
+                plano_conta_id=plano_conta_id,
                 data_prevista=data_prevista,
                 data_realizada=data_realizada_obj,
                 realizado=realizado,
+                nota_fiscal=nota_fiscal,
                 usuario_id=usuario.id,
                 empresa_id=empresa_id_correta,
                 conta_caixa_id=conta_caixa_id_obj,
@@ -2684,10 +2868,6 @@ def novo_lancamento():
                 tipo_produto_servico=tipo_produto_servico,  # Salvar tipo (produto ou servico)
                 itens_carrinho=itens_carrinho_json,  # Salvar itens do carrinho em JSON
                 usuario_criacao_id=usuario.id,  # Registrar quem criou
-                # Campos abaixo não existem no modelo Lancamento
-                # desconto=desconto,
-                # valor_final=valor_total_calculado,
-                # quantidade=quantidade_itens
             )
         
         # REMOVIDO: Atualização manual de saldo - agora é calculado dinamicamente
@@ -2723,7 +2903,8 @@ def novo_lancamento():
                         realizado=realizado,
                         cliente_id=cliente_id_obj,
                         observacoes=f"Gerado automaticamente do lançamento financeiro",
-                        usuario_id=usuario.id
+                        usuario_id=usuario.id,
+                        empresa_id=empresa_id_correta
                     )
                     db.session.add(nova_venda)
                     db.session.flush()
@@ -2755,7 +2936,8 @@ def novo_lancamento():
                         realizado=realizado,
                         fornecedor_id=fornecedor_id_obj,
                         observacoes=f"Gerado automaticamente do lançamento financeiro",
-                        usuario_id=usuario.id
+                        usuario_id=usuario.id,
+                        empresa_id=empresa_id_correta
                     )
                     db.session.add(nova_compra)
                     db.session.flush()
@@ -2925,7 +3107,28 @@ def editar_lancamento(lancamento_id):
             
             lancamento.descricao = request.form['descricao']
             lancamento.tipo = request.form['tipo']
-            lancamento.categoria = request.form['categoria']
+            
+            categoria_input = request.form.get('categoria', '').strip()
+            if categoria_input:
+                # Tentar converter para ID se for numérico
+                if categoria_input.isdigit():
+                    plano_id = int(categoria_input)
+                    pc = db.session.get(PlanoConta, plano_id)
+                    if pc:
+                        if pc.natureza == 'sintetica':
+                            flash('Não é permitido lançar em contas sintéticas', 'error')
+                            return redirect(url_for('editar_lancamento', lancamento_id=lancamento.id))
+                        lancamento.plano_conta_id = plano_id
+                        lancamento.categoria = pc.nome
+                else:
+                    # Caso venha como nome, buscar o ID
+                    pc = PlanoConta.query.filter(PlanoConta.usuario_id.in_(usuarios_ids), PlanoConta.nome == categoria_input, PlanoConta.tipo == lancamento.tipo).first()
+                    if pc:
+                        if pc.natureza == 'sintetica':
+                            flash('Não é permitido lançar em contas sintéticas', 'error')
+                            return redirect(url_for('editar_lancamento', lancamento_id=lancamento.id))
+                        lancamento.plano_conta_id = pc.id
+                    lancamento.categoria = categoria_input
             
             # Processar valor: pode vir do carrinho ou valor direto
             usar_carrinho = request.form.get('usar_carrinho') == '1'
@@ -3068,6 +3271,7 @@ def editar_lancamento(lancamento_id):
             
             # Processar novos campos adicionais
             lancamento.observacoes = request.form.get('observacoes', '').strip() or None
+            lancamento.nota_fiscal = request.form.get('nota_fiscal', '').strip() or None
             
             # Cliente/Fornecedor
             cliente_id = request.form.get('cliente_id', '').strip()
@@ -3561,9 +3765,9 @@ def clientes():
 
     usuarios_empresa = Usuario.query.filter_by(empresa_id=empresa_id, ativo=True).all()
     usuarios_ids = [u.id for u in usuarios_empresa]
-    
-    # Carregar clientes de todos os usuários da empresa
-    clientes = Cliente.query.filter(Cliente.usuario_id.in_(usuarios_ids)).order_by(Cliente.nome).all()
+
+    # Carregar clientes da empresa (filtro direto por empresa_id)
+    clientes = Cliente.query.filter(Cliente.empresa_id == empresa_id).order_by(Cliente.nome).all()
     
     # Adicionar informação do usuário que criou cada cliente e calcular totais
     for cliente in clientes:
@@ -3595,14 +3799,18 @@ def novo_cliente():
         telefone = request.form['telefone']
         cpf_cnpj = request.form['cpf_cnpj']
         endereco = request.form['endereco']
-        
+
+        # Obter empresa_id correto (considerando contexto de contador)
+        empresa_id = obter_empresa_id_sessao(session, usuario)
+
         novo_cliente = Cliente(
             nome=nome,
             email=email,
             telefone=telefone,
             cpf_cnpj=cpf_cnpj,
             endereco=endereco,
-            usuario_id=usuario.id
+            usuario_id=usuario.id,
+            empresa_id=empresa_id
         )
         
         db.session.add(novo_cliente)
@@ -3617,18 +3825,16 @@ def novo_cliente():
 def editar_cliente(cliente_id):
     if 'usuario_id' not in session:
         return redirect(url_for('login'))
-    
+
     usuario = db.session.get(Usuario, session['usuario_id'])
     if usuario.tipo == 'admin':
         return redirect(url_for('admin_dashboard'))
-    
-    # Buscar todos os usuários da mesma empresa
+
+    # Obter empresa_id correta e validar acesso
     empresa_id = obter_empresa_id_sessao(session, usuario)
 
-    usuarios_empresa = Usuario.query.filter_by(empresa_id=empresa_id, ativo=True).all()
-    usuarios_ids = [u.id for u in usuarios_empresa]
-    
-    cliente = Cliente.query.filter(Cliente.id==cliente_id, Cliente.usuario_id.in_(usuarios_ids)).first()
+    # Validar acesso ao cliente (filtro direto por empresa_id)
+    cliente = Cliente.query.filter(Cliente.id == cliente_id, Cliente.empresa_id == empresa_id).first()
     if not cliente:
         flash('Cliente não encontrado.', 'danger')
         return redirect(url_for('clientes'))
@@ -3702,9 +3908,9 @@ def fornecedores():
 
     usuarios_empresa = Usuario.query.filter_by(empresa_id=empresa_id, ativo=True).all()
     usuarios_ids = [u.id for u in usuarios_empresa]
-    
-    # Carregar fornecedores de todos os usuários da empresa
-    fornecedores = Fornecedor.query.filter(Fornecedor.usuario_id.in_(usuarios_ids)).order_by(Fornecedor.nome).all()
+
+    # Carregar fornecedores da empresa (filtro direto por empresa_id)
+    fornecedores = Fornecedor.query.filter(Fornecedor.empresa_id == empresa_id).order_by(Fornecedor.nome).all()
     
     # Adicionar informação do usuário que criou cada fornecedor e calcular totais
     for fornecedor in fornecedores:
@@ -3736,14 +3942,18 @@ def novo_fornecedor():
         telefone = request.form['telefone']
         cpf_cnpj = request.form['cpf_cnpj']
         endereco = request.form['endereco']
-        
+
+        # Obter empresa_id correto (considerando contexto de contador)
+        empresa_id = obter_empresa_id_sessao(session, usuario)
+
         novo_fornecedor = Fornecedor(
             nome=nome,
             email=email,
             telefone=telefone,
             cpf_cnpj=cpf_cnpj,
             endereco=endereco,
-            usuario_id=usuario.id
+            usuario_id=usuario.id,
+            empresa_id=empresa_id
         )
         
         db.session.add(novo_fornecedor)
@@ -3758,18 +3968,16 @@ def novo_fornecedor():
 def editar_fornecedor(fornecedor_id):
     if 'usuario_id' not in session:
         return redirect(url_for('login'))
-    
+
     usuario = db.session.get(Usuario, session['usuario_id'])
     if usuario.tipo == 'admin':
         return redirect(url_for('admin_dashboard'))
-    
-    # Buscar todos os usuários da mesma empresa
+
+    # Obter empresa_id correta e validar acesso
     empresa_id = obter_empresa_id_sessao(session, usuario)
 
-    usuarios_empresa = Usuario.query.filter_by(empresa_id=empresa_id, ativo=True).all()
-    usuarios_ids = [u.id for u in usuarios_empresa]
-    
-    fornecedor = Fornecedor.query.filter(Fornecedor.id==fornecedor_id, Fornecedor.usuario_id.in_(usuarios_ids)).first()
+    # Validar acesso ao fornecedor (filtro direto por empresa_id)
+    fornecedor = Fornecedor.query.filter(Fornecedor.id == fornecedor_id, Fornecedor.empresa_id == empresa_id).first()
     if not fornecedor:
         flash('Fornecedor não encontrado.', 'danger')
         return redirect(url_for('fornecedores'))
@@ -4335,17 +4543,75 @@ def plano_contas():
     usuarios_ids = [u.id for u in usuarios_empresa]
 
     # Carregar plano de contas de todos os usuários da empresa
-    contas = PlanoConta.query.filter(PlanoConta.usuario_id.in_(usuarios_ids), PlanoConta.ativo == True).order_by(PlanoConta.tipo, PlanoConta.nome).all()
+    contas = PlanoConta.query.filter(
+        PlanoConta.usuario_id.in_(usuarios_ids),
+        PlanoConta.ativo == True
+    ).order_by(PlanoConta.tipo, PlanoConta.codigo, PlanoConta.nome).all()
 
-    # Separar contas por tipo
-    contas_receita = [conta for conta in contas if conta.tipo == 'receita']
-    contas_despesa = [conta for conta in contas if conta.tipo == 'despesa']
-
-    # Adicionar informação do usuário que criou cada conta
+    # Calcular saldo de cada conta (somando lançamentos das analíticas)
     for conta in contas:
+        # Apenas contas analíticas têm lançamentos diretos
+        if conta.natureza == 'analitica':
+            lancamentos = Lancamento.query.filter(
+                Lancamento.empresa_id == empresa_id,
+                Lancamento.categoria == conta.nome,
+                Lancamento.realizado == True
+            ).all()
+
+            if conta.tipo == 'receita':
+                conta.saldo = sum([l.valor for l in lancamentos if l.tipo == 'receita'])
+            else:
+                conta.saldo = sum([l.valor for l in lancamentos if l.tipo == 'despesa'])
+        else:
+            conta.saldo = 0.0
+
         conta.usuario_criador = db.session.get(Usuario, conta.usuario_id)
 
-    return render_template('plano_contas.html', usuario=usuario, contas_receita=contas_receita, contas_despesa=contas_despesa)
+    # Função auxiliar para organizar hierarquicamente
+    def organizar_hierarquia(lista_contas):
+        """Organiza contas em estrutura hierárquica"""
+        # Dicionário para armazenar contas por ID
+        contas_dict = {c.id: c for c in lista_contas}
+
+        # Criar atributo filhos_lista para cada conta
+        for conta in lista_contas:
+            conta.filhos_lista = []
+
+        # Organizar hierarquia
+        raizes = []
+        for conta in lista_contas:
+            if conta.pai_id and conta.pai_id in contas_dict:
+                contas_dict[conta.pai_id].filhos_lista.append(conta)
+            else:
+                raizes.append(conta)
+
+        # Calcular saldos das sintéticas (soma dos filhos)
+        def calcular_saldo_sintetica(conta):
+            if conta.natureza == 'sintetica' and conta.filhos_lista:
+                conta.saldo = sum([calcular_saldo_sintetica(filho) for filho in conta.filhos_lista])
+            return conta.saldo or 0.0
+
+        for raiz in raizes:
+            calcular_saldo_sintetica(raiz)
+
+        return raizes
+
+    # Separar e organizar contas por tipo
+    contas_receita = organizar_hierarquia([c for c in contas if c.tipo == 'receita'])
+    contas_despesa = organizar_hierarquia([c for c in contas if c.tipo == 'despesa'])
+
+    # Calcular totais
+    total_receitas = sum([c.saldo for c in contas if c.tipo == 'receita'])
+    total_despesas = sum([c.saldo for c in contas if c.tipo == 'despesa'])
+    saldo_geral = total_receitas - total_despesas
+
+    return render_template('plano_contas.html',
+                          usuario=usuario,
+                          contas_receita=contas_receita,
+                          contas_despesa=contas_despesa,
+                          total_receitas=total_receitas,
+                          total_despesas=total_despesas,
+                          saldo_geral=saldo_geral)
 
 @app.route('/plano-contas/nova', methods=['GET', 'POST'])
 def nova_conta():
@@ -4356,16 +4622,37 @@ def nova_conta():
     if usuario.tipo == 'admin':
         return redirect(url_for('admin_dashboard'))
     
+    # Obter empresa_id correta (considerando acesso de contador)
+    empresa_id = obter_empresa_id_sessao(session, usuario)
+    usuarios_empresa = Usuario.query.filter_by(empresa_id=empresa_id, ativo=True).all()
+    usuarios_ids = [u.id for u in usuarios_empresa]
+
     if request.method == 'POST':
         nome = request.form['nome']
         tipo = request.form['tipo']
         descricao = request.form['descricao']
+        natureza = request.form.get('natureza', 'analitica')
+        codigo = request.form.get('codigo', '')
+        pai_id = request.form.get('pai_id')
+        
+        pai_id = int(pai_id) if pai_id and pai_id != "" else None
+        
+        nivel = 1
+        if pai_id:
+            pai = db.session.get(PlanoConta, pai_id)
+            if pai:
+                nivel = (pai.nivel or 1) + 1
         
         nova_conta = PlanoConta(
             nome=nome,
             tipo=tipo,
             descricao=descricao,
-            usuario_id=usuario.id
+            natureza=natureza,
+            codigo=codigo,
+            pai_id=pai_id,
+            nivel=nivel,
+            usuario_id=usuario.id,
+            empresa_id=empresa_id
         )
         
         db.session.add(nova_conta)
@@ -4374,7 +4661,13 @@ def nova_conta():
         flash('Conta criada com sucesso!', 'success')
         return redirect(url_for('plano_contas'))
     
-    return render_template('nova_conta.html', usuario=usuario)
+    planos_sinteticos = PlanoConta.query.filter(
+        PlanoConta.usuario_id.in_(usuarios_ids),
+        PlanoConta.natureza == 'sintetica',
+        PlanoConta.ativo == True
+    ).order_by(PlanoConta.tipo, PlanoConta.codigo).all()
+    
+    return render_template('nova_conta.html', usuario=usuario, planos_sinteticos=planos_sinteticos)
 
 @app.route('/plano-contas/<int:conta_id>/toggle')
 def toggle_conta(conta_id):
@@ -4405,9 +4698,12 @@ def deletar_conta(conta_id):
         flash('Conta não encontrada ou sem permissão para deletar.', 'error')
         return redirect(url_for('plano_contas'))
 
-    lancamentos_vinculados = Lancamento.query.filter_by(
-        categoria=conta.nome,
-        usuario_id=usuario.id
+    lancamentos_vinculados = Lancamento.query.filter(
+        db.or_(
+            Lancamento.plano_conta_id == conta.id,
+            Lancamento.categoria == conta.nome
+        ),
+        Lancamento.usuario_id == usuario.id
     ).count()
 
     if lancamentos_vinculados > 0:
@@ -4435,21 +4731,42 @@ def editar_conta(conta_id):
         return redirect(url_for('admin_dashboard'))
     
     conta = db.session.get(PlanoConta, conta_id)
-    if not conta or conta.usuario_id != usuario.id:
+    if not (conta and (conta.usuario_id == usuario.id or session.get('acesso_contador'))):
         flash('Conta não encontrada ou sem permissão para editar.', 'error')
         return redirect(url_for('plano_contas'))
     
+    # Obter empresa_id correta (considerando acesso de contador)
+    empresa_id = obter_empresa_id_sessao(session, usuario)
+    usuarios_empresa = Usuario.query.filter_by(empresa_id=empresa_id, ativo=True).all()
+    usuarios_ids = [u.id for u in usuarios_empresa]
+
     if request.method == 'POST':
         nome = request.form.get('nome', '').strip()
         descricao = request.form.get('descricao', '').strip()
+        natureza = request.form.get('natureza', 'analitica')
+        codigo = request.form.get('codigo', '')
+        pai_id = request.form.get('pai_id')
         
         if not nome:
             flash('Nome da conta é obrigatório', 'error')
             return redirect(url_for('editar_conta', conta_id=conta_id))
         
         try:
+            pai_id = int(pai_id) if pai_id and pai_id != "" else None
+            
+            nivel = 1
+            if pai_id:
+                pai = db.session.get(PlanoConta, pai_id)
+                if pai:
+                    nivel = (pai.nivel or 1) + 1
+            
             conta.nome = nome
             conta.descricao = descricao
+            conta.natureza = natureza
+            conta.codigo = codigo
+            conta.pai_id = pai_id
+            conta.nivel = nivel
+            
             db.session.commit()
             flash('Conta atualizada com sucesso!', 'success')
             return redirect(url_for('plano_contas'))
@@ -4458,7 +4775,14 @@ def editar_conta(conta_id):
             flash(f'Erro ao atualizar conta: {str(e)}', 'error')
             return redirect(url_for('editar_conta', conta_id=conta_id))
     
-    return render_template('editar_conta.html', usuario=usuario, conta=conta)
+    planos_sinteticos = PlanoConta.query.filter(
+        PlanoConta.usuario_id.in_(usuarios_ids),
+        PlanoConta.natureza == 'sintetica',
+        PlanoConta.ativo == True,
+        PlanoConta.id != conta.id  # Não pode ser pai de si mesmo
+    ).order_by(PlanoConta.tipo, PlanoConta.codigo).all()
+    
+    return render_template('editar_conta.html', usuario=usuario, conta=conta, planos_sinteticos=planos_sinteticos)
 
 # Rotas para Vendas
 @app.route('/vendas')
@@ -4477,11 +4801,11 @@ def vendas():
     usuarios_empresa = Usuario.query.filter_by(empresa_id=empresa_id, ativo=True).all()
     usuarios_ids = [u.id for u in usuarios_empresa]
     
-    # Aplicar filtros - carregar lançamentos vinculados para mostrar status financeiro correto
+    # Aplicar filtros - carregar lançamentos vinculados para mostrar status financeiro correto (filtro direto por empresa_id)
     query = Venda.query.options(
         db.joinedload(Venda.cliente),
         db.joinedload(Venda.usuario)
-    ).filter(Venda.usuario_id.in_(usuarios_ids))
+    ).filter(Venda.empresa_id == empresa_id)
     
     # Filtro por data
     data_inicio = request.args.get('data_inicio')
@@ -4509,6 +4833,16 @@ def vendas():
             print(f"Erro ao converter data_fim '{data_fim}': {e}")
             # Não aplicar filtro se data for inválida
     
+    # Filtro por Nota Fiscal (Suporte a múltiplos NFs separados por ponto e vírgula)
+    nf_raw = request.args.get('nota_fiscal', '').strip()
+    if nf_raw:
+        nfs = [n.strip() for n in nf_raw.split(';') if n.strip()]
+        if nfs:
+            if len(nfs) == 1:
+                query = query.filter(Venda.nota_fiscal.ilike(f'%{nfs[0]}%'))
+            else:
+                query = query.filter(Venda.nota_fiscal.in_(nfs))
+
     # Filtro por busca (cliente, produto, descrição ou valor)
     busca = request.args.get('busca')
     if busca and busca.strip():
@@ -4794,6 +5128,11 @@ def nova_venda():
         valor_parcela = valor_final / numero_parcelas if numero_parcelas > 0 else valor_final
         
         # Criar a venda
+        # Obter empresa_id correto (considerando contexto de contador)
+        empresa_id = obter_empresa_id_sessao(session, usuario)
+
+        nota_fiscal = request.form.get('nota_fiscal', '').strip() or None
+        
         nova_venda = Venda(
             cliente_id=cliente_id,
             produto=produto,
@@ -4804,11 +5143,13 @@ def nova_venda():
             data_realizada=data_realizada,
             observacoes=observacoes,
             usuario_id=usuario.id,
+            empresa_id=empresa_id,
             tipo_pagamento=tipo_pagamento,
             numero_parcelas=numero_parcelas,
             valor_parcela=valor_parcela,
             desconto=desconto_geral,  # Desconto geral aplicado
-            valor_final=valor_final
+            valor_final=valor_final,
+            nota_fiscal=nota_fiscal
         )
         
         db.session.add(nova_venda)
@@ -5035,11 +5376,11 @@ def compras():
     usuarios_empresa = Usuario.query.filter_by(empresa_id=empresa_id, ativo=True).all()
     usuarios_ids = [u.id for u in usuarios_empresa]
     
-    # Aplicar filtros
+    # Aplicar filtros (filtro direto por empresa_id)
     query = Compra.query.options(
         db.joinedload(Compra.fornecedor),
         db.joinedload(Compra.usuario)
-    ).filter(Compra.usuario_id.in_(usuarios_ids))
+    ).filter(Compra.empresa_id == empresa_id)
     
     # Filtro por data
     data_inicio = request.args.get('data_inicio')
@@ -5067,6 +5408,16 @@ def compras():
             print(f"Erro ao converter data_fim '{data_fim}': {e}")
             # Não aplicar filtro se data for inválida
     
+    # Filtro por Nota Fiscal (Suporte a múltiplos NFs separados por ponto e vírgula)
+    nf_raw = request.args.get('nota_fiscal', '').strip()
+    if nf_raw:
+        nfs = [n.strip() for n in nf_raw.split(';') if n.strip()]
+        if nfs:
+            if len(nfs) == 1:
+                query = query.filter(Compra.nota_fiscal.ilike(f'%{nfs[0]}%'))
+            else:
+                query = query.filter(Compra.nota_fiscal.in_(nfs))
+
     # Filtro por busca (fornecedor, produto, descrição ou valor)
     busca = request.args.get('busca')
     if busca and busca.strip():
@@ -5348,6 +5699,11 @@ def nova_compra():
         valor_parcela = valor_total_compra / numero_parcelas if numero_parcelas > 0 else valor_total_compra
         
         # Criar a compra
+        # Obter empresa_id correto (considerando contexto de contador)
+        empresa_id = obter_empresa_id_sessao(session, usuario)
+
+        nota_fiscal = request.form.get('nota_fiscal', '').strip() or None
+        
         nova_compra = Compra(
             fornecedor_id=fornecedor_id,
             produto=produto,
@@ -5358,9 +5714,11 @@ def nova_compra():
             data_prevista=data_prevista,
             observacoes=observacoes,
             usuario_id=usuario.id,
+            empresa_id=empresa_id,
             tipo_pagamento=tipo_pagamento,
             numero_parcelas=numero_parcelas,
-            valor_parcela=valor_parcela
+            valor_parcela=valor_parcela,
+            nota_fiscal=nota_fiscal
         )
         
         db.session.add(nova_compra)
@@ -6459,58 +6817,63 @@ def relatorio_saldos():
     total_despesas = total_despesas_realizadas
     saldo_atual = total_receitas - total_despesas
     
-    # Buscar categorias válidas do plano de contas
-    categorias_validas = db.session.query(PlanoConta.nome).filter(PlanoConta.ativo == True).all()
-    categorias_validas_nomes = [cat[0] for cat in categorias_validas]
+    # Buscar todas as categorias da empresa (para garantir que todas apareçam e considerar hierarquia)
+    contas_plano = PlanoConta.query.filter(
+        PlanoConta.empresa_id == empresa_id,
+        PlanoConta.ativo == True
+    ).order_by(PlanoConta.codigo).all()
+    
+    # Mapeamento para acesso rápido
+    p_contas_map = {c.id: c for c in contas_plano}
+    p_contas_nome_map = {c.nome: c for c in contas_plano if c.natureza == 'analitica'} # Fallback para lançamentos sem ID
 
-    # Agrupar por categoria com segmentação completa (Realizadas, A vencer, Vencidas, Agendadas)
+    # Agrupar por categoria com segmentação completa
     categorias_receitas = {}
     categorias_despesas = {}
 
+    # Inicializar dicts para todas as contas analíticas (opcional, mas bom para mostrar contas zeradas)
+    for c in contas_plano:
+        if c.natureza == 'analitica':
+            dest = categorias_receitas if c.tipo == 'receita' else categorias_despesas
+            # Usar nome com código para exibição
+            nome_exibicao = f"{c.codigo} - {c.nome}" if c.codigo else c.nome
+            dest[nome_exibicao] = {
+                'realizado': 0,
+                'a_vencer': 0,
+                'vencido': 0,
+                'agendado': 0,
+                'codigo': c.codigo,
+                'id': c.id
+            }
+
     for lancamento in lancamentos:
-        categoria = lancamento.categoria
-        # Só incluir se a categoria estiver no plano de contas
-        if categoria and categoria in categorias_validas_nomes:
-            if lancamento.tipo == 'receita':
-                if categoria not in categorias_receitas:
-                    categorias_receitas[categoria] = {
-                        'realizado': 0,
-                        'a_vencer': 0,
-                        'vencido': 0,
-                        'agendado': 0
-                    }
-                # REALIZADAS
-                if (lancamento.data_realizada and lancamento.data_realizada <= hoje) or (lancamento.realizado and not lancamento.data_realizada):
-                    categorias_receitas[categoria]['realizado'] += lancamento.valor
-                # A VENCER
-                elif not lancamento.realizado and lancamento.data_prevista and lancamento.data_prevista > hoje:
-                    categorias_receitas[categoria]['a_vencer'] += lancamento.valor
-                # VENCIDAS
-                elif not lancamento.realizado and lancamento.data_prevista and lancamento.data_prevista < hoje:
-                    categorias_receitas[categoria]['vencido'] += lancamento.valor
-                # AGENDADAS
-                elif not lancamento.realizado and ((lancamento.data_prevista and lancamento.data_prevista == hoje) or not lancamento.data_prevista):
-                    categorias_receitas[categoria]['agendado'] += lancamento.valor
-            else:  # despesa
-                if categoria not in categorias_despesas:
-                    categorias_despesas[categoria] = {
-                        'realizado': 0,
-                        'a_vencer': 0,
-                        'vencido': 0,
-                        'agendado': 0
-                    }
-                # REALIZADAS
-                if (lancamento.data_realizada and lancamento.data_realizada <= hoje) or (lancamento.realizado and not lancamento.data_realizada):
-                    categorias_despesas[categoria]['realizado'] += lancamento.valor
-                # A VENCER
-                elif not lancamento.realizado and lancamento.data_prevista and lancamento.data_prevista > hoje:
-                    categorias_despesas[categoria]['a_vencer'] += lancamento.valor
-                # VENCIDAS
-                elif not lancamento.realizado and lancamento.data_prevista and lancamento.data_prevista < hoje:
-                    categorias_despesas[categoria]['vencido'] += lancamento.valor
-                # AGENDADAS
-                elif not lancamento.realizado and ((lancamento.data_prevista and lancamento.data_prevista == hoje) or not lancamento.data_prevista):
-                    categorias_despesas[categoria]['agendado'] += lancamento.valor
+        pc = None
+        if lancamento.plano_conta_id:
+            pc = p_contas_map.get(lancamento.plano_conta_id)
+        
+        # Fallback para o nome (legado)
+        if not pc and lancamento.categoria:
+            pc = p_contas_nome_map.get(lancamento.categoria)
+            
+        if pc:
+            dest = categorias_receitas if pc.tipo == 'receita' else categorias_despesas
+            nome_exibicao = f"{pc.codigo} - {pc.nome}" if pc.codigo else pc.nome
+            
+            if nome_exibicao not in dest:
+                 dest[nome_exibicao] = {'realizado': 0, 'a_vencer': 0, 'vencido': 0, 'agendado': 0, 'codigo': pc.codigo, 'id': pc.id}
+            
+            # REALIZADAS
+            if (lancamento.data_realizada and lancamento.data_realizada <= hoje) or (lancamento.realizado and not lancamento.data_realizada):
+                dest[nome_exibicao]['realizado'] += lancamento.valor
+            # A VENCER
+            elif not lancamento.realizado and lancamento.data_prevista and lancamento.data_prevista > hoje:
+                dest[nome_exibicao]['a_vencer'] += lancamento.valor
+            # VENCIDAS
+            elif not lancamento.realizado and lancamento.data_prevista and lancamento.data_prevista < hoje:
+                dest[nome_exibicao]['vencido'] += lancamento.valor
+            # AGENDADAS
+            elif not lancamento.realizado and ((lancamento.data_prevista and lancamento.data_prevista == hoje) or not lancamento.data_prevista):
+                dest[nome_exibicao]['agendado'] += lancamento.valor
 
     # Carregar contas caixa com detalhamento por status
     contas_caixa = ContaCaixa.query.filter(ContaCaixa.usuario_id.in_(usuarios_ids), ContaCaixa.ativo==True).all()
@@ -6999,8 +7362,8 @@ def relatorio_clientes():
                                  total_paginas=0,
                                  total_clientes=0)
         
-        # Buscar clientes da empresa
-        clientes = Cliente.query.filter(Cliente.usuario_id.in_(usuarios_ids)).all()
+        # Buscar clientes da empresa (filtro direto por empresa_id)
+        clientes = Cliente.query.filter(Cliente.empresa_id == empresa_id).all()
         
         app.logger.info(f"Clientes encontrados: {len(clientes)}")
         
@@ -7674,8 +8037,8 @@ def relatorio_fornecedores():
                                  total_paginas=0,
                                  total_fornecedores=0)
         
-        # Buscar fornecedores da empresa
-        fornecedores = Fornecedor.query.filter(Fornecedor.usuario_id.in_(usuarios_ids)).all()
+        # Buscar fornecedores da empresa (filtro direto por empresa_id)
+        fornecedores = Fornecedor.query.filter(Fornecedor.empresa_id == empresa_id).all()
         
         app.logger.info(f"Fornecedores encontrados: {len(fornecedores)}")
         
@@ -9085,12 +9448,14 @@ def admin_recalcular_saldos():
 def editar_venda(venda_id):
     if 'usuario_id' not in session:
         return redirect(url_for('login'))
-    
+
     usuario = db.session.get(Usuario, session['usuario_id'])
     if usuario.tipo == 'admin':
         return redirect(url_for('admin_dashboard'))
-    
-    venda = Venda.query.filter_by(id=venda_id, usuario_id=usuario.id).first()
+
+    # Obter empresa_id correta e validar acesso (filtro direto por empresa_id)
+    empresa_id = obter_empresa_id_sessao(session, usuario)
+    venda = Venda.query.filter_by(id=venda_id, empresa_id=empresa_id).first()
     if not venda:
         flash('Venda não encontrada.', 'danger')
         return redirect(url_for('vendas'))
@@ -9229,6 +9594,7 @@ def editar_venda(venda_id):
             except ValueError:
                 venda.data_prevista = datetime.strptime(request.form['data_prevista'], '%Y-%m-%d').date()
             venda.observacoes = request.form.get('observacoes', '')
+            venda.nota_fiscal = request.form.get('nota_fiscal', '').strip() or None
             
             # Novos campos
             venda.tipo_pagamento = request.form.get('tipo_pagamento', 'a_vista')
@@ -9416,12 +9782,14 @@ def editar_venda(venda_id):
 def editar_compra(compra_id):
     if 'usuario_id' not in session:
         return redirect(url_for('login'))
-    
+
     usuario = db.session.get(Usuario, session['usuario_id'])
     if usuario.tipo == 'admin':
         return redirect(url_for('admin_dashboard'))
-    
-    compra = Compra.query.filter_by(id=compra_id, usuario_id=usuario.id).first()
+
+    # Obter empresa_id correta e validar acesso (filtro direto por empresa_id)
+    empresa_id = obter_empresa_id_sessao(session, usuario)
+    compra = Compra.query.filter_by(id=compra_id, empresa_id=empresa_id).first()
     if not compra:
         flash('Compra não encontrada.', 'danger')
         return redirect(url_for('compras'))
@@ -9550,6 +9918,7 @@ def editar_compra(compra_id):
                 compra.data_prevista = datetime.strptime(request.form['data_prevista'], '%Y-%m-%d').date()
             
             compra.observacoes = request.form.get('observacoes', '')
+            compra.nota_fiscal = request.form.get('nota_fiscal', '').strip() or None
             
             # Novos campos
             compra.tipo_pagamento = request.form.get('tipo_pagamento', 'a_vista')
@@ -9994,10 +10363,11 @@ def api_categorias(tipo):
         categorias = PlanoConta.query.filter(
             PlanoConta.usuario_id.in_(usuarios_ids),
             PlanoConta.tipo == tipo,
+            PlanoConta.natureza == 'analitica',
             PlanoConta.ativo == True
-        ).order_by(PlanoConta.nome).all()
+        ).order_by(PlanoConta.codigo).all()
 
-        categorias_list = [{'id': cat.id, 'nome': cat.nome} for cat in categorias]
+        categorias_list = [{'id': cat.id, 'nome': cat.nome, 'codigo': cat.codigo} for cat in categorias]
 
         return jsonify({'categorias': categorias_list})
 
@@ -10019,19 +10389,17 @@ def api_buscar_clientes():
     try:
         query = request.args.get('q', '').strip()
 
-        # Buscar clientes de todos os usuários da empresa vinculada (considerando acesso contador)
+        # Buscar clientes da empresa vinculada (considerando acesso contador)
         empresa_id = obter_empresa_id_sessao(session, usuario)
-        usuarios_empresa = Usuario.query.filter_by(empresa_id=empresa_id, ativo=True).all()
-        usuarios_ids = [u.id for u in usuarios_empresa]
-        
+
         if query:
             clientes = Cliente.query.filter(
-                Cliente.usuario_id.in_(usuarios_ids),
+                Cliente.empresa_id == empresa_id,
                 Cliente.nome.ilike(f'%{query}%')
             ).order_by(Cliente.nome).limit(10).all()
         else:
             clientes = Cliente.query.filter(
-                Cliente.usuario_id.in_(usuarios_ids)
+                Cliente.empresa_id == empresa_id
             ).order_by(Cliente.nome).limit(20).all()
         
         clientes_list = [{'id': c.id, 'nome': c.nome, 'email': c.email, 'telefone': c.telefone} for c in clientes]
@@ -10055,19 +10423,17 @@ def api_buscar_fornecedores():
     try:
         query = request.args.get('q', '').strip()
 
-        # Buscar fornecedores de todos os usuários da empresa vinculada (considerando acesso contador)
+        # Buscar fornecedores da empresa vinculada (considerando acesso contador)
         empresa_id = obter_empresa_id_sessao(session, usuario)
-        usuarios_empresa = Usuario.query.filter_by(empresa_id=empresa_id, ativo=True).all()
-        usuarios_ids = [u.id for u in usuarios_empresa]
-        
+
         if query:
             fornecedores = Fornecedor.query.filter(
-                Fornecedor.usuario_id.in_(usuarios_ids),
+                Fornecedor.empresa_id == empresa_id,
                 Fornecedor.nome.ilike(f'%{query}%')
             ).order_by(Fornecedor.nome).limit(10).all()
         else:
             fornecedores = Fornecedor.query.filter(
-                Fornecedor.usuario_id.in_(usuarios_ids)
+                Fornecedor.empresa_id == empresa_id
             ).order_by(Fornecedor.nome).limit(20).all()
         
         fornecedores_list = [{'id': f.id, 'nome': f.nome, 'email': f.email, 'telefone': f.telefone} for f in fornecedores]
@@ -10104,6 +10470,9 @@ def api_criar_cliente():
         if cliente_existente:
             return jsonify({'error': 'Cliente com este nome já existe'}), 400
         
+        # Obter empresa_id correto (considerando contexto de contador)
+        empresa_id = obter_empresa_id_sessao(session, usuario)
+
         # Criar novo cliente
         novo_cliente = Cliente(
             nome=nome,
@@ -10111,7 +10480,8 @@ def api_criar_cliente():
             telefone=data.get('telefone', '').strip(),
             cpf_cnpj=data.get('cpf_cnpj', '').strip(),
             endereco=data.get('endereco', '').strip(),
-            usuario_id=usuario.id
+            usuario_id=usuario.id,
+            empresa_id=empresa_id
         )
         
         db.session.add(novo_cliente)
@@ -10217,6 +10587,9 @@ def api_criar_fornecedor():
         if fornecedor_existente:
             return jsonify({'error': 'Fornecedor com este nome já existe'}), 400
         
+        # Obter empresa_id correto (considerando contexto de contador)
+        empresa_id = obter_empresa_id_sessao(session, usuario)
+
         # Criar novo fornecedor
         novo_fornecedor = Fornecedor(
             nome=nome,
@@ -10224,7 +10597,8 @@ def api_criar_fornecedor():
             telefone=data.get('telefone', '').strip(),
             cpf_cnpj=data.get('cpf_cnpj', '').strip(),
             endereco=data.get('endereco', '').strip(),
-            usuario_id=usuario.id
+            usuario_id=usuario.id,
+            empresa_id=empresa_id
         )
         
         db.session.add(novo_fornecedor)
@@ -11077,6 +11451,9 @@ def api_preview_importacao():
             'Nome Produto/Servico': 'NOME_PRODUTO_SERVICO',
             'Parcelado': 'PARCELADO',
             'Quantidade de Parcelas': 'QUANTIDADE_PARCELAS',
+            'Nota Fiscal': 'NOTA_FISCAL',
+            'NF': 'NOTA_FISCAL',
+            'Nota_Fiscal': 'NOTA_FISCAL',
             # Manter compatibilidade com títulos antigos
             'TIPO': 'TIPO',
             'DESCRICAO': 'DESCRICAO',
@@ -11092,6 +11469,7 @@ def api_preview_importacao():
             'CENTRO_CUSTO': 'CENTRO_CUSTO',
             'PROJETO': 'PROJETO',
             'DOCUMENTO': 'DOCUMENTO',
+            'NOTA_FISCAL': 'NOTA_FISCAL',
             # Variações adicionais para garantir compatibilidade
             'Tipo Produto/Serviço': 'TIPO_PRODUTO_SERVICO',
             'Nome Produto/Serviço': 'NOME_PRODUTO_SERVICO',
@@ -11355,6 +11733,7 @@ def api_preview_importacao():
                     'data_prevista': data_prevista.strftime('%d/%m/%Y'),
                     'data_realizada': data_realizada.strftime('%d/%m/%Y') if data_realizada else None,
                     'realizado': realizado,
+                    'nota_fiscal': str(dados.get('NOTA_FISCAL', '')).strip() if dados.get('NOTA_FISCAL') else None,
                     'conta_caixa': conta_caixa_nome,
                     'tipo_cliente_fornecedor': tipo_cliente_fornecedor,
                     'cliente_fornecedor': nome_cliente_fornecedor,
@@ -11710,6 +12089,7 @@ def api_importar_dados():
                 observacoes = str(dados.get('OBSERVACOES', '')).strip() if dados.get('OBSERVACOES') else None
                 tipo_produto_servico = str(dados.get('TIPO_PRODUTO_SERVICO', '')).strip().lower() if dados.get('TIPO_PRODUTO_SERVICO') else None
                 nome_produto_servico = str(dados.get('NOME_PRODUTO_SERVICO', '')).strip() if dados.get('NOME_PRODUTO_SERVICO') else None
+                nota_fiscal = str(dados.get('NOTA_FISCAL', '')).strip() if dados.get('NOTA_FISCAL') else None
                 
                 # Determinar se é produto ou serviço para controle de estoque
                 eh_produto = tipo_produto_servico in ['produto', 'Produto']
@@ -11734,7 +12114,8 @@ def api_importar_dados():
                             # Criar cliente automaticamente se não existir
                             novo_cliente = Cliente(
                                 nome=nome_cliente_fornecedor,
-                                usuario_id=usuario.id
+                                usuario_id=usuario.id,
+                                empresa_id=usuario.empresa_id
                             )
                             db.session.add(novo_cliente)
                             db.session.flush()
@@ -11749,7 +12130,8 @@ def api_importar_dados():
                             # Criar fornecedor automaticamente se não existir
                             novo_fornecedor = Fornecedor(
                                 nome=nome_cliente_fornecedor,
-                                usuario_id=usuario.id
+                                usuario_id=usuario.id,
+                                empresa_id=usuario.empresa_id
                             )
                             db.session.add(novo_fornecedor)
                             db.session.flush()
@@ -11814,6 +12196,7 @@ def api_importar_dados():
                             observacoes=f"{observacoes or ''} - Parcela {i+1}/{quantidade_parcelas}".strip(),
                             produto_servico=produto_servico_final,
                             tipo_produto_servico=tipo_produto_servico,
+                            nota_fiscal=nota_fiscal,
                             usuario_criacao_id=usuario.id  # Registrar quem criou
                         )
                         
@@ -11920,6 +12303,7 @@ def api_importar_dados():
                         observacoes=observacoes,
                         produto_servico=produto_servico_final,
                         tipo_produto_servico=tipo_produto_servico,
+                        nota_fiscal=nota_fiscal,
                         usuario_criacao_id=usuario.id  # Registrar quem criou
                     )
                     
@@ -12389,8 +12773,12 @@ def buscar_ou_criar_categoria_plano_contas(nome_categoria, tipo_lancamento, usua
         nova_categoria = PlanoConta(
             nome=nome_original,
             tipo=tipo_lancamento,
+            natureza='analitica',
+            nivel=1,
+            codigo=f"99.{nome_original[:5].upper()}",  # Código temporário para importados
             descricao=f"Categoria criada automaticamente durante importação - {nome_original}",
             usuario_id=usuario_id,
+            empresa_id=empresa_id,
             data_criacao=datetime.utcnow()
         )
         
@@ -12437,7 +12825,8 @@ def criar_venda_automatica(lancamento, usuario_id, valor_total=None, quantidade=
             usuario_id=usuario_id,
             cliente_id=lancamento.cliente_id,
             numero_parcelas=numero_parcelas,
-            valor_parcela=valor_parcela
+            valor_parcela=valor_parcela,
+            nota_fiscal=lancamento.nota_fiscal
         )
         
         db.session.add(venda)
@@ -12485,7 +12874,8 @@ def criar_compra_automatica(lancamento, usuario_id, valor_total=None, quantidade
             usuario_id=usuario_id,
             fornecedor_id=lancamento.fornecedor_id,
             numero_parcelas=numero_parcelas,
-            valor_parcela=valor_parcela
+            valor_parcela=valor_parcela,
+            nota_fiscal=lancamento.nota_fiscal
         )
         
         db.session.add(compra)
@@ -12984,16 +13374,21 @@ def api_criar_cliente_fornecedor():
         if existente:
             return jsonify({'error': f'{tipo.capitalize()} com este nome já existe'}), 400
         
+        # Obter empresa_id correto (considerando contexto de contador)
+        empresa_id = obter_empresa_id_sessao(session, usuario)
+
         # Criar novo registro
         if tipo == 'cliente':
             novo_registro = Cliente(
                 nome=nome,
-                usuario_id=usuario.id
+                usuario_id=usuario.id,
+                empresa_id=empresa_id
             )
         else:
             novo_registro = Fornecedor(
                 nome=nome,
-                usuario_id=usuario.id
+                usuario_id=usuario.id,
+                empresa_id=empresa_id
             )
         
         db.session.add(novo_registro)
@@ -13261,6 +13656,42 @@ def api_excluir_compras_lote():
         app.logger.error(f"Erro ao excluir compras em lote: {str(e)}")
         return jsonify({'error': 'Erro interno do servidor'}), 500
 
+def buscar_plano_conta_automatico(usuario_id, tipo_lancamento, categoria_nome):
+    """
+    Busca o PlanoConta analítico mais adequado para um lançamento automático.
+    """
+    # 1. Busca exata por nome
+    pc = PlanoConta.query.filter(
+        PlanoConta.usuario_id == usuario_id,
+        PlanoConta.nome == categoria_nome,
+        PlanoConta.tipo == tipo_lancamento,
+        PlanoConta.natureza == 'analitica',
+        PlanoConta.ativo == True
+    ).first()
+    
+    if pc:
+        return pc
+        
+    # 2. Busca por termos similares
+    termo = ""
+    if categoria_nome == 'Vendas':
+        termo = 'Venda'
+    elif categoria_nome == 'Serviços':
+        termo = 'Serviço'
+    elif categoria_nome == 'Compras':
+        termo = 'Compra'
+        
+    if termo:
+        pc = PlanoConta.query.filter(
+            PlanoConta.usuario_id == usuario_id,
+            PlanoConta.nome.like(f'%{termo}%'),
+            PlanoConta.tipo == tipo_lancamento,
+            PlanoConta.natureza == 'analitica',
+            PlanoConta.ativo == True
+        ).first()
+        
+    return pc
+
 def criar_lancamento_financeiro_automatico(venda_ou_compra, tipo, usuario_id):
     """
     Cria automaticamente um lançamento financeiro para uma venda ou compra
@@ -13288,6 +13719,11 @@ def criar_lancamento_financeiro_automatico(venda_ou_compra, tipo, usuario_id):
             categoria = 'Vendas' if venda_ou_compra.tipo_venda == 'produto' else 'Serviços'
             venda_id = venda_ou_compra.id
             compra_id = None
+            
+            plano_conta_id = None
+            pc = buscar_plano_conta_automatico(usuario_id, tipo_lancamento, categoria)
+            if pc:
+                plano_conta_id = pc.id
         else:  # compra
             fornecedor = db.session.get(Fornecedor, venda_ou_compra.fornecedor_id)
             fornecedor_nome = fornecedor.nome if fornecedor else 'Fornecedor não encontrado'
@@ -13297,6 +13733,11 @@ def criar_lancamento_financeiro_automatico(venda_ou_compra, tipo, usuario_id):
             categoria = 'Compras' if venda_ou_compra.tipo_compra == 'mercadoria' else 'Serviços'
             venda_id = None
             compra_id = venda_ou_compra.id
+            
+            plano_conta_id = None
+            pc = buscar_plano_conta_automatico(usuario_id, tipo_lancamento, categoria)
+            if pc:
+                plano_conta_id = pc.id
         
         # Buscar o usuário para obter o empresa_id
         usuario = db.session.get(Usuario, usuario_id)
@@ -13317,6 +13758,7 @@ def criar_lancamento_financeiro_automatico(venda_ou_compra, tipo, usuario_id):
             valor=valor,
             tipo=tipo_lancamento,
             categoria=categoria,
+            plano_conta_id=plano_conta_id,
             data_prevista=venda_ou_compra.data_prevista,
             data_realizada=venda_ou_compra.data_realizada if venda_ou_compra.realizado else None,
             realizado=venda_ou_compra.realizado,
@@ -14309,10 +14751,11 @@ def exportar_relatorio_excel(dados, nome_arquivo, titulo, usuario=None, filtros=
             ws[f'E{linha_atual}'] = "Tipo"
             ws[f'F{linha_atual}'] = "Cliente/Fornecedor"
             ws[f'G{linha_atual}'] = "Valor"
-            ws[f'H{linha_atual}'] = "Status"
+            ws[f'H{linha_atual}'] = "NF"
+            ws[f'I{linha_atual}'] = "Status"
             
             # Formatar cabeçalhos
-            for col in ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']:
+            for col in ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I']:
                 ws[f'{col}{linha_atual}'].font = Font(bold=True)
             
             linha_atual += 1
@@ -14348,7 +14791,8 @@ def exportar_relatorio_excel(dados, nome_arquivo, titulo, usuario=None, filtros=
                 ws[f'E{linha_atual}'] = lancamento.tipo.title()
                 ws[f'F{linha_atual}'] = cliente_fornecedor
                 ws[f'G{linha_atual}'] = lancamento.valor
-                ws[f'H{linha_atual}'] = status
+                ws[f'H{linha_atual}'] = lancamento.nota_fiscal or ''
+                ws[f'I{linha_atual}'] = status
                 linha_atual += 1
                 
         elif 'clientes_dados' in dados:

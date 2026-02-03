@@ -18,7 +18,7 @@
                     <span class="badge bg-primary">
                         <i class="fas fa-link me-1"></i>Lançamentos Vinculados:
                         {% for lanc_id in lancamentos_vinculados_ids %}
-                            {{ lanc_id }}{% if not loop.last %}, {% endif %}
+                        {{ lanc_id }}{% if not loop.last %}, {% endif %}
                         {% endfor %}
                     </span>
                     {% endif %}
@@ -31,11 +31,12 @@
                             <div class="mb-3">
                                 <label for="fornecedor_id" class="form-label">Fornecedor *</label>
                                 <div class="autocomplete-container">
-                                    <input type="text" class="form-control" id="fornecedor_search" name="fornecedor_search" 
-                                           placeholder="Digite o nome do fornecedor..." autocomplete="off" required
-                                           value="{{ compra.fornecedor.nome if compra.fornecedor else '' }}">
+                                    <input type="text" class="form-control" id="fornecedor_search"
+                                        name="fornecedor_search" placeholder="Digite o nome do fornecedor..."
+                                        autocomplete="off" required
+                                        value="{{ compra.fornecedor.nome if compra.fornecedor else '' }}">
                                     <input type="hidden" id="fornecedor_id" name="fornecedor_id" required
-                                           value="{{ compra.fornecedor_id }}">
+                                        value="{{ compra.fornecedor_id }}">
                                     <div class="autocomplete-suggestions" id="fornecedor_suggestions"></div>
                                 </div>
                             </div>
@@ -43,26 +44,32 @@
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label for="data_prevista" class="form-label">Data Prevista *</label>
-                                <input type="text" class="form-control" id="data_prevista" name="data_prevista" 
-                                       value="{{ compra.data_prevista.strftime('%d/%m/%Y') }}" 
-                                       placeholder="__/__/____" pattern="\d{2}/\d{2}/\d{4}" 
-                                       title="Formato: DD/MM/AAAA" required>
+                                <input type="text" class="form-control" id="data_prevista" name="data_prevista"
+                                    value="{{ compra.data_prevista.strftime('%d/%m/%Y') }}" placeholder="__/__/____"
+                                    pattern="\d{2}/\d{2}/\d{4}" title="Formato: DD/MM/AAAA" required>
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label for="data_realizada" class="form-label">Data de Realização (opcional)</label>
-                                <input type="text" class="form-control" id="data_realizada" name="data_realizada" 
-                                       value="{{ compra.data_realizada.strftime('%d/%m/%Y') if compra.data_realizada else '' }}" 
-                                       placeholder="__/__/____" pattern="\d{2}/\d{2}/\d{4}" 
-                                       title="Formato: DD/MM/AAAA">
+                                <input type="text" class="form-control" id="data_realizada" name="data_realizada"
+                                    value="{{ compra.data_realizada.strftime('%d/%m/%Y') if compra.data_realizada else '' }}"
+                                    placeholder="__/__/____" pattern="\d{2}/\d{2}/\d{4}" title="Formato: DD/MM/AAAA">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="nota_fiscal" class="form-label">Nota Fiscal (Opcional)</label>
+                                <input type="text" class="form-control" id="nota_fiscal" name="nota_fiscal"
+                                    placeholder="Número da NF" value="{{ compra.nota_fiscal or '' }}">
+                                <small class="form-text text-muted">Número da nota fiscal relacionada</small>
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="card carrinho-card mb-3">
                         <div class="card-header">
                             <h6 class="mb-0">Carrinho</h6>
@@ -88,70 +95,82 @@
                                         <td class="text-end"><strong>Itens:</strong></td>
                                         <td class="text-center"><strong id="itens-contagem-compra">0</strong></td>
                                         <td class="text-end">
-                                            <input type="text" class="form-control form-control-sm text-end" id="carrinho_total_compra" value="0,00" readonly style="background-color: #f8f9fa; font-weight: 600;">
+                                            <input type="text" class="form-control form-control-sm text-end"
+                                                id="carrinho_total_compra" value="0,00" readonly
+                                                style="background-color: #f8f9fa; font-weight: 600;">
                                         </td>
                                     </tr>
                                 </tfoot>
                             </table>
                             <div style="padding: 1rem;">
-                                <button type="button" id="btn-adicionar-item-compra" class="btn-adicionar-item" title="Adicionar novo produto/serviço ao carrinho" data-bs-toggle="tooltip">
+                                <button type="button" id="btn-adicionar-item-compra" class="btn-adicionar-item"
+                                    title="Adicionar novo produto/serviço ao carrinho" data-bs-toggle="tooltip">
                                     <i class="fas fa-plus me-1"></i> Adicionar item
                                 </button>
                             </div>
                         </div>
                     </div>
-                    
+
                     <!-- Campo para mostrar valor total da operação -->
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label class="form-label">Total da Operação</label>
-                                <input type="text" class="form-control" id="total_operacao" readonly style="background-color: #f8f9fa; font-weight: bold;">
+                                <input type="text" class="form-control" id="total_operacao" readonly
+                                    style="background-color: #f8f9fa; font-weight: bold;">
                                 <small class="form-text text-muted">Quantidade × Valor - Desconto (se aplicável)</small>
                             </div>
                         </div>
                     </div>
-                    
+
                     <!-- Campos para pagamento -->
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label for="tipo_pagamento" class="form-label">Tipo de Pagamento *</label>
                                 <select class="form-select" id="tipo_pagamento" name="tipo_pagamento" required>
-                                    <option value="a_vista" {% if compra.tipo_pagamento == 'a_vista' %}selected{% endif %}>À Vista</option>
-                                    <option value="parcelado" {% if compra.tipo_pagamento == 'parcelado' %}selected{% endif %}>Parcelado</option>
+                                    <option value="a_vista" {% if compra.tipo_pagamento=='a_vista' %}selected{% endif
+                                        %}>À Vista</option>
+                                    <option value="parcelado" {% if compra.tipo_pagamento=='parcelado' %}selected{%
+                                        endif %}>Parcelado</option>
                                 </select>
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label for="numero_parcelas" class="form-label">Número de Parcelas *</label>
-                                <input type="number" min="1" max="24" class="form-control" id="numero_parcelas" name="numero_parcelas" value="{{ compra.numero_parcelas or 1 }}" required>
+                                <input type="number" min="1" max="24" class="form-control" id="numero_parcelas"
+                                    name="numero_parcelas" value="{{ compra.numero_parcelas or 1 }}" required>
                             </div>
                         </div>
                     </div>
-                    
+
                     <!-- Configuração de vencimentos das parcelas -->
                     <div id="config_parcelas" style="display: none;">
                         <div class="card border-primary">
                             <div class="card-header bg-primary text-white">
-                                <h6 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>Configuração de Vencimentos das Parcelas</h6>
+                                <h6 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>Configuração de Vencimentos das
+                                    Parcelas</h6>
                             </div>
                             <div class="card-body">
                                 <div class="row">
                                     <div class="col-md-6">
                                         <div class="mb-3">
-                                            <label for="primeira_parcela" class="form-label">Data da Primeira Parcela</label>
-                                            <input type="text" class="form-control" id="primeira_parcela" name="primeira_parcela" 
-                                                   placeholder="__/__/____" pattern="\d{2}/\d{2}/\d{4}" 
-                                                   title="Formato: DD/MM/AAAA">
-                                            <small class="form-text text-muted">Data de vencimento da primeira parcela</small>
+                                            <label for="primeira_parcela" class="form-label">Data da Primeira
+                                                Parcela</label>
+                                            <input type="text" class="form-control" id="primeira_parcela"
+                                                name="primeira_parcela" placeholder="__/__/____"
+                                                pattern="\d{2}/\d{2}/\d{4}" title="Formato: DD/MM/AAAA">
+                                            <small class="form-text text-muted">Data de vencimento da primeira
+                                                parcela</small>
                                         </div>
                                     </div>
                                     <div class="col-md-6">
                                         <div class="mb-3">
-                                            <label for="intervalo_parcelas" class="form-label">Periodicidade das Parcelas</label>
-                                            <select class="form-select" id="intervalo_parcelas" name="intervalo_parcelas">
+                                            <label for="intervalo_parcelas" class="form-label">Periodicidade das
+                                                Parcelas</label>
+                                            <select class="form-select" id="intervalo_parcelas"
+                                                name="intervalo_parcelas">
                                                 <option value="mensal" selected>Mensal (30 dias)</option>
                                                 <option value="quinzenal">Quinzenal (15 dias)</option>
                                                 <option value="semestral">Semestral (180 dias)</option>
@@ -162,19 +181,20 @@
                                         </div>
                                     </div>
                                 </div>
-                                
+
                                 <!-- Campo para intervalo personalizado -->
                                 <div id="campo_intervalo_personalizado" style="display: none;" class="row">
                                     <div class="col-md-6">
                                         <div class="mb-3">
                                             <label for="intervalo_dias" class="form-label">Intervalo em Dias</label>
-                                            <input type="number" class="form-control" id="intervalo_dias" name="intervalo_dias" 
-                                                   min="1" max="365" value="30" placeholder="Ex: 30">
-                                            <small class="form-text text-muted">Digite o número de dias entre as parcelas (1 a 365)</small>
+                                            <input type="number" class="form-control" id="intervalo_dias"
+                                                name="intervalo_dias" min="1" max="365" value="30" placeholder="Ex: 30">
+                                            <small class="form-text text-muted">Digite o número de dias entre as
+                                                parcelas (1 a 365)</small>
                                         </div>
                                     </div>
                                 </div>
-                                
+
                                 <!-- Tabela de parcelas com vencimentos -->
                                 <div id="tabela_parcelas" class="mt-3">
                                     <h6 class="mb-2">Detalhamento das Parcelas:</h6>
@@ -196,18 +216,19 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <!-- Campo para mostrar valor da parcela -->
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label class="form-label">Valor da Parcela</label>
-                                <input type="text" class="form-control" id="valor_parcela" readonly style="background-color: #f8f9fa; color: #6c757d;">
+                                <input type="text" class="form-control" id="valor_parcela" readonly
+                                    style="background-color: #f8f9fa; color: #6c757d;">
                                 <small class="form-text text-muted">Valor dividido pelo número de parcelas</small>
                             </div>
                         </div>
                     </div>
-                    
+
                     <!-- Campo para seleção de conta caixa -->
                     <div class="row">
                         <div class="col-md-6">
@@ -216,19 +237,24 @@
                                 <select class="form-select" id="conta_caixa_id" name="conta_caixa_id">
                                     <option value="">Selecione uma conta caixa (opcional)</option>
                                     {% for conta in contas_caixa %}
-                                    <option value="{{ conta.id }}" {% if compra.lancamento_financeiro and compra.lancamento_financeiro.conta_caixa_id == conta.id %}selected{% endif %}>{{ conta.nome }} - {{ conta.tipo|title }}</option>
+                                    <option value="{{ conta.id }}" {% if compra.lancamento_financeiro and
+                                        compra.lancamento_financeiro.conta_caixa_id==conta.id %}selected{% endif %}>{{
+                                        conta.nome }} - {{ conta.tipo|title }}</option>
                                     {% endfor %}
                                 </select>
-                                <small class="form-text text-muted">Selecione a conta caixa onde o lançamento será registrado. Se não selecionar, o lançamento será criado sem conta específica.</small>
+                                <small class="form-text text-muted">Selecione a conta caixa onde o lançamento será
+                                    registrado. Se não selecionar, o lançamento será criado sem conta
+                                    específica.</small>
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="mb-3">
                         <label for="observacoes" class="form-label">Observações</label>
-                        <textarea class="form-control" id="observacoes" name="observacoes" rows="3">{{ compra.observacoes or '' }}</textarea>
+                        <textarea class="form-control" id="observacoes" name="observacoes"
+                            rows="3">{{ compra.observacoes or '' }}</textarea>
                     </div>
-                    
+
                     <div class="d-flex justify-content-between">
                         <a href="{{ url_for('compras') }}" class="btn btn-secondary">
                             <i class="fas fa-arrow-left"></i> Voltar
@@ -244,252 +270,253 @@
 </div>
 
 <style>
-.autocomplete-container {
-    position: relative;
-}
+    .autocomplete-container {
+        position: relative;
+    }
 
-.autocomplete-suggestions {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
-    background: white;
-    border: 1px solid #ced4da;
-    border-top: none;
-    border-radius: 0 0 0.375rem 0.375rem;
-    max-height: 200px;
-    overflow-y: auto;
-    z-index: 1000;
-    display: none;
-}
+    .autocomplete-suggestions {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: white;
+        border: 1px solid #ced4da;
+        border-top: none;
+        border-radius: 0 0 0.375rem 0.375rem;
+        max-height: 200px;
+        overflow-y: auto;
+        z-index: 1000;
+        display: none;
+    }
 
-.autocomplete-suggestion {
-    padding: 8px 12px;
-    cursor: pointer;
-    border-bottom: 1px solid #f8f9fa;
-}
+    .autocomplete-suggestion {
+        padding: 8px 12px;
+        cursor: pointer;
+        border-bottom: 1px solid #f8f9fa;
+    }
 
-.autocomplete-suggestion:hover {
-    background-color: #f8f9fa;
-}
+    .autocomplete-suggestion:hover {
+        background-color: #f8f9fa;
+    }
 
-.autocomplete-suggestion:last-child {
-    border-bottom: none;
-}
+    .autocomplete-suggestion:last-child {
+        border-bottom: none;
+    }
 
-.autocomplete-suggestion.selected {
-    background-color: #007bff;
-    color: white;
-}
+    .autocomplete-suggestion.selected {
+        background-color: #007bff;
+        color: white;
+    }
 
-.autocomplete-suggestion.create-new {
-    background-color: #e3f2fd;
-    border-left: 3px solid #2196f3;
-    font-style: italic;
-}
+    .autocomplete-suggestion.create-new {
+        background-color: #e3f2fd;
+        border-left: 3px solid #2196f3;
+        font-style: italic;
+    }
 
-.autocomplete-suggestion.create-new:hover {
-    background-color: #bbdefb;
-}
+    .autocomplete-suggestion.create-new:hover {
+        background-color: #bbdefb;
+    }
 
-.autocomplete-suggestion.create-new.selected {
-    background-color: #2196f3;
-    color: white;
-}
+    .autocomplete-suggestion.create-new.selected {
+        background-color: #2196f3;
+        color: white;
+    }
 
-.modal-backdrop {
-    z-index: 1040;
-}
+    .modal-backdrop {
+        z-index: 1040;
+    }
 </style>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('Página carregada - iniciando JavaScript');
-    
-    // Autocomplete para fornecedores
-    const fornecedorSearchInput = document.getElementById('fornecedor_search');
-    const fornecedorIdInput = document.getElementById('fornecedor_id');
-    const fornecedorSuggestions = document.getElementById('fornecedor_suggestions');
-    
-    let searchTimeout;
-    let selectedIndex = -1;
-    
-    // Função para buscar fornecedores
-    function buscarFornecedores(query) {
-        if (query.length < 2) {
-            fornecedorSuggestions.style.display = 'none';
-            return;
+    document.addEventListener('DOMContentLoaded', function () {
+        console.log('Página carregada - iniciando JavaScript');
+
+        // Autocomplete para fornecedores
+        const fornecedorSearchInput = document.getElementById('fornecedor_search');
+        const fornecedorIdInput = document.getElementById('fornecedor_id');
+        const fornecedorSuggestions = document.getElementById('fornecedor_suggestions');
+
+        let searchTimeout;
+        let selectedIndex = -1;
+
+        // Função para buscar fornecedores
+        function buscarFornecedores(query) {
+            if (query.length < 2) {
+                fornecedorSuggestions.style.display = 'none';
+                return;
+            }
+
+            fetch(`/api/fornecedores/buscar?q=${encodeURIComponent(query)}`)
+                .then(response => response.json())
+                .then(data => {
+                    mostrarSugestoes(data.fornecedores || [], query);
+                })
+                .catch(error => {
+                    console.error('Erro ao buscar fornecedores:', error);
+                    // Mesmo com erro, mostrar opção de criar se há texto
+                    mostrarSugestoes([], query);
+                });
         }
-        
-        fetch(`/api/fornecedores/buscar?q=${encodeURIComponent(query)}`)
-            .then(response => response.json())
-            .then(data => {
-                mostrarSugestoes(data.fornecedores || [], query);
-            })
-            .catch(error => {
-                console.error('Erro ao buscar fornecedores:', error);
-                // Mesmo com erro, mostrar opção de criar se há texto
-                mostrarSugestoes([], query);
-            });
-    }
-    
-    // Função para mostrar sugestões
-    function mostrarSugestoes(fornecedores, query) {
-        fornecedorSuggestions.innerHTML = '';
-        
-        // Adicionar fornecedores encontrados
-        fornecedores.forEach((fornecedor, index) => {
-            const div = document.createElement('div');
-            div.className = 'autocomplete-suggestion';
-            div.innerHTML = `
+
+        // Função para mostrar sugestões
+        function mostrarSugestoes(fornecedores, query) {
+            fornecedorSuggestions.innerHTML = '';
+
+            // Adicionar fornecedores encontrados
+            fornecedores.forEach((fornecedor, index) => {
+                const div = document.createElement('div');
+                div.className = 'autocomplete-suggestion';
+                div.innerHTML = `
                 <strong>${fornecedor.nome}</strong>
                 ${fornecedor.email ? `<br><small class="text-muted">${fornecedor.email}</small>` : ''}
                 ${fornecedor.telefone ? `<br><small class="text-muted">${fornecedor.telefone}</small>` : ''}
             `;
-            
-            div.addEventListener('click', () => {
-                selecionarFornecedor(fornecedor);
+
+                div.addEventListener('click', () => {
+                    selecionarFornecedor(fornecedor);
+                });
+
+                fornecedorSuggestions.appendChild(div);
             });
-            
-            fornecedorSuggestions.appendChild(div);
-        });
-        
-        // Se não encontrou fornecedores ou encontrou poucos, mostrar opção de criar
-        if (fornecedores.length === 0 || fornecedores.length < 5) {
-            const createDiv = document.createElement('div');
-            createDiv.className = 'autocomplete-suggestion create-new';
-            createDiv.innerHTML = `
+
+            // Se não encontrou fornecedores ou encontrou poucos, mostrar opção de criar
+            if (fornecedores.length === 0 || fornecedores.length < 5) {
+                const createDiv = document.createElement('div');
+                createDiv.className = 'autocomplete-suggestion create-new';
+                createDiv.innerHTML = `
                 <i class="fas fa-plus me-2"></i>
                 <strong>Criar novo fornecedor: "${query}"</strong>
                 <br><small class="text-muted">Clique para criar um novo fornecedor</small>
             `;
-            
-            createDiv.addEventListener('click', () => {
-                criarNovoFornecedor(query);
-            });
-            
-            fornecedorSuggestions.appendChild(createDiv);
-        }
-        
-        fornecedorSuggestions.style.display = 'block';
-        selectedIndex = -1;
-    }
-    
-    // Função para selecionar fornecedor
-    function selecionarFornecedor(fornecedor) {
-        fornecedorSearchInput.value = fornecedor.nome;
-        fornecedorIdInput.value = fornecedor.id;
-        fornecedorSuggestions.style.display = 'none';
-        fornecedorSearchInput.classList.remove('is-invalid');
-    }
-    
-    // Event listeners para autocomplete
-    fornecedorSearchInput.addEventListener('input', function() {
-        const query = this.value.trim();
-        
-        // Limpar seleção se o usuário apagar o texto
-        if (query === '') {
-            fornecedorIdInput.value = '';
-            fornecedorSuggestions.style.display = 'none';
-            return;
-        }
-        
-        // Debounce da busca
-        clearTimeout(searchTimeout);
-        searchTimeout = setTimeout(() => {
-            buscarFornecedores(query);
-        }, 300);
-    });
-    
-    // Event listener para teclado
-    fornecedorSearchInput.addEventListener('keydown', function(e) {
-        const suggestions = fornecedorSuggestions.querySelectorAll('.autocomplete-suggestion');
-        
-        if (e.key === 'ArrowDown') {
-            e.preventDefault();
-            selectedIndex = Math.min(selectedIndex + 1, suggestions.length - 1);
-            atualizarSelecao(suggestions);
-        } else if (e.key === 'ArrowUp') {
-            e.preventDefault();
-            selectedIndex = Math.max(selectedIndex - 1, -1);
-            atualizarSelecao(suggestions);
-        } else if (e.key === 'Enter') {
-            e.preventDefault();
-            if (selectedIndex >= 0 && suggestions[selectedIndex]) {
-                suggestions[selectedIndex].click();
+
+                createDiv.addEventListener('click', () => {
+                    criarNovoFornecedor(query);
+                });
+
+                fornecedorSuggestions.appendChild(createDiv);
             }
-        } else if (e.key === 'Escape') {
-            fornecedorSuggestions.style.display = 'none';
+
+            fornecedorSuggestions.style.display = 'block';
             selectedIndex = -1;
         }
-    });
-    
-    // Função para atualizar seleção visual
-    function atualizarSelecao(suggestions) {
-        suggestions.forEach((suggestion, index) => {
-            suggestion.classList.toggle('selected', index === selectedIndex);
-        });
-    }
-    
-    // Função para criar novo fornecedor
-    function criarNovoFornecedor(nome) {
-        // Mostrar loading na sugestão
-        const createDiv = fornecedorSuggestions.querySelector('.create-new');
-        if (createDiv) {
-            createDiv.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Criando fornecedor...';
-            createDiv.style.pointerEvents = 'none';
+
+        // Função para selecionar fornecedor
+        function selecionarFornecedor(fornecedor) {
+            fornecedorSearchInput.value = fornecedor.nome;
+            fornecedorIdInput.value = fornecedor.id;
+            fornecedorSuggestions.style.display = 'none';
+            fornecedorSearchInput.classList.remove('is-invalid');
         }
-        
-        fetch('/api/fornecedores/criar', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                nome: nome,
-                email: '',
-                telefone: '',
-                cpf_cnpj: '',
-                endereco: ''
+
+        // Event listeners para autocomplete
+        fornecedorSearchInput.addEventListener('input', function () {
+            const query = this.value.trim();
+
+            // Limpar seleção se o usuário apagar o texto
+            if (query === '') {
+                fornecedorIdInput.value = '';
+                fornecedorSuggestions.style.display = 'none';
+                return;
+            }
+
+            // Debounce da busca
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                buscarFornecedores(query);
+            }, 300);
+        });
+
+        // Event listener para teclado
+        fornecedorSearchInput.addEventListener('keydown', function (e) {
+            const suggestions = fornecedorSuggestions.querySelectorAll('.autocomplete-suggestion');
+
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                selectedIndex = Math.min(selectedIndex + 1, suggestions.length - 1);
+                atualizarSelecao(suggestions);
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                selectedIndex = Math.max(selectedIndex - 1, -1);
+                atualizarSelecao(suggestions);
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                if (selectedIndex >= 0 && suggestions[selectedIndex]) {
+                    suggestions[selectedIndex].click();
+                }
+            } else if (e.key === 'Escape') {
+                fornecedorSuggestions.style.display = 'none';
+                selectedIndex = -1;
+            }
+        });
+
+        // Função para atualizar seleção visual
+        function atualizarSelecao(suggestions) {
+            suggestions.forEach((suggestion, index) => {
+                suggestion.classList.toggle('selected', index === selectedIndex);
+            });
+        }
+
+        // Função para criar novo fornecedor
+        function criarNovoFornecedor(nome) {
+            // Mostrar loading na sugestão
+            const createDiv = fornecedorSuggestions.querySelector('.create-new');
+            if (createDiv) {
+                createDiv.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Criando fornecedor...';
+                createDiv.style.pointerEvents = 'none';
+            }
+
+            fetch('/api/fornecedores/criar', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    nome: nome,
+                    email: '',
+                    telefone: '',
+                    cpf_cnpj: '',
+                    endereco: ''
+                })
             })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                selecionarFornecedor(data.fornecedor);
-                // Mostrar feedback visual de sucesso
-                fornecedorSearchInput.style.borderColor = '#28a745';
-                setTimeout(() => {
-                    fornecedorSearchInput.style.borderColor = '';
-                }, 2000);
-            } else {
-                alert('Erro ao criar fornecedor: ' + data.error);
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        selecionarFornecedor(data.fornecedor);
+                        // Mostrar feedback visual de sucesso
+                        fornecedorSearchInput.style.borderColor = '#28a745';
+                        setTimeout(() => {
+                            fornecedorSearchInput.style.borderColor = '';
+                        }, 2000);
+                    } else {
+                        alert('Erro ao criar fornecedor: ' + data.error);
+                        fornecedorSuggestions.style.display = 'none';
+                    }
+                })
+                .catch(error => {
+                    console.error('Erro ao criar fornecedor:', error);
+                    alert('Erro ao criar fornecedor. Tente novamente.');
+                    fornecedorSuggestions.style.display = 'none';
+                });
+        }
+
+        // Ocultar sugestões ao clicar fora
+        document.addEventListener('click', function (e) {
+            if (!e.target.closest('.autocomplete-container')) {
                 fornecedorSuggestions.style.display = 'none';
             }
-        })
-        .catch(error => {
-            console.error('Erro ao criar fornecedor:', error);
-            alert('Erro ao criar fornecedor. Tente novamente.');
-            fornecedorSuggestions.style.display = 'none';
         });
-    }
-    
-    // Ocultar sugestões ao clicar fora
-    document.addEventListener('click', function(e) {
-        if (!e.target.closest('.autocomplete-container')) {
-            fornecedorSuggestions.style.display = 'none';
-        }
-    });
-    
-    // Dados da compra existente para preencher o carrinho
-    var compraData = {
-        produto: '{{ compra.produto|e }}',
-        valor: {{ compra.valor }},
+
+        // Dados da compra existente para preencher o carrinho
+        var compraData = {
+            produto: '{{ compra.produto|e }}',
+            valor: {{ compra.valor }
+    },
         quantidade: {{ compra.quantidade or 1 }},
         preco_custo: {{ compra.preco_custo }},
         tipo_compra: '{{ compra.tipo_compra }}'
     };
-    
+
     // Carrinho
     const itensBody = document.getElementById('itens-body-compra');
     const btnAdd = document.getElementById('btn-adicionar-item-compra');
@@ -502,7 +529,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const primeiraParcelaInput = document.getElementById('primeira_parcela');
     const intervaloParcelasSelect = document.getElementById('intervalo_parcelas');
     const parcelasBody = document.getElementById('parcelas_body');
-    
+
     function calcularDoCarrinho() {
         let soma = 0;
         if (itensBody) {
@@ -521,7 +548,7 @@ document.addEventListener('DOMContentLoaded', function() {
         calcularValorParcela(soma);
         gerarTabelaParcelas();
     }
-    
+
     // Função auxiliar para fazer parse de valor monetário formatado
     function parseValorMonetario(valorFormatado) {
         if (!valorFormatado) return 0;
@@ -536,7 +563,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         return parseFloat(valor) || 0;
     }
-    
+
     // Função para atualizar total da operação
     function atualizarTotalOperacao(total) {
         const totalOperacao = total || 0;
@@ -545,7 +572,7 @@ document.addEventListener('DOMContentLoaded', function() {
             totalOperacaoInput.value = `R$ ${totalOperacao.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.')}`;
         }
     }
-    
+
     // Função para calcular valor da parcela
     function calcularValorParcela(total) {
         if (!valorParcelaInput || !numeroParcelasInput) return;
@@ -567,7 +594,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         valorParcelaInput.value = `R$ ${valorParcela.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.')}`;
     }
-    
+
     // Função para gerar tabela de parcelas
     function gerarTabelaParcelas() {
         if (!parcelasBody) return;
@@ -593,7 +620,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         parcelasBody.innerHTML = html;
     }
-    
+
     // Função para calcular data de vencimento
     function calcularDataVencimento(dataBase, numeroParcela, intervalo) {
         let data;
@@ -635,12 +662,12 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         return data;
     }
-    
+
     // Função para formatar data
     function formatarData(data) {
         return data.toLocaleDateString('pt-BR');
     }
-    
+
     // Função para mostrar/ocultar configuração de parcelas
     function toggleConfigParcelas() {
         const isParcelado = tipoPagamentoSelect.value === 'parcelado';
@@ -659,7 +686,7 @@ document.addEventListener('DOMContentLoaded', function() {
             configParcelasDiv.style.display = 'none';
         }
     }
-    
+
     // Função para validar estoque
     function validarEstoque(row) {
         const qtdEl = row.querySelector('input[name="item_qtd[]"]');
@@ -679,7 +706,7 @@ document.addEventListener('DOMContentLoaded', function() {
             limparValidacaoEstoque(row);
         }
     }
-    
+
     // Função para limpar validação de estoque
     function limparValidacaoEstoque(row) {
         const qtdEl = row.querySelector('input[name="item_qtd[]"]');
@@ -693,7 +720,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function bindRow(row) {
         row.querySelectorAll('input').forEach(inp => {
-            inp.addEventListener('input', function() {
+            inp.addEventListener('input', function () {
                 calcularDoCarrinho();
                 if (inp.name === 'item_qtd[]') {
                     if (row.dataset.estoque) {
@@ -706,10 +733,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 inp.addEventListener('blur', calcularDoCarrinho);
             }
         });
-        
+
         const qtdInput = row.querySelector('input[name="item_qtd[]"]');
         if (qtdInput) {
-            qtdInput.addEventListener('change', function() {
+            qtdInput.addEventListener('change', function () {
                 if (row.dataset.estoque) {
                     validarEstoque(row);
                 }
@@ -717,7 +744,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         const btn = row.querySelector('.btn-remover-item-compra');
         if (btn) btn.addEventListener('click', () => { row.remove(); toggleRemoveButtons(); calcularDoCarrinho(); });
-        
+
         const tipoSelect = row.querySelector('select[name="item_tipo[]"]');
         const nomeInput = row.querySelector('.item-nome') || row.querySelector('input[name="item_nome[]"]');
         let sugestDiv = row.querySelector('.item-suggestions');
@@ -727,27 +754,27 @@ document.addEventListener('DOMContentLoaded', function() {
             sugestDiv.style.display = 'none';
             nomeInput.parentElement.appendChild(sugestDiv);
         }
-        function buscarProdutos(query){
-            if (!query || query.length < 2) { if(sugestDiv){sugestDiv.style.display='none';sugestDiv.innerHTML='';} return; }
+        function buscarProdutos(query) {
+            if (!query || query.length < 2) { if (sugestDiv) { sugestDiv.style.display = 'none'; sugestDiv.innerHTML = ''; } return; }
             if (sugestDiv) {
                 sugestDiv.innerHTML = `<div class="autocomplete-loading"><div class="sugg-icon"><i class="fas fa-box"></i></div><div class="skel" style="max-width:180px"></div></div>`;
                 sugestDiv.style.display = 'block';
             }
             fetch(`/api/produtos/sugestoes?q=${encodeURIComponent(query)}`)
-                .then(r=>r.json())
-                .then(data=>{
-                    const itens = data.produtos||[];
-                    if(!sugestDiv) return;
-                    sugestDiv.innerHTML='';
-                    itens.forEach(item=>{
-                        const d=document.createElement('div');
-                        d.className='autocomplete-suggestion';
-                        d.innerHTML=`<div class=\"sugg-left\"><span class=\"sugg-icon\"><i class=\"fas fa-box\"></i></span><span class=\"sugg-title\"><strong>${item.nome}</strong></span></div><div class=\"sugg-meta\">${item.estoque!==undefined?`<span class=\"badge-pill\">Estoque: ${item.estoque}</span>`:''}</div>`;
-                        d.addEventListener('click',()=>{
-                            nomeInput.value=item.nome; sugestDiv.style.display='none';
-                            const precoEl=row.querySelector('input[name="item_preco[]"]');
-                            if(precoEl && item.preco_venda){ precoEl.value=item.preco_venda; }
-                            if(item.estoque !== undefined) {
+                .then(r => r.json())
+                .then(data => {
+                    const itens = data.produtos || [];
+                    if (!sugestDiv) return;
+                    sugestDiv.innerHTML = '';
+                    itens.forEach(item => {
+                        const d = document.createElement('div');
+                        d.className = 'autocomplete-suggestion';
+                        d.innerHTML = `<div class=\"sugg-left\"><span class=\"sugg-icon\"><i class=\"fas fa-box\"></i></span><span class=\"sugg-title\"><strong>${item.nome}</strong></span></div><div class=\"sugg-meta\">${item.estoque !== undefined ? `<span class=\"badge-pill\">Estoque: ${item.estoque}</span>` : ''}</div>`;
+                        d.addEventListener('click', () => {
+                            nomeInput.value = item.nome; sugestDiv.style.display = 'none';
+                            const precoEl = row.querySelector('input[name="item_preco[]"]');
+                            if (precoEl && item.preco_venda) { precoEl.value = item.preco_venda; }
+                            if (item.estoque !== undefined) {
                                 row.dataset.estoque = item.estoque;
                                 validarEstoque(row);
                             } else {
@@ -762,49 +789,49 @@ document.addEventListener('DOMContentLoaded', function() {
                         const createDiv = document.createElement('div');
                         createDiv.className = 'autocomplete-suggestion create-new';
                         createDiv.innerHTML = `<i class="fas fa-plus me-2"></i><strong>Criar produto: "${query}"</strong><br><small class="text-muted">Será criado ao salvar o registro</small>`;
-                        createDiv.addEventListener('click', function(){
+                        createDiv.addEventListener('click', function () {
                             nomeInput.value = query;
-                            sugestDiv.style.display='none';
+                            sugestDiv.style.display = 'none';
                             calcularDoCarrinho();
                         });
                         sugestDiv.appendChild(createDiv);
                     }
                     sugestDiv.style.display = 'block';
-                }).catch(()=>{ if(sugestDiv){sugestDiv.style.display='none';} });
+                }).catch(() => { if (sugestDiv) { sugestDiv.style.display = 'none'; } });
         }
-        function onNomeInput(){ 
+        function onNomeInput() {
             if (tipoSelect && tipoSelect.value === 'mercadoria') {
-                buscarProdutos((nomeInput?.value||'').trim()); 
+                buscarProdutos((nomeInput?.value || '').trim());
             }
         }
-        function toggleAutocomplete(){
+        function toggleAutocomplete() {
             if (!tipoSelect || !nomeInput) return;
             if (tipoSelect.value === 'mercadoria') {
-                nomeInput.setAttribute('placeholder','Digite o nome do produto');
+                nomeInput.setAttribute('placeholder', 'Digite o nome do produto');
                 if (nomeInput.dataset.autocompleteBound !== 'true') {
                     nomeInput.addEventListener('input', onNomeInput);
                     nomeInput.dataset.autocompleteBound = 'true';
                 }
             } else {
-                nomeInput.setAttribute('placeholder','Descreva o serviço');
-                if (sugestDiv){sugestDiv.style.display='none';sugestDiv.innerHTML='';}
+                nomeInput.setAttribute('placeholder', 'Descreva o serviço');
+                if (sugestDiv) { sugestDiv.style.display = 'none'; sugestDiv.innerHTML = ''; }
                 nomeInput.removeEventListener('input', onNomeInput);
                 nomeInput.dataset.autocompleteBound = 'false';
             }
         }
-        if (tipoSelect) { 
-            tipoSelect.addEventListener('change', toggleAutocomplete); 
-            toggleAutocomplete(); 
+        if (tipoSelect) {
+            tipoSelect.addEventListener('change', toggleAutocomplete);
+            toggleAutocomplete();
         }
-        document.addEventListener('click', function(e){ 
-            if(sugestDiv && !e.target.closest('.autocomplete-container')) {
-                sugestDiv.style.display='none';
+        document.addEventListener('click', function (e) {
+            if (sugestDiv && !e.target.closest('.autocomplete-container')) {
+                sugestDiv.style.display = 'none';
             }
         });
-        
+
         const btnClear = row.querySelector('.btn-clear-nome');
         if (btnClear && nomeInput) {
-            btnClear.addEventListener('click', function(e){
+            btnClear.addEventListener('click', function (e) {
                 e.preventDefault();
                 e.stopPropagation();
                 nomeInput.value = '';
@@ -816,19 +843,19 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
     }
-    
+
     function toggleRemoveButtons() {
         const rows = itensBody.querySelectorAll('.item-row-compra');
-        rows.forEach(r => { 
-            const b = r.querySelector('.btn-remover-item-compra'); 
-            if (b) b.style.display = rows.length > 1 ? '' : 'none'; 
+        rows.forEach(r => {
+            const b = r.querySelector('.btn-remover-item-compra');
+            if (b) b.style.display = rows.length > 1 ? '' : 'none';
         });
         if (itensContagem) itensContagem.textContent = String(rows.length);
     }
-    
+
     // Função para carregar itens do JSON do lançamento
     function carregarItensDoJSON(itens) {
-        itens.forEach(function(item, index) {
+        itens.forEach(function (item, index) {
             var tipoItem = item.tipo || 'mercadoria';
 
             var tr = document.createElement('tr');
@@ -893,17 +920,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 carregarItensDoJSON(itensCarrinho);
                 return;
             }
-        } catch(e) {
+        } catch (e) {
             console.error('Erro ao fazer parse do itens_carrinho:', e);
         }
 
         // FALLBACK: Dividir produto por vírgula se houver múltiplos itens
-        var produtos = compraData.produto.split(',').map(function(p) { return p.trim(); });
+        var produtos = compraData.produto.split(',').map(function (p) { return p.trim(); });
         var valorUnitario = compraData.preco_custo || (compraData.valor / (compraData.quantidade || 1));
-        
-        produtos.forEach(function(produtoNome, index) {
+
+        produtos.forEach(function (produtoNome, index) {
             var tipoItem = compraData.tipo_compra || 'mercadoria';
-            
+
             var tr = document.createElement('tr');
             tr.className = 'item-row-compra';
             tr.innerHTML = `
@@ -944,16 +971,16 @@ document.addEventListener('DOMContentLoaded', function() {
             itensBody.appendChild(tr);
             bindRow(tr);
         });
-        
+
         // Se não há produtos, criar uma linha vazia
         if (produtos.length === 0) {
             adicionarItemCompra();
         }
-        
+
         toggleRemoveButtons();
         calcularDoCarrinho();
     }
-    
+
     // Função para adicionar novo item
     function adicionarItemCompra() {
         if (!itensBody) return;
@@ -996,40 +1023,40 @@ document.addEventListener('DOMContentLoaded', function() {
             </td>`;
         itensBody.appendChild(tr);
         bindRow(tr);
-        
+
         if (window.bootstrap && bootstrap.Tooltip) {
             const tooltips = tr.querySelectorAll('[data-bs-toggle="tooltip"]');
-            tooltips.forEach(function(el) {
+            tooltips.forEach(function (el) {
                 try {
                     new bootstrap.Tooltip(el);
-                } catch(e) {
+                } catch (e) {
                     console.warn('Erro ao inicializar tooltip:', e);
                 }
             });
         }
-        
+
         toggleRemoveButtons();
         calcularDoCarrinho();
     }
-    
+
     // Event listener para o botão adicionar item
     if (btnAdd) {
-        btnAdd.addEventListener('click', function(e) {
+        btnAdd.addEventListener('click', function (e) {
             e.preventDefault();
             e.stopPropagation();
             adicionarItemCompra();
         });
     }
-    
+
     // Bind inicial da primeira linha
     const firstRow = itensBody ? itensBody.querySelector('.item-row-compra') : null;
     if (firstRow) {
         bindRow(firstRow);
         toggleRemoveButtons();
     }
-    
+
     if (numeroParcelasInput) {
-        numeroParcelasInput.addEventListener('input', function() {
+        numeroParcelasInput.addEventListener('input', function () {
             const totalOperacaoInput = document.getElementById('total_operacao');
             const total = totalOperacaoInput && totalOperacaoInput.value
                 ? parseValorMonetario(totalOperacaoInput.value)
@@ -1039,10 +1066,10 @@ document.addEventListener('DOMContentLoaded', function() {
             gerarTabelaParcelas();
         });
     }
-    
+
     // Mostrar/ocultar campos de parcelas baseado no tipo de pagamento
     if (tipoPagamentoSelect) {
-        tipoPagamentoSelect.addEventListener('change', function() {
+        tipoPagamentoSelect.addEventListener('change', function () {
             const isParcelado = this.value === 'parcelado';
             if (numeroParcelasInput) {
                 numeroParcelasInput.disabled = !isParcelado;
@@ -1059,15 +1086,15 @@ document.addEventListener('DOMContentLoaded', function() {
             gerarTabelaParcelas();
         });
     }
-    
+
     // Event listeners para configuração de parcelas
     if (primeiraParcelaInput) {
         primeiraParcelaInput.addEventListener('input', gerarTabelaParcelas);
         primeiraParcelaInput.addEventListener('change', gerarTabelaParcelas);
     }
-    
+
     if (intervaloParcelasSelect) {
-        intervaloParcelasSelect.addEventListener('change', function() {
+        intervaloParcelasSelect.addEventListener('change', function () {
             const campoPersonalizado = document.getElementById('campo_intervalo_personalizado');
             const isPersonalizado = this.value === 'personalizado';
             if (campoPersonalizado) {
@@ -1076,11 +1103,11 @@ document.addEventListener('DOMContentLoaded', function() {
             gerarTabelaParcelas();
         });
     }
-    
+
     // Event listener para intervalo personalizado
     const intervaloDiasInput = document.getElementById('intervalo_dias');
     if (intervaloDiasInput) {
-        intervaloDiasInput.addEventListener('input', function() {
+        intervaloDiasInput.addEventListener('input', function () {
             const valor = parseInt(this.value);
             if (valor < 1) {
                 this.value = 1;
@@ -1090,12 +1117,12 @@ document.addEventListener('DOMContentLoaded', function() {
             gerarTabelaParcelas();
         });
     }
-    
+
     // Adicionar listener para o botão de salvar
     var btnSalvar = document.getElementById('btn-salvar-compra');
     var form = document.querySelector('form');
     if (btnSalvar) {
-        btnSalvar.addEventListener('click', function(e) {
+        btnSalvar.addEventListener('click', function (e) {
             e.preventDefault();
             if (form && form.checkValidity()) {
                 btnSalvar.disabled = true;
@@ -1108,13 +1135,13 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-    
+
     // Adicionar listener para o formulário
     if (form) {
-        form.addEventListener('submit', function(e) {
+        form.addEventListener('submit', function (e) {
             var camposObrigatorios = form.querySelectorAll('[required]');
             var valido = true;
-            camposObrigatorios.forEach(function(campo) {
+            camposObrigatorios.forEach(function (campo) {
                 if (!campo.value || campo.value.trim() === '') {
                     valido = false;
                     campo.classList.add('is-invalid');
@@ -1133,19 +1160,19 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-    
+
     // Inicializar
     carregarDadosExistentes();
     calcularDoCarrinho();
     toggleConfigParcelas();
-    
+
     // Garantir que o valor da parcela seja calculado na inicialização
     const totalOperacaoInput = document.getElementById('total_operacao');
     if (totalOperacaoInput && totalOperacaoInput.value) {
         const total = parseValorMonetario(totalOperacaoInput.value);
         calcularValorParcela(total);
     }
-    
+
     // Garantir que a tabela seja gerada se já houver dados
     if (tipoPagamentoSelect && tipoPagamentoSelect.value === 'parcelado') {
         const numeroParcelas = parseInt(numeroParcelasInput.value) || 1;
@@ -1153,14 +1180,14 @@ document.addEventListener('DOMContentLoaded', function() {
             gerarTabelaParcelas();
         }
     }
-    
+
     // Inicializar tooltips globais
     if (window.bootstrap && bootstrap.Tooltip) {
         const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
         tooltipTriggerList.forEach(el => new bootstrap.Tooltip(el));
     }
-    
+
     console.log('✅ JavaScript inicializado com sucesso');
 });
 </script>
-{% endblock %} 
+{% endblock %}

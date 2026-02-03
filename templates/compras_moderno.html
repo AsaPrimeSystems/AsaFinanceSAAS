@@ -17,21 +17,27 @@
                 </a>
             </div>
         </div>
-        
+
         <!-- Seção de Filtros -->
         <div class="modern-filters">
             <div class="modern-filter-group">
                 <label class="modern-filter-label">Data Início:</label>
-                <input type="text" class="modern-filter-input" id="filtro-data-inicio" 
-                       placeholder="DD/MM/AAAA" maxlength="10">
+                <input type="text" class="modern-filter-input" id="filtro-data-inicio" placeholder="DD/MM/AAAA"
+                    maxlength="10">
             </div>
-            
+
             <div class="modern-filter-group">
                 <label class="modern-filter-label">Data Fim:</label>
-                <input type="text" class="modern-filter-input" id="filtro-data-fim" 
-                       placeholder="DD/MM/AAAA" maxlength="10">
+                <input type="text" class="modern-filter-input" id="filtro-data-fim" placeholder="DD/MM/AAAA"
+                    maxlength="10">
             </div>
-            
+
+            <div class="modern-filter-group">
+                <label class="modern-filter-label">Nota Fiscal:</label>
+                <input type="text" class="modern-filter-input" id="filtro-nf" placeholder="Nº NF (ex: 123; 456)"
+                    value="{{ request.args.get('nota_fiscal', '') }}">
+            </div>
+
             <div class="modern-filter-group">
                 <button class="btn btn-primary btn-sm" onclick="aplicarFiltros()">
                     <i class="fas fa-search"></i> Filtrar
@@ -41,12 +47,12 @@
                 </button>
             </div>
         </div>
-        
+
         <!-- Seção de Busca -->
         <div class="search-section">
             <div class="search-input-group">
-                <input type="text" class="search-input" id="search-input" 
-                       placeholder="Buscar por fornecedor, produto, descrição ou valor...">
+                <input type="text" class="search-input" id="search-input"
+                    placeholder="Buscar por fornecedor, produto, descrição ou valor...">
                 <button class="search-btn" onclick="buscarCompras()">
                     <i class="fas fa-search"></i>
                 </button>
@@ -55,7 +61,7 @@
                 </button>
             </div>
         </div>
-        
+
         <!-- Controles de Paginação -->
         <div class="modern-panel-controls">
             <div class="modern-pagination-info">
@@ -71,11 +77,11 @@
                 </button>
             </div>
         </div>
-        
+
         <!-- Ações em Lote - Placeholder -->
         <div id="batch-actions-container"></div>
     </div>
-    
+
     <!-- Tabela Principal -->
     <div class="modern-table-container">
         <table class="modern-table">
@@ -87,6 +93,7 @@
                     <th class="modern-date-col">Data</th>
                     <th class="modern-data-col">Fornecedor</th>
                     <th class="modern-data-col">Produto/Serviço</th>
+                    <th class="modern-data-col">NF</th>
                     <th class="modern-value-col">Valor</th>
                     <th class="modern-status-col">Financeiro</th>
                     <th class="modern-actions-col">Ações</th>
@@ -94,170 +101,174 @@
             </thead>
             <tbody>
                 {% if compras %}
-                    {% for compra in compras %}
-                    <tr data-compra-id="{{ compra.id }}">
-                        <td class="modern-checkbox-col">
-                            <input type="checkbox" class="modern-checkbox compra-checkbox"
-                                   value="{{ compra.id }}">
-                        </td>
-                        <td class="modern-date-col">
-                            {{ compra.data_prevista.strftime('%d/%m/%y') if compra.data_prevista else '-' }}
-                        </td>
-                        <td class="modern-data-col" title="{{ compra.fornecedor.nome if compra.fornecedor else 'Fornecedor não informado' }}">
-                            {{ (compra.fornecedor.nome[:20] + '...' if compra.fornecedor and compra.fornecedor.nome|length > 20 else compra.fornecedor.nome) if compra.fornecedor else 'N/A' }}
-                        </td>
-                        <td class="modern-data-col" title="{{ compra.produto or 'Produto/Serviço não informado' }}">
-                            {{ (compra.produto[:25] + '...' if compra.produto and compra.produto|length > 25 else compra.produto) if compra.produto else 'N/A' }}
-                        </td>
-                        <td class="modern-value-col negative">
-                            R$ {{ "%.2f"|format(compra.valor or 0) }}
-                        </td>
-                        <td class="modern-status-col">
-                            {% set realizados = compra.financeiro_realizados if compra.financeiro_realizados is defined else 0 %}
-                            {% set total = compra.financeiro_total if compra.financeiro_total is defined else 1 %}
-                            {% set todas_realizadas = (realizados == total) %}
-                            <span class="modern-status-badge {{ 'completed' if todas_realizadas else 'pending' }}">
-                                {{ realizados }} / {{ total }}
-                            </span>
-                        </td>
-                        <td class="modern-actions-col">
-                            <button class="modern-action-btn edit" 
-                                    onclick="editarCompra({{ compra.id }})"
-                                    title="Editar">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button class="modern-action-btn delete" 
-                                    onclick="excluirCompra({{ compra.id }})"
-                                    title="Excluir">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </td>
-                    </tr>
-                    {% endfor %}
+                {% for compra in compras %}
+                <tr data-compra-id="{{ compra.id }}">
+                    <td class="modern-checkbox-col">
+                        <input type="checkbox" class="modern-checkbox compra-checkbox" value="{{ compra.id }}">
+                    </td>
+                    <td class="modern-date-col">
+                        {{ compra.data_prevista.strftime('%d/%m/%y') if compra.data_prevista else '-' }}
+                    </td>
+                    <td class="modern-data-col"
+                        title="{{ compra.fornecedor.nome if compra.fornecedor else 'Fornecedor não informado' }}">
+                        {{ (compra.fornecedor.nome[:20] + '...' if compra.fornecedor and compra.fornecedor.nome|length >
+                        20 else compra.fornecedor.nome) if compra.fornecedor else 'N/A' }}
+                    </td>
+                    <td class="modern-data-col" title="{{ compra.produto or 'Produto/Serviço não informado' }}">
+                        {{ (compra.produto[:25] + '...' if compra.produto and compra.produto|length > 25 else
+                        compra.produto) if compra.produto else 'N/A' }}
+                    </td>
+                    <td class="modern-data-col">
+                        {{ compra.nota_fiscal or '-' }}
+                    </td>
+                    <td class="modern-value-col negative">
+                        R$ {{ "%.2f"|format(compra.valor or 0) }}
+                    </td>
+                    <td class="modern-status-col">
+                        {% set realizados = compra.financeiro_realizados if compra.financeiro_realizados is defined else
+                        0 %}
+                        {% set total = compra.financeiro_total if compra.financeiro_total is defined else 1 %}
+                        {% set todas_realizadas = (realizados == total) %}
+                        <span class="modern-status-badge {{ 'completed' if todas_realizadas else 'pending' }}">
+                            {{ realizados }} / {{ total }}
+                        </span>
+                    </td>
+                    <td class="modern-actions-col">
+                        <button class="modern-action-btn edit" onclick="editarCompra({{ compra.id }})" title="Editar">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="modern-action-btn delete" onclick="excluirCompra({{ compra.id }})"
+                            title="Excluir">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
                 {% else %}
-                    <tr>
-                        <td colspan="8" class="text-center text-muted py-4">
-                            <i class="fas fa-shopping-bag fa-2x mb-2"></i>
-                            <br>Nenhuma compra encontrada
-                        </td>
-                    </tr>
+                <tr>
+                    <td colspan="8" class="text-center text-muted py-4">
+                        <i class="fas fa-shopping-bag fa-2x mb-2"></i>
+                        <br>Nenhuma compra encontrada
+                    </td>
+                </tr>
                 {% endif %}
             </tbody>
         </table>
     </div>
-    
+
 </div>
 
 <script>
-// Funções de filtros
-function aplicarFiltros() {
-    const params = new URLSearchParams();
-    
-    const status = document.getElementById('filtro-status').value;
-    if (status) params.set('status', status);
-    
-    const dataInicio = document.getElementById('filtro-data-inicio').value;
-    if (dataInicio) params.set('data_inicio', dataInicio);
-    
-    const dataFim = document.getElementById('filtro-data-fim').value;
-    if (dataFim) params.set('data_fim', dataFim);
-    
-    const busca = document.getElementById('search-input').value.trim();
-    if (busca) params.set('busca', busca);
-    
-    // Redirecionar com filtros
-    window.location.href = window.location.pathname + '?' + params.toString();
-}
+    // Funções de filtros
+    function aplicarFiltros() {
+        const params = new URLSearchParams(window.location.search);
 
-function limparFiltros() {
-    document.getElementById('filtro-status').value = '';
-    document.getElementById('filtro-data-inicio').value = '';
-    document.getElementById('filtro-data-fim').value = '';
-    window.location.href = window.location.pathname;
-}
+        const dataInicio = document.getElementById('filtro-data-inicio').value;
+        if (dataInicio) params.set('data_inicio', dataInicio);
+        else params.delete('data_inicio');
 
-function buscarCompras() {
-    const termo = document.getElementById('search-input').value.trim();
-    if (termo) {
-        const url = new URL(window.location);
-        url.searchParams.set('busca', termo);
-        window.location.href = url.toString();
-    } else {
+        const dataFim = document.getElementById('filtro-data-fim').value;
+        if (dataFim) params.set('data_fim', dataFim);
+        else params.delete('data_fim');
+
+        const nf = document.getElementById('filtro-nf').value.trim();
+        if (nf) params.set('nota_fiscal', nf);
+        else params.delete('nota_fiscal');
+
+        const busca = document.getElementById('search-input').value.trim();
+        if (busca) params.set('busca', busca);
+        else params.delete('busca');
+
+        // Redirecionar com filtros
+        window.location.href = window.location.pathname + '?' + params.toString();
+    }
+
+    function limparFiltros() {
         window.location.href = window.location.pathname;
     }
-}
 
-function limparBusca() {
-    document.getElementById('search-input').value = '';
-    const url = new URL(window.location);
-    url.searchParams.delete('busca');
-    window.location.href = url.toString();
-}
-
-// Funções de seleção em lote - Solução comprovada baseada em lançamentos
-document.addEventListener('DOMContentLoaded', function() {
-    // Verificar se estamos na página de compras
-    const container = document.getElementById('batch-actions-container');
-    if (!container) return; // Não é a página de compras, sair
-
-    const selectAllCheckbox = document.getElementById('select-all');
-    const compraCheckboxes = document.querySelectorAll('.compra-checkbox');
-
-    if (selectAllCheckbox) {
-        // Remover qualquer listener anterior
-        const newSelectAll = selectAllCheckbox.cloneNode(true);
-        selectAllCheckbox.parentNode.replaceChild(newSelectAll, selectAllCheckbox);
-
-        newSelectAll.addEventListener('change', function(e) {
-            e.stopPropagation(); // Parar propagação para evitar conflitos
-            const isChecked = this.checked;
-
-            // Marcar/desmarcar todos os checkboxes E disparar o evento change de cada um
-            compraCheckboxes.forEach(checkbox => {
-                checkbox.checked = isChecked;
-                const event = new Event('change', { bubbles: false });
-                checkbox.dispatchEvent(event);
-            });
-        });
+    function buscarCompras() {
+        const termo = document.getElementById('search-input').value.trim();
+        if (termo) {
+            const url = new URL(window.location);
+            url.searchParams.set('busca', termo);
+            window.location.href = url.toString();
+        } else {
+            window.location.href = window.location.pathname;
+        }
     }
 
-    compraCheckboxes.forEach(checkbox => {
-        checkbox.addEventListener('change', function(e) {
-            e.stopPropagation();
-            const todosSelecionados = compraCheckboxes.length === document.querySelectorAll('.compra-checkbox:checked').length;
-            const selectAll = document.getElementById('select-all');
-            if (selectAll) {
-                selectAll.checked = todosSelecionados;
-                selectAll.indeterminate = document.querySelectorAll('.compra-checkbox:checked').length > 0 && !todosSelecionados;
-            }
-            atualizarAcoesLote();
-        });
-    });
+    function limparBusca() {
+        document.getElementById('search-input').value = '';
+        const url = new URL(window.location);
+        url.searchParams.delete('busca');
+        window.location.href = url.toString();
+    }
 
-    function atualizarAcoesLote() {
-        const selecionados = document.querySelectorAll('.compra-checkbox:checked');
+    // Funções de seleção em lote - Solução comprovada baseada em lançamentos
+    document.addEventListener('DOMContentLoaded', function () {
+        // Verificar se estamos na página de compras
         const container = document.getElementById('batch-actions-container');
+        if (!container) return; // Não é a página de compras, sair
 
-        if (!container) return;
+        const selectAllCheckbox = document.getElementById('select-all');
+        const compraCheckboxes = document.querySelectorAll('.compra-checkbox');
 
-        if (selecionados.length > 0) {
-            // Verificar status dos selecionados
-            const ids = Array.from(selecionados).map(cb => cb.value);
-            const todosRealizados = ids.every(id => {
-                const linha = document.querySelector(`tr[data-compra-id="${id}"]`);
-                if (linha) {
-                    const statusBadge = linha.querySelector('.modern-status-badge');
-                    return statusBadge && statusBadge.textContent.trim() === 'Realizado';
-                }
-                return false;
+        if (selectAllCheckbox) {
+            // Remover qualquer listener anterior
+            const newSelectAll = selectAllCheckbox.cloneNode(true);
+            selectAllCheckbox.parentNode.replaceChild(newSelectAll, selectAllCheckbox);
+
+            newSelectAll.addEventListener('change', function (e) {
+                e.stopPropagation(); // Parar propagação para evitar conflitos
+                const isChecked = this.checked;
+
+                // Marcar/desmarcar todos os checkboxes E disparar o evento change de cada um
+                compraCheckboxes.forEach(checkbox => {
+                    checkbox.checked = isChecked;
+                    const event = new Event('change', { bubbles: false });
+                    checkbox.dispatchEvent(event);
+                });
             });
+        }
 
-            const btnClass = todosRealizados ? 'warning' : 'success';
-            const btnIcon = todosRealizados ? 'fa-times' : 'fa-check';
-            const btnText = todosRealizados ? 'Desmarcar como Realizado' : 'Marcar como Realizado';
+        compraCheckboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', function (e) {
+                e.stopPropagation();
+                const todosSelecionados = compraCheckboxes.length === document.querySelectorAll('.compra-checkbox:checked').length;
+                const selectAll = document.getElementById('select-all');
+                if (selectAll) {
+                    selectAll.checked = todosSelecionados;
+                    selectAll.indeterminate = document.querySelectorAll('.compra-checkbox:checked').length > 0 && !todosSelecionados;
+                }
+                atualizarAcoesLote();
+            });
+        });
 
-            // Criar HTML da barra
-            container.innerHTML = `
+        function atualizarAcoesLote() {
+            const selecionados = document.querySelectorAll('.compra-checkbox:checked');
+            const container = document.getElementById('batch-actions-container');
+
+            if (!container) return;
+
+            if (selecionados.length > 0) {
+                // Verificar status dos selecionados
+                const ids = Array.from(selecionados).map(cb => cb.value);
+                const todosRealizados = ids.every(id => {
+                    const linha = document.querySelector(`tr[data-compra-id="${id}"]`);
+                    if (linha) {
+                        const statusBadge = linha.querySelector('.modern-status-badge');
+                        return statusBadge && statusBadge.textContent.trim() === 'Realizado';
+                    }
+                    return false;
+                });
+
+                const btnClass = todosRealizados ? 'warning' : 'success';
+                const btnIcon = todosRealizados ? 'fa-times' : 'fa-check';
+                const btnText = todosRealizados ? 'Desmarcar como Realizado' : 'Marcar como Realizado';
+
+                // Criar HTML da barra
+                container.innerHTML = `
                 <div class="modern-batch-actions" id="batch-actions" style="display:flex !important; background:#fff3cd; padding:12px 20px; border-bottom:2px solid #ffc107; justify-content:space-between; align-items:center;">
                     <div class="modern-batch-info" style="font-size:13px; font-weight:600; color:#856404;">
                         <span id="selected-count">${selecionados.length}</span> compra(s) selecionada(s)
@@ -276,153 +287,153 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
             `;
 
-            // Re-anexar event listeners
-            anexarEventListeners();
-        } else {
-            container.innerHTML = '';
+                // Re-anexar event listeners
+                anexarEventListeners();
+            } else {
+                container.innerHTML = '';
+            }
         }
-    }
 
-    function anexarEventListeners() {
-        const btnToggleRealizado = document.getElementById('btn-toggle-realizado');
-        const btnExcluirLote = document.getElementById('btn-excluir-lote');
-        const btnDeselecionarTodos = document.getElementById('btn-deselecionar-todos');
+        function anexarEventListeners() {
+            const btnToggleRealizado = document.getElementById('btn-toggle-realizado');
+            const btnExcluirLote = document.getElementById('btn-excluir-lote');
+            const btnDeselecionarTodos = document.getElementById('btn-deselecionar-todos');
 
-        if (btnToggleRealizado) {
-            btnToggleRealizado.addEventListener('click', function(e) {
-                e.preventDefault();
-                const selecionados = document.querySelectorAll('.compra-checkbox:checked');
-                if (selecionados.length > 0) {
-                    const ids = Array.from(selecionados).map(cb => cb.value);
-                    const todosRealizados = ids.every(id => {
-                        const linha = document.querySelector(`tr[data-compra-id="${id}"]`);
-                        if (linha) {
-                            const statusBadge = linha.querySelector('.modern-status-badge');
-                            return statusBadge && statusBadge.textContent.trim() === 'Realizado';
+            if (btnToggleRealizado) {
+                btnToggleRealizado.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const selecionados = document.querySelectorAll('.compra-checkbox:checked');
+                    if (selecionados.length > 0) {
+                        const ids = Array.from(selecionados).map(cb => cb.value);
+                        const todosRealizados = ids.every(id => {
+                            const linha = document.querySelector(`tr[data-compra-id="${id}"]`);
+                            if (linha) {
+                                const statusBadge = linha.querySelector('.modern-status-badge');
+                                return statusBadge && statusBadge.textContent.trim() === 'Realizado';
+                            }
+                            return false;
+                        });
+                        const novoStatus = !todosRealizados;
+                        const acao = novoStatus ? 'marcar' : 'desmarcar';
+                        if (confirm(`${acao.charAt(0).toUpperCase() + acao.slice(1)} ${selecionados.length} compra(s) como realizado?`)) {
+                            marcarComprasRealizado(ids, novoStatus);
                         }
-                        return false;
-                    });
-                    const novoStatus = !todosRealizados;
-                    const acao = novoStatus ? 'marcar' : 'desmarcar';
-                    if (confirm(`${acao.charAt(0).toUpperCase() + acao.slice(1)} ${selecionados.length} compra(s) como realizado?`)) {
-                        marcarComprasRealizado(ids, novoStatus);
                     }
-                }
-            });
-        }
+                });
+            }
 
-        if (btnExcluirLote) {
-            btnExcluirLote.addEventListener('click', function(e) {
-                e.preventDefault();
-                const selecionados = document.querySelectorAll('.compra-checkbox:checked');
-                if (selecionados.length > 0) {
-                    const ids = Array.from(selecionados).map(cb => cb.value);
-                    if (confirm(`Deseja realmente excluir ${selecionados.length} compra(s)?\n\nEsta ação não pode ser desfeita.`)) {
-                        excluirComprasLote(ids);
+            if (btnExcluirLote) {
+                btnExcluirLote.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const selecionados = document.querySelectorAll('.compra-checkbox:checked');
+                    if (selecionados.length > 0) {
+                        const ids = Array.from(selecionados).map(cb => cb.value);
+                        if (confirm(`Deseja realmente excluir ${selecionados.length} compra(s)?\n\nEsta ação não pode ser desfeita.`)) {
+                            excluirComprasLote(ids);
+                        }
                     }
-                }
-            });
+                });
+            }
+
+            if (btnDeselecionarTodos) {
+                btnDeselecionarTodos.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const checkboxes = document.querySelectorAll('.compra-checkbox');
+                    checkboxes.forEach(cb => cb.checked = false);
+                    const selectAll = document.getElementById('select-all');
+                    if (selectAll) {
+                        selectAll.checked = false;
+                        selectAll.indeterminate = false;
+                    }
+                    atualizarAcoesLote();
+                });
+            }
         }
 
-        if (btnDeselecionarTodos) {
-            btnDeselecionarTodos.addEventListener('click', function(e) {
-                e.preventDefault();
-                const checkboxes = document.querySelectorAll('.compra-checkbox');
-                checkboxes.forEach(cb => cb.checked = false);
-                const selectAll = document.getElementById('select-all');
-                if (selectAll) {
-                    selectAll.checked = false;
-                    selectAll.indeterminate = false;
-                }
-                atualizarAcoesLote();
-            });
+        function marcarComprasRealizado(ids, realizado) {
+            fetch('/api/compras/marcar-status-lote', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ compra_ids: ids, realizado: realizado })
+            })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) location.reload();
+                    else alert('Erro: ' + (data.error || data.message || 'Erro ao atualizar'));
+                })
+                .catch(() => alert('Erro ao atualizar'));
+        }
+
+        function excluirComprasLote(ids) {
+            fetch('/api/compras/excluir-lote', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ compra_ids: ids })
+            })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) location.reload();
+                    else alert('Erro: ' + (data.error || data.message || 'Erro ao excluir'));
+                })
+                .catch(() => alert('Erro ao excluir compras'));
+        }
+    });
+
+    // Funções de ação
+    function editarCompra(id) {
+        window.location.href = `/compras/${id}/editar`;
+    }
+
+    function excluirCompra(id) {
+        if (confirm('Tem certeza que deseja excluir esta compra?')) {
+            window.location.href = `/compras/${id}/deletar`;
         }
     }
 
-    function marcarComprasRealizado(ids, realizado) {
-        fetch('/api/compras/marcar-status-lote', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ compra_ids: ids, realizado: realizado })
-        })
-        .then(r => r.json())
-        .then(data => {
-            if (data.success) location.reload();
-            else alert('Erro: ' + (data.error || data.message || 'Erro ao atualizar'));
-        })
-        .catch(() => alert('Erro ao atualizar'));
+    // Funções de paginação
+    function paginaAnterior() {
+        // Implementar paginação anterior
+        console.log('Página anterior');
     }
 
-    function excluirComprasLote(ids) {
-        fetch('/api/compras/excluir-lote', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ compra_ids: ids })
-        })
-        .then(r => r.json())
-        .then(data => {
-            if (data.success) location.reload();
-            else alert('Erro: ' + (data.error || data.message || 'Erro ao excluir'));
-        })
-        .catch(() => alert('Erro ao excluir compras'));
+    function proximaPagina() {
+        // Implementar próxima página
+        console.log('Próxima página');
     }
-});
 
-// Funções de ação
-function editarCompra(id) {
-    window.location.href = `/compras/${id}/editar`;
-}
+    // Máscaras de data
+    document.getElementById('filtro-data-inicio').addEventListener('input', function (e) {
+        let value = e.target.value.replace(/\D/g, '');
+        let formatted = '';
 
-function excluirCompra(id) {
-    if (confirm('Tem certeza que deseja excluir esta compra?')) {
-        window.location.href = `/compras/${id}/deletar`;
-    }
-}
+        if (value.length >= 1) {
+            formatted = value.substring(0, 2);
+        }
+        if (value.length >= 3) {
+            formatted += '/' + value.substring(2, 4);
+        }
+        if (value.length >= 5) {
+            formatted += '/' + value.substring(4, 8);
+        }
 
-// Funções de paginação
-function paginaAnterior() {
-    // Implementar paginação anterior
-    console.log('Página anterior');
-}
+        e.target.value = formatted;
+    });
 
-function proximaPagina() {
-    // Implementar próxima página
-    console.log('Próxima página');
-}
+    document.getElementById('filtro-data-fim').addEventListener('input', function (e) {
+        let value = e.target.value.replace(/\D/g, '');
+        let formatted = '';
 
-// Máscaras de data
-document.getElementById('filtro-data-inicio').addEventListener('input', function(e) {
-    let value = e.target.value.replace(/\D/g, '');
-    let formatted = '';
-    
-    if (value.length >= 1) {
-        formatted = value.substring(0, 2);
-    }
-    if (value.length >= 3) {
-        formatted += '/' + value.substring(2, 4);
-    }
-    if (value.length >= 5) {
-        formatted += '/' + value.substring(4, 8);
-    }
-    
-    e.target.value = formatted;
-});
+        if (value.length >= 1) {
+            formatted = value.substring(0, 2);
+        }
+        if (value.length >= 3) {
+            formatted += '/' + value.substring(2, 4);
+        }
+        if (value.length >= 5) {
+            formatted += '/' + value.substring(4, 8);
+        }
 
-document.getElementById('filtro-data-fim').addEventListener('input', function(e) {
-    let value = e.target.value.replace(/\D/g, '');
-    let formatted = '';
-    
-    if (value.length >= 1) {
-        formatted = value.substring(0, 2);
-    }
-    if (value.length >= 3) {
-        formatted += '/' + value.substring(2, 4);
-    }
-    if (value.length >= 5) {
-        formatted += '/' + value.substring(4, 8);
-    }
-    
-    e.target.value = formatted;
-});
+        e.target.value = formatted;
+    });
 </script>
 {% endblock %}

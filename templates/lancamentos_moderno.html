@@ -18,61 +18,64 @@
             </a>
         </div>
     </div>
-    
+
     <!-- Seção de Filtros -->
     <div class="modern-filters">
         <div class="modern-filter-group">
             <label class="modern-filter-label">Tipo:</label>
             <select class="modern-filter-input" id="filtro-tipo">
                 <option value="">Todos</option>
-                <option value="receita" {{ 'selected' if request.args.get('tipo') == 'receita' else '' }}>Receita</option>
-                <option value="despesa" {{ 'selected' if request.args.get('tipo') == 'despesa' else '' }}>Despesa</option>
+                <option value="receita" {{ 'selected' if request.args.get('tipo')=='receita' else '' }}>Receita</option>
+                <option value="despesa" {{ 'selected' if request.args.get('tipo')=='despesa' else '' }}>Despesa</option>
             </select>
         </div>
-        
+
         <div class="modern-filter-group">
             <label class="modern-filter-label">Categoria:</label>
             <select class="modern-filter-input" id="filtro-categoria">
                 <option value="">Todas</option>
                 {% for categoria in categorias %}
-                    <option value="{{ categoria }}" {{ 'selected' if request.args.get('categoria') == categoria else '' }}>{{ categoria }}</option>
+                <option value="{{ categoria.nome }}" {{ 'selected' if request.args.get('categoria')==categoria.nome
+                    else '' }}>
+                    {{ categoria.codigo + ' - ' if categoria.codigo else '' }}{{ categoria.nome }}
+                </option>
                 {% endfor %}
             </select>
         </div>
-        
+
         <div class="modern-filter-group">
             <label class="modern-filter-label">Data Início:</label>
-            <input type="text" class="modern-filter-input" id="filtro-data-inicio" 
-                   name="data_inicio"
-                   data-mask="date"
-                   placeholder="DD/MM/AAAA" 
-                   pattern="\d{2}/\d{2}/\d{4}"
-                   maxlength="10"
-                   value="{{ request.args.get('data_inicio', '') }}">
+            <input type="text" class="modern-filter-input" id="filtro-data-inicio" name="data_inicio" data-mask="date"
+                placeholder="DD/MM/AAAA" pattern="\d{2}/\d{2}/\d{4}" maxlength="10" value="{{ data_inicio }}">
         </div>
-        
+
         <div class="modern-filter-group">
             <label class="modern-filter-label">Data Fim:</label>
-            <input type="text" class="modern-filter-input" id="filtro-data-fim" 
-                   name="data_fim"
-                   data-mask="date"
-                   placeholder="DD/MM/AAAA" 
-                   pattern="\d{2}/\d{2}/\d{4}"
-                   maxlength="10"
-                   value="{{ request.args.get('data_fim', '') }}">
+            <input type="text" class="modern-filter-input" id="filtro-data-fim" name="data_fim" data-mask="date"
+                placeholder="DD/MM/AAAA" pattern="\d{2}/\d{2}/\d{4}" maxlength="10" value="{{ data_fim }}">
         </div>
-        
+
+        <div class="modern-filter-group">
+            <label class="modern-filter-label">Nota Fiscal:</label>
+            <input type="text" class="modern-filter-input" id="filtro-nf" name="nota_fiscal"
+                placeholder="Nº NF (ex: 123; 456)" value="{{ request.args.get('nota_fiscal', '') }}">
+        </div>
+
         <div class="modern-filter-group">
             <label class="modern-filter-label">Status:</label>
-                <select class="modern-filter-input" id="filtro-status">
-                    <option value="">Todos</option>
-                    <option value="realizado" {{ 'selected' if request.args.get('status') == 'realizado' else '' }}>Realizado</option>
-                    <option value="pendente" {{ 'selected' if request.args.get('status') == 'pendente' else '' }}>A vencer</option>
-                    <option value="agendado" {{ 'selected' if request.args.get('status') == 'agendado' else '' }}>Agendado</option>
-                    <option value="vencido" {{ 'selected' if request.args.get('status') == 'vencido' else '' }}>Vencido</option>
-                </select>
+            <select class="modern-filter-input" id="filtro-status">
+                <option value="">Todos</option>
+                <option value="realizado" {{ 'selected' if request.args.get('status')=='realizado' else '' }}>Realizado
+                </option>
+                <option value="pendente" {{ 'selected' if request.args.get('status')=='pendente' else '' }}>A vencer
+                </option>
+                <option value="agendado" {{ 'selected' if request.args.get('status')=='agendado' else '' }}>Agendado
+                </option>
+                <option value="vencido" {{ 'selected' if request.args.get('status')=='vencido' else '' }}>Vencido
+                </option>
+            </select>
         </div>
-        
+
         <div class="modern-filter-group">
             <button class="btn btn-primary btn-sm" onclick="aplicarFiltros()">
                 <i class="fas fa-search"></i>
@@ -82,13 +85,13 @@
             </button>
         </div>
     </div>
-    
+
     <!-- Seção de Busca -->
     <div class="search-section">
         <div class="search-input-group">
-            <input type="text" class="search-input" id="search-input" 
-                   placeholder="Buscar por descrição, cliente, fornecedor ou valor..."
-                   value="{{ request.args.get('busca', '') }}">
+            <input type="text" class="search-input" id="search-input"
+                placeholder="Buscar por descrição, cliente, fornecedor ou valor..."
+                value="{{ request.args.get('busca', '') }}">
             <button class="search-btn" onclick="buscarLancamentos()">
                 <i class="fas fa-search"></i>
             </button>
@@ -97,7 +100,7 @@
             </button>
         </div>
     </div>
-    
+
     <!-- Controles de Paginação -->
     <div class="modern-panel-controls">
         <div class="modern-pagination-info">
@@ -113,10 +116,10 @@
             </button>
         </div>
     </div>
-    
+
     <!-- Ações em Lote - Placeholder -->
     <div id="batch-actions-container"></div>
-    
+
     <!-- Tabela Principal -->
     <div class="modern-table-container">
         <table class="modern-table">
@@ -130,6 +133,7 @@
                     <th class="modern-data-col">Descrição</th>
                     <th class="modern-data-col">Tipo</th>
                     <th class="modern-data-col">Categoria</th>
+                    <th class="modern-data-col">NF</th>
                     <th class="modern-value-col">Valor</th>
                     <th class="modern-status-col">Status</th>
                     <th class="modern-data-col">Cliente/Fornecedor</th>
@@ -140,7 +144,7 @@
             <tbody>
                 <!-- Linha de Totalizadores Dinâmicos Detalhados -->
                 <tr class="modern-totals-row">
-                    <td colspan="11" class="modern-totals-cell">
+                    <td colspan="12" class="modern-totals-cell">
                         <div class="totals-container-enhanced">
                             <div class="totals-header">
                                 <span class="totals-title">TOTAIS ({{ lancamentos|length }} lançamentos)</span>
@@ -155,23 +159,28 @@
                                     <div class="group-items">
                                         <div class="total-item">
                                             <span class="item-label">Total:</span>
-                                            <span class="item-value receita-total">R$ {{ "%.2f"|format(receita_total) }}</span>
+                                            <span class="item-value receita-total">R$ {{ "%.2f"|format(receita_total)
+                                                }}</span>
                                         </div>
                                         <div class="total-item">
                                             <span class="item-label">Realizada:</span>
-                                            <span class="item-value receita-realizada">R$ {{ "%.2f"|format(receita_realizada) }}</span>
+                                            <span class="item-value receita-realizada">R$ {{
+                                                "%.2f"|format(receita_realizada) }}</span>
                                         </div>
                                         <div class="total-item">
                                             <span class="item-label">A vencer:</span>
-                                            <span class="item-value receita-vencer">R$ {{ "%.2f"|format(receita_a_vencer) }}</span>
+                                            <span class="item-value receita-vencer">R$ {{
+                                                "%.2f"|format(receita_a_vencer) }}</span>
                                         </div>
                                         <div class="total-item">
                                             <span class="item-label">Vencida:</span>
-                                            <span class="item-value receita-vencida">R$ {{ "%.2f"|format(receita_vencida) }}</span>
+                                            <span class="item-value receita-vencida">R$ {{
+                                                "%.2f"|format(receita_vencida) }}</span>
                                         </div>
                                         <div class="total-item">
                                             <span class="item-label">Agendada:</span>
-                                            <span class="item-value receita-agendada">R$ {{ "%.2f"|format(receita_agendada) }}</span>
+                                            <span class="item-value receita-agendada">R$ {{
+                                                "%.2f"|format(receita_agendada) }}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -184,23 +193,28 @@
                                     <div class="group-items">
                                         <div class="total-item">
                                             <span class="item-label">Total:</span>
-                                            <span class="item-value despesa-total">R$ {{ "%.2f"|format(despesa_total) }}</span>
+                                            <span class="item-value despesa-total">R$ {{ "%.2f"|format(despesa_total)
+                                                }}</span>
                                         </div>
                                         <div class="total-item">
                                             <span class="item-label">Realizada:</span>
-                                            <span class="item-value despesa-realizada">R$ {{ "%.2f"|format(despesa_realizada) }}</span>
+                                            <span class="item-value despesa-realizada">R$ {{
+                                                "%.2f"|format(despesa_realizada) }}</span>
                                         </div>
                                         <div class="total-item">
                                             <span class="item-label">A vencer:</span>
-                                            <span class="item-value despesa-vencer">R$ {{ "%.2f"|format(despesa_a_vencer) }}</span>
+                                            <span class="item-value despesa-vencer">R$ {{
+                                                "%.2f"|format(despesa_a_vencer) }}</span>
                                         </div>
                                         <div class="total-item">
                                             <span class="item-label">Vencida:</span>
-                                            <span class="item-value despesa-vencida">R$ {{ "%.2f"|format(despesa_vencida) }}</span>
+                                            <span class="item-value despesa-vencida">R$ {{
+                                                "%.2f"|format(despesa_vencida) }}</span>
                                         </div>
                                         <div class="total-item">
                                             <span class="item-label">Agendada:</span>
-                                            <span class="item-value despesa-agendada">R$ {{ "%.2f"|format(despesa_agendada) }}</span>
+                                            <span class="item-value despesa-agendada">R$ {{
+                                                "%.2f"|format(despesa_agendada) }}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -209,113 +223,120 @@
                     </td>
                 </tr>
                 {% if lancamentos %}
-                    {% for lancamento in lancamentos %}
-                    <tr data-lancamento-id="{{ lancamento.id }}">
-                        <td class="modern-checkbox-col">
-                            <input type="checkbox" class="modern-checkbox lancamento-checkbox" 
-                                   value="{{ lancamento.id }}">
-                        </td>
-                        <td class="modern-date-col">
-                            {{ lancamento.data_prevista.strftime('%d/%m/%y') if lancamento.data_prevista else '-' }}
-                        </td>
-                        <td class="modern-date-col">
-                            {{ lancamento.data_realizada.strftime('%d/%m/%y') if lancamento.data_realizada else '-' }}
-                        </td>
-                        <td class="modern-data-col" title="{{ lancamento.descricao }}">
-                            {{ lancamento.descricao[:30] + '...' if lancamento.descricao|length > 30 else lancamento.descricao }}
-                        </td>
-                        <td class="modern-data-col">
-                            <span class="badge {{ 'bg-success' if lancamento.tipo == 'receita' else 'bg-danger' }}">
-                                {{ lancamento.tipo.title() }}
-                            </span>
-                        </td>
-                        <td class="modern-data-col">
-                            {{ lancamento.categoria }}
-                        </td>
-                        <td class="modern-value-col {{ 'positive' if lancamento.tipo == 'receita' else 'negative' }}">
-                            R$ {{ "%.2f"|format(lancamento.valor) }}
-                        </td>
-                        <td class="modern-status-col">
-                            {% if lancamento.realizado %}
-                                <span class="modern-status-badge completed">Realizado</span>
-                            {% elif lancamento.data_realizada %}
-                                <span class="modern-status-badge scheduled">Agendado</span>
-                            {% elif not lancamento.data_realizada and lancamento.data_prevista < hoje %}
-                                <span class="modern-status-badge overdue">Vencido</span>
+                {% for lancamento in lancamentos %}
+                <tr data-lancamento-id="{{ lancamento.id }}">
+                    <td class="modern-checkbox-col">
+                        <input type="checkbox" class="modern-checkbox lancamento-checkbox" value="{{ lancamento.id }}">
+                    </td>
+                    <td class="modern-date-col">
+                        {{ lancamento.data_prevista.strftime('%d/%m/%y') if lancamento.data_prevista else '-' }}
+                    </td>
+                    <td class="modern-date-col">
+                        {{ lancamento.data_realizada.strftime('%d/%m/%y') if lancamento.data_realizada else '-' }}
+                    </td>
+                    <td class="modern-data-col" title="{{ lancamento.descricao }}">
+                        {{ lancamento.descricao[:30] + '...' if lancamento.descricao|length > 30 else
+                        lancamento.descricao }}
+                    </td>
+                    <td class="modern-data-col">
+                        <span class="badge {{ 'bg-success' if lancamento.tipo == 'receita' else 'bg-danger' }}">
+                            {{ lancamento.tipo.title() }}
+                        </span>
+                    </td>
+                    <td class="modern-data-col">
+                        {{ lancamento.plano_conta.codigo + ' - ' if lancamento.plano_conta and
+                        lancamento.plano_conta.codigo else '' }}{{ lancamento.categoria }}
+                    </td>
+                    <td class="modern-data-col" title="Nota Fiscal">
+                        {{ lancamento.nota_fiscal or '-' }}
+                    </td>
+                    <td class="modern-value-col {{ 'positive' if lancamento.tipo == 'receita' else 'negative' }}">
+                        R$ {{ "%.2f"|format(lancamento.valor) }}
+                    </td>
+                    <td class="modern-status-col">
+                        {% if lancamento.realizado %}
+                        <span class="modern-status-badge completed">Realizado</span>
+                        {% elif lancamento.data_realizada %}
+                        <span class="modern-status-badge scheduled">Agendado</span>
+                        {% elif not lancamento.data_realizada and lancamento.data_prevista < hoje %} <span
+                            class="modern-status-badge overdue">Vencido</span>
                             {% else %}
-                                <span class="modern-status-badge pending">A vencer</span>
+                            <span class="modern-status-badge pending">A vencer</span>
                             {% endif %}
-                        </td>
-                        <td class="modern-data-col">
-                            {% if lancamento.cliente %}
-                                {{ lancamento.cliente.nome }}
-                            {% elif lancamento.fornecedor %}
-                                {{ lancamento.fornecedor.nome }}
-                            {% else %}
-                                -
-                            {% endif %}
-                        </td>
-                        <td class="modern-data-col" title="{% if lancamento.usuario_ultima_edicao %}Editado por {{ lancamento.usuario_ultima_edicao.nome }} em {{ lancamento.data_ultima_edicao.strftime('%d/%m/%y %H:%M') if lancamento.data_ultima_edicao else '' }}{% elif lancamento.usuario_criacao %}Criado por {{ lancamento.usuario_criacao.nome }}{% elif lancamento.usuario %}Responsável {{ lancamento.usuario.nome }}{% else %}-{% endif %}">
-                            {% if lancamento.usuario_ultima_edicao %}
-                                <i class="fas fa-edit text-warning" title="Editado"></i>
-                                <i class="fas fa-user text-primary ms-1" title="Usuário"></i>
-                                {{ lancamento.usuario_ultima_edicao.nome }}
-                            {% elif lancamento.usuario_criacao %}
-                                <i class="fas fa-user text-success" title="Criado"></i> {{ lancamento.usuario_criacao.nome }}
-                            {% else %}
-                                {% if lancamento.usuario %}
-                                    <i class="fas fa-user text-primary" title="Usuário"></i> {{ lancamento.usuario.nome }}
-                                {% else %}
-                                    -
-                                {% endif %}
-                            {% endif %}
-                        </td>
-                        <td class="modern-actions-col">
-                            <button class="modern-action-btn edit" 
-                                    onclick="editarLancamento({{ lancamento.id }})"
-                                    title="Editar">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button class="modern-action-btn {{ 'check' if not lancamento.realizado else 'times' }}" 
-                                    onclick="toggleStatus({{ lancamento.id }}, {{ 'true' if not lancamento.realizado else 'false' }})"
-                                    title="{{ 'Marcar como Realizado' if not lancamento.realizado else 'Marcar como Pendente' }}">
-                                <i class="fas {{ 'fa-check' if not lancamento.realizado else 'fa-times' }}"></i>
-                            </button>
-                            <button class="modern-action-btn delete" 
-                                    onclick="excluirLancamento({{ lancamento.id }})"
-                                    title="Excluir">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </td>
-                    </tr>
-                    {% endfor %}
+                    </td>
+                    <td class="modern-data-col">
+                        {% if lancamento.cliente %}
+                        {{ lancamento.cliente.nome }}
+                        {% elif lancamento.fornecedor %}
+                        {{ lancamento.fornecedor.nome }}
+                        {% else %}
+                        -
+                        {% endif %}
+                    </td>
+                    <td class="modern-data-col"
+                        title="{% if lancamento.usuario_ultima_edicao %}Editado por {{ lancamento.usuario_ultima_edicao.nome }} em {{ lancamento.data_ultima_edicao.strftime('%d/%m/%y %H:%M') if lancamento.data_ultima_edicao else '' }}{% elif lancamento.usuario_criacao %}Criado por {{ lancamento.usuario_criacao.nome }}{% elif lancamento.usuario %}Responsável {{ lancamento.usuario.nome }}{% else %}-{% endif %}">
+                        {% if lancamento.usuario_ultima_edicao %}
+                        <i class="fas fa-edit text-warning" title="Editado"></i>
+                        <i class="fas fa-user text-primary ms-1" title="Usuário"></i>
+                        {{ lancamento.usuario_ultima_edicao.nome }}
+                        {% elif lancamento.usuario_criacao %}
+                        <i class="fas fa-user text-success" title="Criado"></i> {{ lancamento.usuario_criacao.nome }}
+                        {% else %}
+                        {% if lancamento.usuario %}
+                        <i class="fas fa-user text-primary" title="Usuário"></i> {{ lancamento.usuario.nome }}
+                        {% else %}
+                        -
+                        {% endif %}
+                        {% endif %}
+                    </td>
+                    <td class="modern-actions-col">
+                        <button class="modern-action-btn edit"
+                            onclick="editarLancamento(parseInt('{{ lancamento.id }}'))" title="Editar">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="modern-action-btn {{ 'check' if not lancamento.realizado else 'times' }}"
+                            onclick="toggleStatus(parseInt('{{ lancamento.id }}'), {{ 'true' if not lancamento.realizado else 'false' }})"
+                            title="{{ 'Marcar como Realizado' if not lancamento.realizado else 'Marcar como Pendente' }}">
+                            <i class="fas {{ 'fa-check' if not lancamento.realizado else 'fa-times' }}"></i>
+                        </button>
+                        <button class="modern-action-btn delete"
+                            onclick="excluirLancamento(parseInt('{{ lancamento.id }}'))" title="Excluir">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
                 {% else %}
-                    <tr>
-                        <td colspan="11" class="text-center py-4 text-muted">
-                            <i class="fas fa-inbox fa-2x mb-2"></i><br>
-                            Nenhum lançamento encontrado
-                        </td>
-                    </tr>
+                <tr>
+                    <td colspan="12" class="text-center py-4 text-muted">
+                        <i class="fas fa-inbox fa-2x mb-2"></i><br>
+                        Nenhum lançamento encontrado
+                    </td>
+                </tr>
                 {% endif %}
             </tbody>
         </table>
     </div>
-    
+
     <!-- Rodapé com Totais -->
     <div class="modern-panel-footer">
         <div class="modern-totals">
             <div>
                 <span class="modern-total-label">Total Receitas:</span>
-                <span class="modern-total-value positive">R$ {{ "%.2f"|format(total_receitas) if total_receitas else '0,00' }}</span>
+                <span class="modern-total-value positive">R$ {{ "%.2f"|format(total_receitas) if total_receitas else
+                    '0,00' }}</span>
             </div>
             <div>
                 <span class="modern-total-label">Total Despesas:</span>
-                <span class="modern-total-value negative">R$ {{ "%.2f"|format(total_despesas) if total_despesas else '0,00' }}</span>
+                <span class="modern-total-value negative">R$ {{ "%.2f"|format(total_despesas) if total_despesas else
+                    '0,00' }}</span>
             </div>
             <div>
                 <span class="modern-total-label">Saldo:</span>
-                <span class="modern-total-value {{ 'positive' if (total_receitas - total_despesas) >= 0 else 'negative' }}">
-                    R$ {{ "%.2f"|format(total_receitas - total_despesas) if total_receitas and total_despesas else '0,00' }}
+                <span
+                    class="modern-total-value {{ 'positive' if (total_receitas - total_despesas) >= 0 else 'negative' }}">
+                    R$ {{ "%.2f"|format(total_receitas - total_despesas) if total_receitas and total_despesas else
+                    '0,00' }}
                 </span>
             </div>
         </div>
@@ -323,73 +344,73 @@
 </div>
 
 <script>
-// IMPORTANTE: Parar propagação para evitar conflito com clientes.js
-document.addEventListener('DOMContentLoaded', function() {
-    // Verificar se estamos na página de lançamentos
-    const container = document.getElementById('batch-actions-container');
-    if (!container) return; // Não é a página de lançamentos, sair
-
-    const selectAllCheckbox = document.getElementById('select-all');
-    const lancamentoCheckboxes = document.querySelectorAll('.lancamento-checkbox');
-
-    if (selectAllCheckbox) {
-        // Remover qualquer listener anterior
-        const newSelectAll = selectAllCheckbox.cloneNode(true);
-        selectAllCheckbox.parentNode.replaceChild(newSelectAll, selectAllCheckbox);
-
-        newSelectAll.addEventListener('change', function(e) {
-            e.stopPropagation(); // Parar propagação para evitar conflitos
-            const isChecked = this.checked;
-
-            // Marcar/desmarcar todos os checkboxes E disparar o evento change de cada um
-            lancamentoCheckboxes.forEach(checkbox => {
-                checkbox.checked = isChecked;
-                // Disparar o evento change para cada checkbox
-                const event = new Event('change', { bubbles: false }); // bubbles: false para evitar conflitos
-                checkbox.dispatchEvent(event);
-            });
-        });
-    }
-
-    lancamentoCheckboxes.forEach(checkbox => {
-        checkbox.addEventListener('change', function(e) {
-            e.stopPropagation(); // Parar propagação
-            const todosSelecionados = lancamentoCheckboxes.length === document.querySelectorAll('.lancamento-checkbox:checked').length;
-            const selectAll = document.getElementById('select-all');
-            if (selectAll) {
-                selectAll.checked = todosSelecionados;
-                selectAll.indeterminate = document.querySelectorAll('.lancamento-checkbox:checked').length > 0 && !todosSelecionados;
-            }
-            atualizarAcoesLote();
-        });
-    });
-
-    // Event listeners são anexados dinamicamente em anexarEventListeners()
-
-    function atualizarAcoesLote() {
-        const selecionados = document.querySelectorAll('.lancamento-checkbox:checked');
+    // IMPORTANTE: Parar propagação para evitar conflito com clientes.js
+    document.addEventListener('DOMContentLoaded', function () {
+        // Verificar se estamos na página de lançamentos
         const container = document.getElementById('batch-actions-container');
+        if (!container) return; // Não é a página de lançamentos, sair
 
-        if (!container) return;
+        const selectAllCheckbox = document.getElementById('select-all');
+        const lancamentoCheckboxes = document.querySelectorAll('.lancamento-checkbox');
 
-        if (selecionados.length > 0) {
-            // Verificar status dos selecionados
-            const ids = Array.from(selecionados).map(cb => cb.value);
-            const todosRealizados = ids.every(id => {
-                const linha = document.querySelector(`tr[data-lancamento-id="${id}"]`);
-                if (linha) {
-                    const statusBadge = linha.querySelector('.modern-status-badge');
-                    return statusBadge && statusBadge.textContent.trim() === 'Realizado';
-                }
-                return false;
+        if (selectAllCheckbox) {
+            // Remover qualquer listener anterior
+            const newSelectAll = selectAllCheckbox.cloneNode(true);
+            selectAllCheckbox.parentNode.replaceChild(newSelectAll, selectAllCheckbox);
+
+            newSelectAll.addEventListener('change', function (e) {
+                e.stopPropagation(); // Parar propagação para evitar conflitos
+                const isChecked = this.checked;
+
+                // Marcar/desmarcar todos os checkboxes E disparar o evento change de cada um
+                lancamentoCheckboxes.forEach(checkbox => {
+                    checkbox.checked = isChecked;
+                    // Disparar o evento change para cada checkbox
+                    const event = new Event('change', { bubbles: false }); // bubbles: false para evitar conflitos
+                    checkbox.dispatchEvent(event);
+                });
             });
+        }
 
-            const btnClass = todosRealizados ? 'warning' : 'success';
-            const btnIcon = todosRealizados ? 'fa-times' : 'fa-check';
-            const btnText = todosRealizados ? 'Desmarcar como Realizado' : 'Marcar como Realizado';
+        lancamentoCheckboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', function (e) {
+                e.stopPropagation(); // Parar propagação
+                const todosSelecionados = lancamentoCheckboxes.length === document.querySelectorAll('.lancamento-checkbox:checked').length;
+                const selectAll = document.getElementById('select-all');
+                if (selectAll) {
+                    selectAll.checked = todosSelecionados;
+                    selectAll.indeterminate = document.querySelectorAll('.lancamento-checkbox:checked').length > 0 && !todosSelecionados;
+                }
+                atualizarAcoesLote();
+            });
+        });
 
-            // Criar HTML da barra
-            container.innerHTML = `
+        // Event listeners são anexados dinamicamente em anexarEventListeners()
+
+        function atualizarAcoesLote() {
+            const selecionados = document.querySelectorAll('.lancamento-checkbox:checked');
+            const container = document.getElementById('batch-actions-container');
+
+            if (!container) return;
+
+            if (selecionados.length > 0) {
+                // Verificar status dos selecionados
+                const ids = Array.from(selecionados).map(cb => cb.value);
+                const todosRealizados = ids.every(id => {
+                    const linha = document.querySelector(`tr[data-lancamento-id="${id}"]`);
+                    if (linha) {
+                        const statusBadge = linha.querySelector('.modern-status-badge');
+                        return statusBadge && statusBadge.textContent.trim() === 'Realizado';
+                    }
+                    return false;
+                });
+
+                const btnClass = todosRealizados ? 'warning' : 'success';
+                const btnIcon = todosRealizados ? 'fa-times' : 'fa-check';
+                const btnText = todosRealizados ? 'Desmarcar como Realizado' : 'Marcar como Realizado';
+
+                // Criar HTML da barra
+                container.innerHTML = `
                 <div class="modern-batch-actions" id="batch-actions" style="display:flex !important; background:#fff3cd; padding:12px 20px; border-bottom:2px solid #ffc107; justify-content:space-between; align-items:center;">
                     <div class="modern-batch-info" style="font-size:13px; font-weight:600; color:#856404;">
                         <span id="selected-count">${selecionados.length}</span> lançamento(s) selecionado(s)
@@ -408,106 +429,106 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
             `;
 
-            // Re-anexar event listeners
-            anexarEventListeners();
-        } else {
-            // Remover barra
-            container.innerHTML = '';
-        }
-    }
-
-    function anexarEventListeners() {
-        const btnToggleRealizado = document.getElementById('btn-toggle-realizado');
-        const btnExcluirLote = document.getElementById('btn-excluir-lote');
-        const btnDeselecionarTodos = document.getElementById('btn-deselecionar-todos');
-
-        if (btnToggleRealizado) {
-            btnToggleRealizado.addEventListener('click', function(e) {
-                e.preventDefault();
-                const selecionados = document.querySelectorAll('.lancamento-checkbox:checked');
-                if (selecionados.length > 0) {
-                    const ids = Array.from(selecionados).map(cb => cb.value);
-                    const todosRealizados = ids.every(id => {
-                        const linha = document.querySelector(`tr[data-lancamento-id="${id}"]`);
-                        if (linha) {
-                            const statusBadge = linha.querySelector('.modern-status-badge');
-                            return statusBadge && statusBadge.textContent.trim() === 'Realizado';
-                        }
-                        return false;
-                    });
-                    const novoStatus = !todosRealizados;
-                    const acao = novoStatus ? 'marcar' : 'desmarcar';
-                    if (confirm(`${acao.charAt(0).toUpperCase() + acao.slice(1)} ${selecionados.length} lançamento(s) como realizado?`)) {
-                        marcarLancamentosRealizado(ids, novoStatus);
-                    }
-                }
-            });
-        }
-
-        if (btnExcluirLote) {
-            btnExcluirLote.addEventListener('click', function(e) {
-                e.preventDefault();
-                const selecionados = document.querySelectorAll('.lancamento-checkbox:checked');
-                if (selecionados.length > 0) {
-                    const ids = Array.from(selecionados).map(cb => cb.value);
-                    if (confirm(`Deseja realmente excluir ${selecionados.length} lançamento(s)?\n\nEsta ação não pode ser desfeita.`)) {
-                        excluirLancamentosLote(ids);
-                    }
-                }
-            });
-        }
-
-        if (btnDeselecionarTodos) {
-            btnDeselecionarTodos.addEventListener('click', function(e) {
-                e.preventDefault();
-                const checkboxes = document.querySelectorAll('.lancamento-checkbox');
-                checkboxes.forEach(cb => cb.checked = false);
-                const selectAll = document.getElementById('select-all');
-                if (selectAll) {
-                    selectAll.checked = false;
-                    selectAll.indeterminate = false;
-                }
-                atualizarAcoesLote();
-            });
-        }
-    }
-    
-    function marcarLancamentosRealizado(ids, realizado) {
-        fetch('/api/lancamentos/marcar-realizado-lote', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ lancamento_ids: ids, realizado: realizado })
-        })
-        .then(r => r.json())
-        .then(data => {
-            if (data.success) location.reload();
-            else alert('Erro: ' + (data.message || 'Erro ao atualizar'));
-        })
-        .catch(() => alert('Erro ao atualizar'));
-    }
-
-    function excluirLancamentosLote(ids) {
-        fetch('/lancamentos/excluir-lote', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ lancamento_ids: ids })
-        })
-        .then(r => r.json())
-        .then(data => {
-            if (data.success) {
-                if (data.avisos && data.avisos.length > 0) {
-                    alert('Alguns lançamentos não puderam ser excluídos:\n\n' + data.avisos.join('\n'));
-                }
-                location.reload();
+                // Re-anexar event listeners
+                anexarEventListeners();
             } else {
-                alert('Erro: ' + (data.message || 'Erro ao excluir lançamentos'));
+                // Remover barra
+                container.innerHTML = '';
             }
-        })
-        .catch(error => {
-            console.error('Erro:', error);
-            alert('Erro ao excluir lançamentos. Tente novamente.');
-        });
-    }
-});
+        }
+
+        function anexarEventListeners() {
+            const btnToggleRealizado = document.getElementById('btn-toggle-realizado');
+            const btnExcluirLote = document.getElementById('btn-excluir-lote');
+            const btnDeselecionarTodos = document.getElementById('btn-deselecionar-todos');
+
+            if (btnToggleRealizado) {
+                btnToggleRealizado.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const selecionados = document.querySelectorAll('.lancamento-checkbox:checked');
+                    if (selecionados.length > 0) {
+                        const ids = Array.from(selecionados).map(cb => cb.value);
+                        const todosRealizados = ids.every(id => {
+                            const linha = document.querySelector(`tr[data-lancamento-id="${id}"]`);
+                            if (linha) {
+                                const statusBadge = linha.querySelector('.modern-status-badge');
+                                return statusBadge && statusBadge.textContent.trim() === 'Realizado';
+                            }
+                            return false;
+                        });
+                        const novoStatus = !todosRealizados;
+                        const acao = novoStatus ? 'marcar' : 'desmarcar';
+                        if (confirm(`${acao.charAt(0).toUpperCase() + acao.slice(1)} ${selecionados.length} lançamento(s) como realizado?`)) {
+                            marcarLancamentosRealizado(ids, novoStatus);
+                        }
+                    }
+                });
+            }
+
+            if (btnExcluirLote) {
+                btnExcluirLote.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const selecionados = document.querySelectorAll('.lancamento-checkbox:checked');
+                    if (selecionados.length > 0) {
+                        const ids = Array.from(selecionados).map(cb => cb.value);
+                        if (confirm(`Deseja realmente excluir ${selecionados.length} lançamento(s)?\n\nEsta ação não pode ser desfeita.`)) {
+                            excluirLancamentosLote(ids);
+                        }
+                    }
+                });
+            }
+
+            if (btnDeselecionarTodos) {
+                btnDeselecionarTodos.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const checkboxes = document.querySelectorAll('.lancamento-checkbox');
+                    checkboxes.forEach(cb => cb.checked = false);
+                    const selectAll = document.getElementById('select-all');
+                    if (selectAll) {
+                        selectAll.checked = false;
+                        selectAll.indeterminate = false;
+                    }
+                    atualizarAcoesLote();
+                });
+            }
+        }
+
+        function marcarLancamentosRealizado(ids, realizado) {
+            fetch('/api/lancamentos/marcar-realizado-lote', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ lancamento_ids: ids, realizado: realizado })
+            })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) location.reload();
+                    else alert('Erro: ' + (data.message || 'Erro ao atualizar'));
+                })
+                .catch(() => alert('Erro ao atualizar'));
+        }
+
+        function excluirLancamentosLote(ids) {
+            fetch('/lancamentos/excluir-lote', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ lancamento_ids: ids })
+            })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        if (data.avisos && data.avisos.length > 0) {
+                            alert('Alguns lançamentos não puderam ser excluídos:\n\n' + data.avisos.join('\n'));
+                        }
+                        location.reload();
+                    } else {
+                        alert('Erro: ' + (data.message || 'Erro ao excluir lançamentos'));
+                    }
+                })
+                .catch(error => {
+                    console.error('Erro:', error);
+                    alert('Erro ao excluir lançamentos. Tente novamente.');
+                });
+        }
+    });
 </script>
 {% endblock %}

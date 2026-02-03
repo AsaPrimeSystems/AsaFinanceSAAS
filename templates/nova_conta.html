@@ -2,6 +2,33 @@
 
 {% block title %}Nova Conta - Sistema de Gestão Financeira{% endblock %}
 
+{% block scripts %}
+<script>
+    function filterParents() {
+        const tipo = document.getElementById('tipo').value;
+        const paiSelect = document.getElementById('pai_id');
+        const options = paiSelect.options;
+
+        for (let i = 1; i < options.length; i++) {
+            const option = options[i];
+            if (tipo === "" || option.getAttribute('data-tipo') === tipo) {
+                option.style.display = "";
+            } else {
+                option.style.display = "none";
+            }
+        }
+
+        // Resetar seleção se o pai atual for escondido
+        if (paiSelect.selectedIndex > 0 && options[paiSelect.selectedIndex].style.display === "none") {
+            paiSelect.selectedIndex = 0;
+        }
+    }
+
+    // Rodar ao carregar para garantir estado inicial
+    document.addEventListener('DOMContentLoaded', filterParents);
+</script>
+{% endblock %}
+
 {% block content %}
 <div class="container-fluid">
     <div class="row">
@@ -13,33 +40,68 @@
                 <div class="card-body">
                     <form method="POST">
                         <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="tipo" class="form-label">Tipo de Lançamento</label>
+                                    <select class="form-select" id="tipo" name="tipo" required
+                                        onchange="filterParents()">
+                                        <option value="">Selecione...</option>
+                                        <option value="receita">Receita (Entrada)</option>
+                                        <option value="despesa">Despesa (Saída)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="natureza" class="form-label">Natureza da Conta</label>
+                                    <select class="form-select" id="natureza" name="natureza" required>
+                                        <option value="analitica">Analítica (Aceita lançamentos)</option>
+                                        <option value="sintetica">Sintética (Grupo/Subgrupo)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="codigo" class="form-label">Código (ex: 1.1.2)</label>
+                                    <input type="text" class="form-control" id="codigo" name="codigo" required
+                                        placeholder="Ex: 1.2.1">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="nome" class="form-label">Nome da Conta</label>
-                                    <input type="text" class="form-control" id="nome" name="nome" required>
+                                    <input type="text" class="form-control" id="nome" name="nome" required
+                                        placeholder="Nome da categoria">
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label for="tipo" class="form-label">Tipo</label>
-                                    <select class="form-control" id="tipo" name="tipo" required>
-                                        <option value="">Selecione...</option>
-                                        <option value="receita">Receita</option>
-                                        <option value="despesa">Despesa</option>
+                                    <label for="pai_id" class="form-label">Conta Pai (Superior)</label>
+                                    <select class="form-select" id="pai_id" name="pai_id">
+                                        <option value="">Nenhuma (Raiz)</option>
+                                        {% for pai in planos_sinteticos %}
+                                        <option value="{{ pai.id }}" data-tipo="{{ pai.tipo }}">
+                                            {{ pai.codigo or '' }} {{ pai.nome }}
+                                        </option>
+                                        {% endfor %}
                                     </select>
                                 </div>
                             </div>
                         </div>
-                        
+
                         <div class="row">
                             <div class="col-md-12">
                                 <div class="mb-3">
-                                    <label for="descricao" class="form-label">Descrição</label>
-                                    <textarea class="form-control" id="descricao" name="descricao" rows="3" placeholder="Descrição opcional da conta"></textarea>
+                                    <label for="descricao" class="form-label">Descrição / Observações</label>
+                                    <textarea class="form-control" id="descricao" name="descricao" rows="2"
+                                        placeholder="Descrição opcional da conta"></textarea>
                                 </div>
                             </div>
                         </div>
-                        
+
                         <div class="row">
                             <div class="col-md-12">
                                 <button type="submit" class="btn btn-primary">
@@ -56,4 +118,4 @@
         </div>
     </div>
 </div>
-{% endblock %} 
+{% endblock %}

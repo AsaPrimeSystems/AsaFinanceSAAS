@@ -13,30 +13,69 @@
                 <div class="card-body">
                     <form method="POST">
                         <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="tipo_display" class="form-label">Tipo de Lançamento</label>
+                                    <input type="text" class="form-control" id="tipo_display"
+                                        value="{% if conta.tipo == 'receita' %}Receita{% else %}Despesa{% endif %}"
+                                        disabled>
+                                    <input type="hidden" id="tipo" name="tipo" value="{{ conta.tipo }}">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="natureza" class="form-label">Natureza da Conta</label>
+                                    <select class="form-select" id="natureza" name="natureza" required>
+                                        <option value="analitica" {% if conta.natureza=='analitica' %}selected{% endif
+                                            %}>Analítica (Aceita lançamentos)</option>
+                                        <option value="sintetica" {% if conta.natureza=='sintetica' %}selected{% endif
+                                            %}>Sintética (Grupo/Subgrupo)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="codigo" class="form-label">Código</label>
+                                    <input type="text" class="form-control" id="codigo" name="codigo"
+                                        value="{{ conta.codigo or '' }}" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="nome" class="form-label">Nome da Conta</label>
-                                    <input type="text" class="form-control" id="nome" name="nome" value="{{ conta.nome }}" required>
+                                    <input type="text" class="form-control" id="nome" name="nome"
+                                        value="{{ conta.nome }}" required>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label for="tipo" class="form-label">Tipo</label>
-                                    <input type="text" class="form-control" id="tipo" value="{% if conta.tipo == 'receita' %}Receita{% else %}Despesa{% endif %}" disabled>
-                                    <small class="form-text text-muted">O tipo da conta não pode ser alterado.</small>
+                                    <label for="pai_id" class="form-label">Conta Pai (Superior)</label>
+                                    <select class="form-select" id="pai_id" name="pai_id">
+                                        <option value="">Nenhuma (Raiz)</option>
+                                        {% for pai in planos_sinteticos %}
+                                        <option value="{{ pai.id }}" data-tipo="{{ pai.tipo }}" {% if
+                                            conta.pai_id==pai.id %}selected{% endif %}>
+                                            {{ pai.codigo or '' }} {{ pai.nome }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
                                 </div>
                             </div>
                         </div>
-                        
+
                         <div class="row">
                             <div class="col-md-12">
                                 <div class="mb-3">
-                                    <label for="descricao" class="form-label">Descrição</label>
-                                    <textarea class="form-control" id="descricao" name="descricao" rows="3" placeholder="Descrição opcional da conta">{{ conta.descricao or '' }}</textarea>
+                                    <label for="descricao" class="form-label">Descrição / Observações</label>
+                                    <textarea class="form-control" id="descricao" name="descricao" rows="2"
+                                        placeholder="Descrição opcional da conta">{{ conta.descricao or '' }}</textarea>
                                 </div>
                             </div>
                         </div>
-                        
+
                         <div class="row">
                             <div class="col-md-12">
                                 <button type="submit" class="btn btn-primary">
@@ -55,3 +94,31 @@
 </div>
 {% endblock %}
 
+{% block scripts %}
+<script>
+    function filterParents() {
+        var tipo = document.getElementById('tipo').value;
+        var paiSelect = document.getElementById('pai_id');
+        var options = paiSelect.options;
+
+        for (var i = 1; i < options.length; i++) {
+            var optionTipo = options[i].getAttribute('data-tipo');
+            if (tipo === '' || optionTipo === tipo) {
+                options[i].style.display = 'block';
+            } else {
+                options[i].style.display = 'none';
+            }
+        }
+
+        // Se a opção selecionada for ocultada, limpa a seleção
+        if (paiSelect.selectedIndex > 0 && options[paiSelect.selectedIndex].style.display === 'none') {
+            paiSelect.selectedIndex = 0;
+        }
+    }
+
+    // Executar ao carregar
+    document.addEventListener('DOMContentLoaded', function () {
+        filterParents();
+    });
+</script>
+{% endblock %}
