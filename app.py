@@ -5416,14 +5416,11 @@ def deletar_venda(venda_id):
     if usuario.tipo == 'admin':
         return redirect(url_for('admin_dashboard'))
     
-    # Buscar todos os usuários da mesma empresa
+    # Obter empresa_id correta da sessão (considera acesso_contador)
     empresa_id = obter_empresa_id_sessao(session, usuario)
-
-    usuarios_empresa = Usuario.query.filter_by(empresa_id=empresa_id, ativo=True).all()
-    usuarios_ids = [u.id for u in usuarios_empresa]
     
     venda = db.session.get(Venda, venda_id)
-    if not venda or venda.usuario_id not in usuarios_ids:
+    if not venda or venda.empresa_id != empresa_id:
         flash('Venda não encontrada ou você não tem permissão para excluí-la.', 'error')
         return redirect(url_for('vendas'))
     
@@ -5999,14 +5996,11 @@ def deletar_compra(compra_id):
     if usuario.tipo == 'admin':
         return redirect(url_for('admin_dashboard'))
     
-    # Buscar todos os usuários da mesma empresa
+    # Obter empresa_id correta da sessão (considera acesso_contador)
     empresa_id = obter_empresa_id_sessao(session, usuario)
-
-    usuarios_empresa = Usuario.query.filter_by(empresa_id=empresa_id, ativo=True).all()
-    usuarios_ids = [u.id for u in usuarios_empresa]
     
     compra = db.session.get(Compra, compra_id)
-    if not compra or compra.usuario_id not in usuarios_ids:
+    if not compra or compra.empresa_id != empresa_id:
         flash('Compra não encontrada ou você não tem permissão para excluí-la.', 'error')
         return redirect(url_for('compras'))
     
