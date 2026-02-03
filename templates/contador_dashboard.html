@@ -112,9 +112,10 @@
                                     <table class="table table-sm w-100">
                                         <thead>
                                             <tr>
-                                                <th style="width: 50%;">Descrição</th>
-                                                <th style="width: 25%;">Valor</th>
-                                                <th style="width: 25%;">Status</th>
+                                                <th style="width: 42%;">Descrição</th>
+                                                <th style="width: 20%;">Valor</th>
+                                                <th style="width: 20%;">Status</th>
+                                                <th style="width: 18%;" class="text-center">Ações</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -129,6 +130,13 @@
                                                     <span class="badge bg-warning">Pendente</span>
                                                     {% endif %}
                                                 </td>
+                                                <td class="text-center">
+                                                    <button type="button" class="btn btn-sm btn-{{ 'warning' if lanc.realizado else 'success' }}"
+                                                            onclick="toggleLancamentoStatus({{ lanc.id }}, {{ 'false' if lanc.realizado else 'true' }})"
+                                                            title="{{ 'Marcar como Pendente' if lanc.realizado else 'Marcar como Recebido' }}">
+                                                        <i class="fas fa-{{ 'undo' if lanc.realizado else 'check' }}"></i>
+                                                    </button>
+                                                </td>
                                             </tr>
                                             {% endfor %}
                                         </tbody>
@@ -142,9 +150,10 @@
                                     <table class="table table-sm w-100">
                                         <thead>
                                             <tr>
-                                                <th style="width: 50%;">Descrição</th>
-                                                <th style="width: 25%;">Valor</th>
-                                                <th style="width: 25%;">Status</th>
+                                                <th style="width: 42%;">Descrição</th>
+                                                <th style="width: 20%;">Valor</th>
+                                                <th style="width: 20%;">Status</th>
+                                                <th style="width: 18%;" class="text-center">Ações</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -158,6 +167,13 @@
                                                     {% else %}
                                                     <span class="badge bg-warning">Pendente</span>
                                                     {% endif %}
+                                                </td>
+                                                <td class="text-center">
+                                                    <button type="button" class="btn btn-sm btn-{{ 'warning' if lanc.realizado else 'success' }}"
+                                                            onclick="toggleLancamentoStatus({{ lanc.id }}, {{ 'false' if lanc.realizado else 'true' }})"
+                                                            title="{{ 'Marcar como Pendente' if lanc.realizado else 'Marcar como Pago' }}">
+                                                        <i class="fas fa-{{ 'undo' if lanc.realizado else 'check' }}"></i>
+                                                    </button>
                                                 </td>
                                             </tr>
                                             {% endfor %}
@@ -772,6 +788,30 @@ function excluirSubUsuario(subUsuarioId) {
             }
         });
     }
+}
+
+// Função para alternar status de lançamento (realizado/pendente)
+function toggleLancamentoStatus(lancamentoId, novoStatus) {
+    fetch(`/lancamentos/${lancamentoId}/toggle-status`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ realizado: novoStatus })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Recarregar a página para atualizar os dados
+            window.location.reload();
+        } else {
+            alert('Erro ao atualizar status: ' + (data.message || 'Erro desconhecido'));
+        }
+    })
+    .catch(error => {
+        console.error('Erro ao atualizar status:', error);
+        alert('Erro ao atualizar status do lançamento');
+    });
 }
 </script>
 {% endblock %}
