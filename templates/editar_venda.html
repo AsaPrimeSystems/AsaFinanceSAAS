@@ -506,9 +506,8 @@
         // Dados da venda existente para preencher o carrinho
         var vendaData = {
             produto: '{{ venda.produto|e }}',
-            valor: {{ venda.valor }
-    },
-        quantidade: {{ venda.quantidade or 1 }},
+            valor: {{ venda.valor }},
+            quantidade: {{ venda.quantidade or 1 }},
         tipo_venda: '{{ venda.tipo_venda }}',
         desconto: {{ venda.desconto or 0.0 }},
         valor_final: {{ venda.valor_final or venda.valor }}

@@ -510,9 +510,8 @@
         // Dados da compra existente para preencher o carrinho
         var compraData = {
             produto: '{{ compra.produto|e }}',
-            valor: {{ compra.valor }
-    },
-        quantidade: {{ compra.quantidade or 1 }},
+            valor: {{ compra.valor }},
+            quantidade: {{ compra.quantidade or 1 }},
         preco_custo: {{ compra.preco_custo }},
         tipo_compra: '{{ compra.tipo_compra }}'
     };

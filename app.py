@@ -3054,12 +3054,12 @@ def novo_lancamento():
     # Buscar clientes, fornecedores, produtos, serviços e plano de contas da empresa vinculada
     try:
         if usuarios_ids:
-            clientes = Cliente.query.filter(Cliente.empresa_id == empresa_id).order_by(Cliente.nome).all()
-            fornecedores = Fornecedor.query.filter(Fornecedor.empresa_id == empresa_id).order_by(Fornecedor.nome).all()
+            clientes = Cliente.query.filter(Cliente.empresa_id == empresa_id_correta).order_by(Cliente.nome).all()
+            fornecedores = Fornecedor.query.filter(Fornecedor.empresa_id == empresa_id_correta).order_by(Fornecedor.nome).all()
             produtos = Produto.query.filter(Produto.usuario_id.in_(usuarios_ids), Produto.ativo==True).order_by(Produto.nome).all()
             servicos = Servico.query.filter(Servico.usuario_id.in_(usuarios_ids), Servico.ativo==True).order_by(Servico.nome).all()
-            categorias_receita = PlanoConta.query.filter(PlanoConta.empresa_id == empresa_id, PlanoConta.tipo=='receita', PlanoConta.ativo==True).order_by(PlanoConta.nome).all()
-            categorias_despesa = PlanoConta.query.filter(PlanoConta.empresa_id == empresa_id, PlanoConta.tipo=='despesa', PlanoConta.ativo==True).order_by(PlanoConta.nome).all()
+            categorias_receita = PlanoConta.query.filter(PlanoConta.empresa_id == empresa_id_correta, PlanoConta.tipo=='receita', PlanoConta.ativo==True).order_by(PlanoConta.nome).all()
+            categorias_despesa = PlanoConta.query.filter(PlanoConta.empresa_id == empresa_id_correta, PlanoConta.tipo=='despesa', PlanoConta.ativo==True).order_by(PlanoConta.nome).all()
         else:
             clientes = []
             fornecedores = []
