@@ -529,15 +529,21 @@ class ContaCaixa(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nome = db.Column(db.String(200), nullable=False)
     tipo = db.Column(db.String(50), nullable=False)  # conta_corrente, poupanca, caixa_fisico, cartao_credito, etc.
+
+    # Informações bancárias
+    banco = db.Column(db.String(200))
+    agencia = db.Column(db.String(50))
+    conta = db.Column(db.String(50))
+
     produto_servico = db.Column(db.String(200))
     tipo_produto_servico = db.Column(db.String(50))
-    
+
     # Campo para nota fiscal
     nota_fiscal = db.Column(db.String(50))
-    
+
     # Plano de contas (ID)
     plano_conta_id = db.Column(db.Integer, db.ForeignKey('plano_conta.id'), nullable=True)
-    
+
     # Relacionamentos
     saldo_inicial = db.Column(db.Float, default=0.0)
     saldo_atual = db.Column(db.Float, default=0.0)
@@ -545,7 +551,7 @@ class ContaCaixa(db.Model):
     descricao = db.Column(db.Text)
     usuario_id = db.Column(db.Integer, db.ForeignKey('usuario.id'), nullable=False)
     data_criacao = db.Column(db.DateTime, default=datetime.utcnow)
-    
+
     # Relacionamentos
     lancamentos = db.relationship('Lancamento', backref='conta_caixa', lazy=True)
 

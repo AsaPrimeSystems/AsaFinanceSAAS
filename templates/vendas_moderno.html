@@ -121,9 +121,9 @@
                     <td class="modern-data-col">
                         {{ venda.nota_fiscal or '-' }}
                     </td>
-                    <<<<<<<<<<<< <<<<<<<<<<<< <td class="modern-value-col positive">
+                    <td class="modern-value-col positive">
                         R$ {{ "%.2f"|format(venda.valor_final or venda.valor or 0) }}
-                        </td>
+                    </td>
                         <td class="modern-status-col">
                             {% set realizados = venda.financeiro_realizados if venda.financeiro_realizados is defined
                             else 0 %}
