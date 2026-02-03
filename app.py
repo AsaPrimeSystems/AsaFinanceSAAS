@@ -1090,6 +1090,7 @@ def login():
             db.session.commit()
     except Exception as e:
         app.logger.error(f"Erro ao garantir existência do admin: {str(e)}")
+        db.session.rollback()  # Rollback para limpar transação em estado failed
     
     if request.method == 'POST':
         tipo_acesso = request.form.get('tipo_acesso', '')
@@ -1823,6 +1824,7 @@ def dashboard():
         if alertas is None:
             alertas = []
     except Exception as e:
+        db.session.rollback()
         app.logger.error(f'Erro ao verificar alertas: {str(e)}')
         alertas = []
     
@@ -2022,6 +2024,7 @@ def admin_usuarios():
         
         return render_template('admin_usuarios.html', usuario=usuario, empresas_com_usuarios=empresas_com_usuarios, stats=stats)
     except Exception as e:
+        db.session.rollback()
         app.logger.error(f"Erro na rota admin_usuarios: {str(e)}")
         import traceback
         app.logger.error(traceback.format_exc())
