@@ -23,35 +23,94 @@ def popular_planos():
             Plano.query.delete()
             print("✅ Planos anteriores removidos.")
 
-        # Criar novos planos
+        # Criar novos planos (3 planos × 3 durações = 9 planos)
         planos = [
+            # BÁSICO
             Plano(
-                nome="Plano 30 Dias",
-                codigo="30d",
+                nome="Básico 30 Dias",
+                codigo="basico_30d",
                 dias_assinatura=30,
                 valor=49.90,
-                descricao="Acesso completo por 30 dias - Até 5 usuários",
+                descricao="Plano Básico - Acesso completo por 30 dias - Até 3 usuários",
                 ativo=True,
                 ordem_exibicao=1
             ),
             Plano(
-                nome="Plano 90 Dias",
-                codigo="90d",
+                nome="Básico 90 Dias",
+                codigo="basico_90d",
                 dias_assinatura=90,
-                valor=99.90,
-                descricao="Acesso completo por 90 dias - Até 10 usuários",
+                valor=139.70,
+                descricao="Plano Básico - Acesso completo por 90 dias - Até 3 usuários",
                 ativo=True,
                 ordem_exibicao=2
             ),
             Plano(
-                nome="Plano Anual",
-                codigo="anual",
+                nome="Básico Anual",
+                codigo="basico_anual",
                 dias_assinatura=365,
-                valor=300.00,
-                descricao="Acesso completo por 365 dias - Usuários ilimitados",
+                valor=539.00,
+                descricao="Plano Básico - Acesso completo por 365 dias - Até 3 usuários",
                 ativo=True,
                 ordem_exibicao=3
-            )
+            ),
+
+            # PLUS
+            Plano(
+                nome="Plus 30 Dias",
+                codigo="plus_30d",
+                dias_assinatura=30,
+                valor=59.90,
+                descricao="Plano Plus - Acesso completo por 30 dias - Até 8 usuários",
+                ativo=True,
+                ordem_exibicao=4
+            ),
+            Plano(
+                nome="Plus 90 Dias",
+                codigo="plus_90d",
+                dias_assinatura=90,
+                valor=167.70,
+                descricao="Plano Plus - Acesso completo por 90 dias - Até 8 usuários",
+                ativo=True,
+                ordem_exibicao=5
+            ),
+            Plano(
+                nome="Plus Anual",
+                codigo="plus_anual",
+                dias_assinatura=365,
+                valor=647.00,
+                descricao="Plano Plus - Acesso completo por 365 dias - Até 8 usuários",
+                ativo=True,
+                ordem_exibicao=6
+            ),
+
+            # PREMIUM
+            Plano(
+                nome="Premium 30 Dias",
+                codigo="premium_30d",
+                dias_assinatura=30,
+                valor=79.90,
+                descricao="Plano Premium - Acesso completo por 30 dias - Usuários ilimitados",
+                ativo=True,
+                ordem_exibicao=7
+            ),
+            Plano(
+                nome="Premium 90 Dias",
+                codigo="premium_90d",
+                dias_assinatura=90,
+                valor=223.70,
+                descricao="Plano Premium - Acesso completo por 90 dias - Usuários ilimitados",
+                ativo=True,
+                ordem_exibicao=8
+            ),
+            Plano(
+                nome="Premium Anual",
+                codigo="premium_anual",
+                dias_assinatura=365,
+                valor=863.00,
+                descricao="Plano Premium - Acesso completo por 365 dias - Usuários ilimitados",
+                ativo=True,
+                ordem_exibicao=9
+            ),
         ]
 
         for plano in planos:
