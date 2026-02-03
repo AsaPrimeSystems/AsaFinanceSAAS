@@ -231,17 +231,30 @@ with app.app_context():
     # ============================================================================
     # MIGRAÇÃO: Adicionar empresa_id a Cliente, Fornecedor, Venda, Compra
     # Para correção do bug BPO - isolamento multi-tenant
+    # Suporta SQLite e PostgreSQL
     # ============================================================================
     try:
-        from sqlalchemy import text
+        from sqlalchemy import text, inspect
+
+        # Detectar tipo de banco
+        db_type = db.engine.name
+        print(f"🔍 Banco de dados detectado: {db_type}")
 
         # Lista de tabelas que precisam do empresa_id
         tabelas = ['cliente', 'fornecedor', 'venda', 'compra']
 
         for tabela in tabelas:
             # Verificar se empresa_id já existe na tabela
-            result = db.session.execute(text(f"PRAGMA table_info({tabela})"))
-            columns = [row[1] for row in result.fetchall()]
+            if db_type == 'sqlite':
+                result = db.session.execute(text(f"PRAGMA table_info({tabela})"))
+                columns = [row[1] for row in result.fetchall()]
+            else:  # PostgreSQL
+                result = db.session.execute(text("""
+                    SELECT column_name
+                    FROM information_schema.columns
+                    WHERE table_name = :tabela
+                """), {'tabela': tabela})
+                columns = [row[0] for row in result.fetchall()]
 
             if 'empresa_id' not in columns:
                 print(f"Adicionando coluna 'empresa_id' na tabela {tabela}...")
@@ -253,13 +266,24 @@ with app.app_context():
 
                 # Preencher empresa_id com base no usuario_id
                 print(f"Preenchendo empresa_id na tabela {tabela} com base no usuario_id...")
-                db.session.execute(text(f"""
-                    UPDATE {tabela}
-                    SET empresa_id = (
-                        SELECT empresa_id FROM usuario WHERE usuario.id = {tabela}.usuario_id
-                    )
-                    WHERE empresa_id IS NULL
-                """))
+
+                if db_type == 'sqlite':
+                    db.session.execute(text(f"""
+                        UPDATE {tabela}
+                        SET empresa_id = (
+                            SELECT empresa_id FROM usuario WHERE usuario.id = {tabela}.usuario_id
+                        )
+                        WHERE empresa_id IS NULL
+                    """))
+                else:  # PostgreSQL
+                    db.session.execute(text(f"""
+                        UPDATE {tabela}
+                        SET empresa_id = u.empresa_id
+                        FROM usuario u
+                        WHERE {tabela}.usuario_id = u.id
+                          AND {tabela}.empresa_id IS NULL
+                    """))
+
                 db.session.commit()
                 print(f"✅ Registros da tabela {tabela} atualizados com empresa_id!")
             else:
