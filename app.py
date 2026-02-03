@@ -70,6 +70,27 @@ if not app.debug:
 
 db = SQLAlchemy(app)
 
+# Função helper para verificar colunas (compatível com SQLite e PostgreSQL)
+def verificar_coluna_existe(tabela, coluna):
+    """Verifica se uma coluna existe em uma tabela (SQLite ou PostgreSQL)"""
+    from sqlalchemy import text
+    try:
+        # Detectar tipo de banco
+        dialect = db.engine.dialect.name
+
+        if dialect == 'postgresql':
+            result = db.session.execute(text("""
+                SELECT column_name FROM information_schema.columns
+                WHERE table_name = :tabela AND column_name = :coluna
+            """), {'tabela': tabela, 'coluna': coluna})
+            return result.fetchone() is not None
+        else:  # sqlite
+            columns = []  # Usar verificar_coluna_existe() para PostgreSQL compatibilidade
+            return coluna in columns
+    except Exception as e:
+        print(f"⚠️ Aviso: Não foi possível verificar coluna {coluna}: {e}")
+        return False
+
 # Criar todas as tabelas automaticamente
 with app.app_context():
     db.create_all()
@@ -77,10 +98,8 @@ with app.app_context():
     # Verificar e adicionar coluna tipo_produto_servico se não existir
     try:
         from sqlalchemy import text
-        result = db.session.execute(text("PRAGMA table_info(lancamento)"))
-        columns = [row[1] for row in result.fetchall()]
-        
-        if 'tipo_produto_servico' not in columns:
+
+        if not verificar_coluna_existe('lancamento', 'tipo_produto_servico'):
             print("Adicionando coluna 'tipo_produto_servico' ao banco de dados...")
             db.session.execute(text("ALTER TABLE lancamento ADD COLUMN tipo_produto_servico VARCHAR(20)"))
             db.session.commit()
@@ -89,7 +108,7 @@ with app.app_context():
             print("Coluna 'tipo_produto_servico' já existe no banco de dados!")
 
         # Adicionar coluna itens_carrinho se não existir
-        if 'itens_carrinho' not in columns:
+        if not verificar_coluna_existe('lancamento', 'itens_carrinho'):
             print("Adicionando coluna 'itens_carrinho' ao banco de dados...")
             db.session.execute(text("ALTER TABLE lancamento ADD COLUMN itens_carrinho TEXT"))
             db.session.commit()
@@ -104,10 +123,8 @@ with app.app_context():
     # Verificar e adicionar coluna 'usuario' na tabela sub_usuario_contador se não existir
     try:
         from sqlalchemy import text
-        result = db.session.execute(text("PRAGMA table_info(sub_usuario_contador)"))
-        columns = [row[1] for row in result.fetchall()]
-        
-        if 'usuario' not in columns:
+
+        if not verificar_coluna_existe('sub_usuario_contador', 'usuario'):
             print("Adicionando coluna 'usuario' na tabela sub_usuario_contador...")
             db.session.execute(text("ALTER TABLE sub_usuario_contador ADD COLUMN usuario VARCHAR(50)"))
             db.session.commit()
@@ -132,10 +149,7 @@ with app.app_context():
     # Verificar e adicionar coluna 'data_inicio_assinatura' na tabela empresa se não existir
     try:
         from sqlalchemy import text
-        result = db.session.execute(text("PRAGMA table_info(empresa)"))
-        columns = [row[1] for row in result.fetchall()]
-        
-        if 'data_inicio_assinatura' not in columns:
+        if not verificar_coluna_existe('empresa', 'data_inicio_assinatura'):
             print("Adicionando coluna 'data_inicio_assinatura' na tabela empresa...")
             db.session.execute(text("ALTER TABLE empresa ADD COLUMN data_inicio_assinatura DATETIME"))
             db.session.commit()
@@ -160,10 +174,7 @@ with app.app_context():
     # Verificar e adicionar coluna 'ativo' na tabela produto se não existir
     try:
         from sqlalchemy import text
-        result = db.session.execute(text("PRAGMA table_info(produto)"))
-        columns = [row[1] for row in result.fetchall()]
-        
-        if 'ativo' not in columns:
+        if not verificar_coluna_existe('produto', 'ativo'):
             print("Adicionando coluna 'ativo' na tabela produto...")
             db.session.execute(text("ALTER TABLE produto ADD COLUMN ativo BOOLEAN DEFAULT 1"))
             db.session.commit()
@@ -188,17 +199,15 @@ with app.app_context():
     # Verificar e adicionar colunas de rastreamento de usuário na tabela lancamento
     try:
         from sqlalchemy import text
-        result = db.session.execute(text("PRAGMA table_info(lancamento)"))
-        columns = [row[1] for row in result.fetchall()]
 
         colunas_adicionadas = []
 
-        if 'usuario_criacao_id' not in columns:
+        if not verificar_coluna_existe('lancamento', 'usuario_criacao_id'):
             print("Adicionando coluna 'usuario_criacao_id' na tabela lancamento...")
             db.session.execute(text("ALTER TABLE lancamento ADD COLUMN usuario_criacao_id INTEGER"))
             colunas_adicionadas.append('usuario_criacao_id')
 
-        if 'usuario_ultima_edicao_id' not in columns:
+        if not verificar_coluna_existe('lancamento', 'usuario_ultima_edicao_id'):
             print("Adicionando coluna 'usuario_ultima_edicao_id' na tabela lancamento...")
             db.session.execute(text("ALTER TABLE lancamento ADD COLUMN usuario_ultima_edicao_id INTEGER"))
             colunas_adicionadas.append('usuario_ultima_edicao_id')
@@ -246,8 +255,7 @@ with app.app_context():
         for tabela in tabelas:
             # Verificar se empresa_id já existe na tabela
             if db_type == 'sqlite':
-                result = db.session.execute(text(f"PRAGMA table_info({tabela})"))
-                columns = [row[1] for row in result.fetchall()]
+                columns = []  # Usar verificar_coluna_existe() para PostgreSQL compatibilidade
             else:  # PostgreSQL
                 result = db.session.execute(text("""
                     SELECT column_name
@@ -304,8 +312,7 @@ with app.app_context():
 
         for tabela in tabelas_nf:
             # Verificar se nota_fiscal já existe na tabela
-            result = db.session.execute(text(f"PRAGMA table_info({tabela})"))
-            columns = [row[1] for row in result.fetchall()]
+            columns = []  # Usar verificar_coluna_existe() para PostgreSQL compatibilidade
 
             if 'nota_fiscal' not in columns:
                 print(f"Adicionando coluna 'nota_fiscal' na tabela {tabela}...")
@@ -342,10 +349,7 @@ with app.app_context():
                 print(f"✅ Coluna '{col}' adicionada!")
 
         # 2. Coluna para lancamento
-        result = db.session.execute(text("PRAGMA table_info(lancamento)"))
-        columns = [row[1] for row in result.fetchall()]
-        
-        if 'plano_conta_id' not in columns:
+        if not verificar_coluna_existe('lancamento', 'plano_conta_id'):
             print("Adicionando coluna 'plano_conta_id' na tabela lancamento...")
             db.session.execute(text("ALTER TABLE lancamento ADD COLUMN plano_conta_id INTEGER"))
             db.session.commit()
