@@ -4,6 +4,7 @@
 
 {% block content %}
 <style>
+/* Layout minimalista estilo balancete contábil tradicional */
 .balancete-container {
     background: #fff;
     padding: 2rem;
@@ -11,232 +12,175 @@
 
 .balancete-header {
     text-align: center;
-    border-bottom: 3px solid #333;
-    padding-bottom: 1.5rem;
+    border-bottom: 2px solid #000;
+    padding-bottom: 1rem;
     margin-bottom: 2rem;
 }
 
 .balancete-header h2 {
-    font-size: 1.8rem;
+    font-size: 1.5rem;
     font-weight: 700;
-    color: #333;
-    margin-bottom: 0.5rem;
-}
-
-.balancete-header .subtitle {
-    color: #666;
-    font-size: 1rem;
+    color: #000;
+    margin: 0;
+    text-transform: uppercase;
 }
 
 .balancete-table {
     width: 100%;
     border-collapse: collapse;
-    margin-bottom: 2rem;
+    font-family: Arial, sans-serif;
+    font-size: 0.875rem;
 }
 
 .balancete-table thead th {
-    background: #f8f9fa;
-    border: 1px solid #dee2e6;
-    padding: 0.75rem;
+    background: #f5f5f5;
+    border-top: 2px solid #000;
+    border-bottom: 1px solid #000;
+    padding: 0.5rem 0.75rem;
     text-align: left;
     font-weight: 600;
-    font-size: 0.875rem;
-    text-transform: uppercase;
-    color: #495057;
+    color: #000;
 }
 
-.balancete-table thead th.valor-col {
+.balancete-table thead th.codigo-col {
+    width: 12%;
+}
+
+.balancete-table thead th.conta-col {
+    width: 50%;
+}
+
+.balancete-table thead th.natureza-col {
+    width: 10%;
+    text-align: center;
+}
+
+.balancete-table thead th.saldo-col {
+    width: 18%;
     text-align: right;
-    width: 15%;
 }
 
 .balancete-table thead th.acoes-col {
-    text-align: center;
     width: 10%;
+    text-align: center;
 }
 
 .balancete-table tbody tr {
-    border-bottom: 1px solid #e9ecef;
+    border-bottom: 1px solid #e0e0e0;
 }
 
 .balancete-table tbody tr:hover {
-    background: #f8f9fa;
+    background: #fafafa;
 }
 
-/* Estilo para contas sintéticas */
+/* Contas sintéticas - estilo tradicional */
 .conta-sintetica td {
-    background: #e9ecef;
-    font-weight: 700;
-    font-size: 1rem;
-    padding: 0.75rem;
-    border: 1px solid #dee2e6;
-}
-
-.conta-sintetica .saldo {
-    font-weight: 700;
-    color: #333;
-}
-
-/* Estilo para contas analíticas */
-.conta-analitica td {
     padding: 0.6rem 0.75rem;
-    font-size: 0.925rem;
-    border: 1px solid #e9ecef;
-}
-
-/* Indentação por nível */
-.nivel-1 { padding-left: 1.5rem !important; }
-.nivel-2 { padding-left: 3rem !important; }
-.nivel-3 { padding-left: 4.5rem !important; }
-.nivel-4 { padding-left: 6rem !important; }
-
-/* Seções de Receitas e Despesas */
-.secao-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    padding: 1rem;
-    font-size: 1.2rem;
     font-weight: 700;
-    text-align: center;
-    margin-top: 2rem;
-    margin-bottom: 1rem;
-    border-radius: 0.5rem;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    background: #f9f9f9;
 }
 
-.secao-header.receitas {
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+/* Contas analíticas */
+.conta-analitica td {
+    padding: 0.5rem 0.75rem;
+    font-weight: 400;
 }
 
-.secao-header.despesas {
-    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-}
-
-/* Totalizadores */
-.total-row {
-    background: #343a40;
-    color: white;
-    font-weight: 700;
-    font-size: 1.1rem;
-}
-
-.total-row td {
-    padding: 1rem;
-    border: 2px solid #343a40;
-}
-
-.saldo-geral {
-    background: #007bff;
-    color: white;
-    text-align: center;
-    padding: 1.5rem;
-    margin-top: 2rem;
-    border-radius: 0.5rem;
-    font-size: 1.3rem;
-    font-weight: 700;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-}
-
-/* Badges */
-.badge-natureza {
-    font-size: 0.75rem;
-    padding: 0.25rem 0.5rem;
-    border-radius: 0.25rem;
-    font-weight: 600;
-}
-
-/* Botões de ação */
-.btn-acao {
-    padding: 0.25rem 0.5rem;
-    font-size: 0.875rem;
-    margin: 0 0.125rem;
-}
-
-/* Ícones */
-.icon-sintetica {
-    color: #fbbf24;
-    margin-right: 0.5rem;
-}
-
-.icon-analitica {
-    color: #3b82f6;
-    margin-right: 0.5rem;
-}
+/* Indentação hierárquica minimalista */
+.nivel-1 { padding-left: 1rem !important; }
+.nivel-2 { padding-left: 2.5rem !important; }
+.nivel-3 { padding-left: 4rem !important; }
+.nivel-4 { padding-left: 5.5rem !important; }
 
 /* Valores monetários */
 .valor-monetario {
     font-family: 'Courier New', monospace;
-    font-weight: 600;
     text-align: right;
+    white-space: nowrap;
 }
 
-.valor-receita {
-    color: #059669;
+/* Badges minimalistas */
+.badge-natureza {
+    font-size: 0.7rem;
+    padding: 0.15rem 0.4rem;
+    font-weight: 500;
 }
 
-.valor-despesa {
-    color: #dc2626;
+/* Botões de ação minimalistas */
+.btn-acao {
+    padding: 0.2rem 0.4rem;
+    font-size: 0.8rem;
+    margin: 0 0.1rem;
+}
+
+/* Totalizador simples */
+.total-row {
+    border-top: 2px solid #000;
+    border-bottom: 2px solid #000;
+    background: #f5f5f5;
+}
+
+.total-row td {
+    padding: 0.75rem;
+    font-weight: 700;
+    font-size: 0.95rem;
+}
+
+/* Tipo de conta discreto */
+.tipo-conta {
+    display: inline-block;
+    font-size: 0.7rem;
+    color: #666;
+    margin-left: 0.5rem;
+    font-style: italic;
 }
 </style>
 
 <div class="container-fluid">
     <div class="card shadow-sm">
         <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
-            <h4 class="mb-0"><i class="fas fa-balance-scale me-2"></i>Balancete - Plano de Contas</h4>
-            <a href="{{ url_for('nova_conta') }}" class="btn btn-primary">
+            <h4 class="mb-0"><i class="fas fa-list-alt me-2"></i>Plano de Contas</h4>
+            <a href="{{ url_for('nova_conta') }}" class="btn btn-primary btn-sm">
                 <i class="fas fa-plus"></i> Nova Conta
             </a>
         </div>
 
         <div class="card-body balancete-container">
             <div class="balancete-header">
-                <h2>Plano de Contas Hierárquico</h2>
-                <div class="subtitle">Balanço de Contas - Sintéticas e Analíticas</div>
-            </div>
-
-            <!-- RECEITAS -->
-            <div class="secao-header receitas">
-                <i class="fas fa-arrow-up me-2"></i>RECEITAS
+                <h2>Plano de Contas</h2>
             </div>
 
             <table class="balancete-table">
                 <thead>
                     <tr>
-                        <th style="width: 15%">Código</th>
-                        <th style="width: 50%">Conta</th>
-                        <th style="width: 10%" class="text-center">Natureza</th>
-                        <th class="valor-col">Saldo (R$)</th>
+                        <th class="codigo-col">Código</th>
+                        <th class="conta-col">Conta</th>
+                        <th class="natureza-col">Natureza</th>
+                        <th class="saldo-col">Saldo (R$)</th>
                         <th class="acoes-col">Ações</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% macro renderizar_conta(conta, tipo_class='receita') %}
+                    {% macro renderizar_conta(conta) %}
                         <tr class="{% if conta.natureza == 'sintetica' %}conta-sintetica{% else %}conta-analitica{% endif %}">
                             <td>{{ conta.codigo or '-' }}</td>
                             <td class="nivel-{{ conta.nivel or 1 }}">
-                                {% if conta.natureza == 'sintetica' %}
-                                    <i class="fas fa-folder icon-sintetica"></i>
-                                {% else %}
-                                    <i class="fas fa-file-invoice-dollar icon-analitica"></i>
-                                {% endif %}
-                                <strong>{{ conta.nome }}</strong>
-                                {% if conta.descricao %}
-                                    <small class="text-muted d-block">{{ conta.descricao }}</small>
-                                {% endif %}
+                                {{ conta.nome }}
+                                <span class="tipo-conta">({{ conta.tipo }})</span>
                             </td>
                             <td class="text-center">
                                 {% if conta.natureza == 'sintetica' %}
-                                    <span class="badge bg-secondary badge-natureza">Sintética</span>
+                                    <span class="badge bg-secondary badge-natureza">S</span>
                                 {% else %}
-                                    <span class="badge bg-info badge-natureza">Analítica</span>
+                                    <span class="badge bg-primary badge-natureza">A</span>
                                 {% endif %}
                             </td>
-                            <td class="valor-monetario valor-{{ tipo_class }}">
+                            <td class="valor-monetario">
                                 {{ "%.2f"|format(conta.saldo or 0) }}
                             </td>
                             <td class="text-center">
                                 <a href="{{ url_for('editar_conta', conta_id=conta.id) }}"
-                                   class="btn btn-sm btn-outline-primary btn-acao" title="Editar">
+                                   class="btn btn-sm btn-outline-secondary btn-acao" title="Editar">
                                     <i class="fas fa-edit"></i>
                                 </a>
                                 <button type="button" class="btn btn-sm btn-outline-danger btn-acao"
@@ -251,72 +195,40 @@
                         </tr>
                         {% if conta.filhos_lista %}
                             {% for filho in conta.filhos_lista %}
-                                {{ renderizar_conta(filho, tipo_class) }}
+                                {{ renderizar_conta(filho) }}
                             {% endfor %}
                         {% endif %}
                     {% endmacro %}
 
+                    <!-- Renderizar todas as contas (receitas e despesas juntas) -->
                     {% if contas_receita %}
                         {% for conta in contas_receita %}
-                            {{ renderizar_conta(conta, 'receita') }}
+                            {{ renderizar_conta(conta) }}
                         {% endfor %}
-                    {% else %}
-                        <tr>
-                            <td colspan="5" class="text-center text-muted py-3">
-                                Nenhuma conta de receita cadastrada
-                            </td>
-                        </tr>
                     {% endif %}
 
-                    <tr class="total-row">
-                        <td colspan="3">TOTAL DAS RECEITAS</td>
-                        <td class="valor-monetario">{{ "%.2f"|format(total_receitas or 0) }}</td>
-                        <td></td>
-                    </tr>
-                </tbody>
-            </table>
-
-            <!-- DESPESAS -->
-            <div class="secao-header despesas">
-                <i class="fas fa-arrow-down me-2"></i>DESPESAS
-            </div>
-
-            <table class="balancete-table">
-                <thead>
-                    <tr>
-                        <th style="width: 15%">Código</th>
-                        <th style="width: 50%">Conta</th>
-                        <th style="width: 10%" class="text-center">Natureza</th>
-                        <th class="valor-col">Saldo (R$)</th>
-                        <th class="acoes-col">Ações</th>
-                    </tr>
-                </thead>
-                <tbody>
                     {% if contas_despesa %}
                         {% for conta in contas_despesa %}
-                            {{ renderizar_conta(conta, 'despesa') }}
+                            {{ renderizar_conta(conta) }}
                         {% endfor %}
-                    {% else %}
+                    {% endif %}
+
+                    {% if not contas_receita and not contas_despesa %}
                         <tr>
                             <td colspan="5" class="text-center text-muted py-3">
-                                Nenhuma conta de despesa cadastrada
+                                Nenhuma conta cadastrada
                             </td>
                         </tr>
                     {% endif %}
 
+                    <!-- Totalizador -->
                     <tr class="total-row">
-                        <td colspan="3">TOTAL DAS DESPESAS</td>
-                        <td class="valor-monetario">{{ "%.2f"|format(total_despesas or 0) }}</td>
+                        <td colspan="3"><strong>TOTAL GERAL</strong></td>
+                        <td class="valor-monetario">{{ "%.2f"|format(saldo_geral or 0) }}</td>
                         <td></td>
                     </tr>
                 </tbody>
             </table>
-
-            <!-- SALDO GERAL -->
-            <div class="saldo-geral">
-                <i class="fas fa-chart-line me-2"></i>SALDO GERAL (Receitas - Despesas):
-                <strong>R$ {{ "%.2f"|format(saldo_geral or 0) }}</strong>
-            </div>
         </div>
     </div>
 </div>
