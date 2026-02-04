@@ -17981,6 +17981,94 @@ app.logger.info("✅ Scheduler de atualização de assinaturas iniciado")
 # Garantir que o scheduler seja desligado quando o app for finalizado
 atexit.register(lambda: scheduler.shutdown())
 
+# ============================================================
+# ROTA TEMPORÁRIA: MIGRAÇÃO DE TRANSFERÊNCIAS
+# REMOVER APÓS EXECUÇÃO EM PRODUÇÃO
+# ============================================================
+@app.route('/admin/migrar-transferencias-agora', methods=['GET'])
+def migrar_transferencias_agora():
+    """
+    Rota temporária para executar migração de transferências.
+    Acesso: /admin/migrar-transferencias-agora
+    """
+    try:
+        # Verificar se as colunas já existem
+        result = db.session.execute(text("""
+            SELECT column_name
+            FROM information_schema.columns
+            WHERE table_name = 'lancamento'
+            AND column_name IN ('eh_transferencia', 'transferencia_id')
+        """))
+        colunas_existentes = [row[0] for row in result.fetchall()]
+
+        if 'eh_transferencia' in colunas_existentes and 'transferencia_id' in colunas_existentes:
+            return jsonify({
+                'success': True,
+                'message': '✅ As colunas já existem. Migração não necessária.',
+                'colunas': colunas_existentes
+            })
+
+        mensagens = []
+
+        # Adicionar eh_transferencia se não existir
+        if 'eh_transferencia' not in colunas_existentes:
+            db.session.execute(text("""
+                ALTER TABLE lancamento
+                ADD COLUMN eh_transferencia BOOLEAN DEFAULT FALSE
+            """))
+            mensagens.append("✅ Coluna 'eh_transferencia' adicionada")
+        else:
+            mensagens.append("ℹ️  Coluna 'eh_transferencia' já existe")
+
+        # Adicionar transferencia_id se não existir
+        if 'transferencia_id' not in colunas_existentes:
+            db.session.execute(text("""
+                ALTER TABLE lancamento
+                ADD COLUMN transferencia_id VARCHAR(36)
+            """))
+            mensagens.append("✅ Coluna 'transferencia_id' adicionada")
+        else:
+            mensagens.append("ℹ️  Coluna 'transferencia_id' já existe")
+
+        # Criar índice
+        try:
+            db.session.execute(text("""
+                CREATE INDEX IF NOT EXISTS idx_lancamento_transferencia_id
+                ON lancamento(transferencia_id)
+            """))
+            mensagens.append("✅ Índice criado")
+        except Exception as e:
+            mensagens.append(f"⚠️  Índice já existe ou erro: {str(e)}")
+
+        # Commit
+        db.session.commit()
+
+        # Verificar resultado
+        result = db.session.execute(text("""
+            SELECT column_name, data_type, is_nullable
+            FROM information_schema.columns
+            WHERE table_name = 'lancamento'
+            AND column_name IN ('eh_transferencia', 'transferencia_id')
+            ORDER BY column_name
+        """))
+
+        estrutura = [{'coluna': row[0], 'tipo': row[1], 'nullable': row[2]} for row in result.fetchall()]
+
+        return jsonify({
+            'success': True,
+            'message': '✅ Migração concluída com sucesso!',
+            'mensagens': mensagens,
+            'estrutura': estrutura
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
+
 if __name__ == '__main__':
     # Configurar logging para suprimir logs verbosos do Werkzeug
     import logging
