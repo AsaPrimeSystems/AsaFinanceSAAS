@@ -519,27 +519,29 @@ class LancamentosManager {
         const tipo = document.getElementById('filtro-tipo')?.value || '';
         const categoria = document.getElementById('filtro-categoria')?.value || '';
         const status = document.getElementById('filtro-status')?.value || '';
+        const contaCaixa = document.getElementById('filtro-conta-caixa')?.value || '';
         const dataInicio = document.getElementById('filtro-data-inicio')?.value || '';
         const dataFim = document.getElementById('filtro-data-fim')?.value || '';
-        
+
         const params = new URLSearchParams();
         if (periodo) params.append('periodo', periodo);
         if (tipo) params.append('tipo', tipo);
         if (categoria) params.append('categoria', categoria);
         if (status) params.append('status', status);
+        if (contaCaixa) params.append('conta_caixa_id', contaCaixa);
         if (dataInicio) params.append('data_inicio', dataInicio);
         if (dataFim) params.append('data_fim', dataFim);
-        
+
         window.location.href = window.location.pathname + '?' + params.toString();
     }
 
     limparFiltros() {
-        const filters = ['filtro-periodo', 'filtro-tipo', 'filtro-categoria', 'filtro-status', 'filtro-data-inicio', 'filtro-data-fim'];
+        const filters = ['filtro-periodo', 'filtro-tipo', 'filtro-categoria', 'filtro-status', 'filtro-conta-caixa', 'filtro-data-inicio', 'filtro-data-fim'];
         filters.forEach(filterId => {
             const filter = document.getElementById(filterId);
             if (filter) filter.value = '';
         });
-        
+
         window.location.href = window.location.pathname;
     }
 

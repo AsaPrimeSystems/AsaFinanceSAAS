@@ -1,0 +1,218 @@
+{% extends "base.html" %}
+
+{% block title %}Nova Transferência - Sistema de Gestão Financeira{% endblock %}
+
+{% block page_title %}Nova Transferência{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-exchange-alt me-2"></i>Nova Transferência entre Contas
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Como funciona:</strong> A transferência cria automaticamente dois lançamentos vinculados:
+                    uma saída (despesa) da conta origem e uma entrada (receita) na conta destino.
+                </div>
+
+                <form method="POST">
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <label for="descricao" class="form-label">Descrição da Transferência *</label>
+                            <input type="text"
+                                class="form-control {{ 'is-invalid' if errors and errors.get('descricao') }}"
+                                id="descricao" name="descricao"
+                                value="{{ (form_data.descricao if form_data else '') }}"
+                                placeholder="Ex: Transferência entre contas"
+                                required>
+                            {% if errors and errors.get('descricao') %}
+                            <div class="invalid-feedback">{{ errors.get('descricao') }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="conta_origem_id" class="form-label">Conta de Origem *</label>
+                            <select class="form-select {{ 'is-invalid' if errors and errors.get('conta_origem_id') }}"
+                                id="conta_origem_id" name="conta_origem_id" required>
+                                <option value="">Selecione a conta de origem...</option>
+                                {% for conta in contas_caixa %}
+                                <option value="{{ conta.id }}"
+                                    {{ 'selected' if form_data and form_data.get('conta_origem_id') and form_data.get('conta_origem_id')|int == conta.id else '' }}>
+                                    {{ conta.nome }} - Saldo: R$ {{ "%.2f"|format(conta.calcular_saldo_atual()) }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            {% if errors and errors.get('conta_origem_id') %}
+                            <div class="invalid-feedback">{{ errors.get('conta_origem_id') }}</div>
+                            {% endif %}
+                            <div class="form-text">Conta de onde o valor será retirado</div>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label for="conta_destino_id" class="form-label">Conta de Destino *</label>
+                            <select class="form-select {{ 'is-invalid' if errors and errors.get('conta_destino_id') }}"
+                                id="conta_destino_id" name="conta_destino_id" required>
+                                <option value="">Selecione a conta de destino...</option>
+                                {% for conta in contas_caixa %}
+                                <option value="{{ conta.id }}"
+                                    {{ 'selected' if form_data and form_data.get('conta_destino_id') and form_data.get('conta_destino_id')|int == conta.id else '' }}>
+                                    {{ conta.nome }} - Saldo: R$ {{ "%.2f"|format(conta.calcular_saldo_atual()) }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            {% if errors and errors.get('conta_destino_id') %}
+                            <div class="invalid-feedback">{{ errors.get('conta_destino_id') }}</div>
+                            {% endif %}
+                            <div class="form-text">Conta que receberá o valor</div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="valor" class="form-label">Valor da Transferência *</label>
+                            <input type="number" step="0.01" min="0.01"
+                                class="form-control {{ 'is-invalid' if errors and errors.get('valor') }}"
+                                id="valor" name="valor"
+                                value="{{ (form_data.valor if form_data else '') }}"
+                                placeholder="0.00"
+                                required>
+                            {% if errors and errors.get('valor') %}
+                            <div class="invalid-feedback">{{ errors.get('valor') }}</div>
+                            {% endif %}
+                            <div class="form-text">Digite o valor a ser transferido</div>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label for="data_prevista" class="form-label">Data Prevista *</label>
+                            <input type="text"
+                                class="form-control {{ 'is-invalid' if errors and errors.get('data_prevista') }}"
+                                id="data_prevista" name="data_prevista"
+                                placeholder="dd/mm/aaaa"
+                                pattern="\d{2}/\d{2}/\d{4}"
+                                title="Formato: DD/MM/AAAA"
+                                required
+                                value="{{ (form_data.data_prevista if form_data else '') }}">
+                            {% if errors and errors.get('data_prevista') %}
+                            <div class="invalid-feedback">{{ errors.get('data_prevista') }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="data_realizada" class="form-label">Data Realizada (Opcional)</label>
+                            <input type="text"
+                                class="form-control {{ 'is-invalid' if errors and errors.get('data_realizada') }}"
+                                id="data_realizada" name="data_realizada"
+                                placeholder="dd/mm/aaaa"
+                                pattern="\d{2}/\d{2}/\d{4}"
+                                title="Formato: DD/MM/AAAA"
+                                value="{{ (form_data.data_realizada if form_data else '') }}">
+                            {% if errors and errors.get('data_realizada') %}
+                            <div class="invalid-feedback">{{ errors.get('data_realizada') }}</div>
+                            {% endif %}
+                            <div class="form-text">Preencha se a transferência já foi realizada</div>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label d-block">Status</label>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="checkbox" id="realizado" name="realizado" value="1">
+                                <label class="form-check-label" for="realizado">
+                                    Marcar como realizada
+                                </label>
+                            </div>
+                            <div class="form-text">Marque se a transferência já foi efetivada</div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <label for="observacoes" class="form-label">Observações</label>
+                            <textarea class="form-control" id="observacoes" name="observacoes" rows="3"
+                                placeholder="Digite observações adicionais sobre esta transferência (opcional)">{{ (form_data.observacoes if form_data else '') }}</textarea>
+                            <div class="form-text">Informações adicionais sobre a transferência</div>
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-exchange-alt me-2"></i>Realizar Transferência
+                        </button>
+                        <a href="{{ url_for('lancamentos') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Voltar
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Máscara de data para os campos
+    function aplicarMascaraData(input) {
+        input.addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, ''); // Remove tudo que não é número
+
+            if (value.length >= 2) {
+                value = value.substring(0, 2) + '/' + value.substring(2);
+            }
+            if (value.length >= 5) {
+                value = value.substring(0, 5) + '/' + value.substring(5, 9);
+            }
+
+            e.target.value = value;
+        });
+    }
+
+    const dataInicio = document.getElementById('data_prevista');
+    const dataFim = document.getElementById('data_realizada');
+
+    if (dataInicio) aplicarMascaraData(dataInicio);
+    if (dataFim) aplicarMascaraData(dataFim);
+
+    // Validação: impedir que origem e destino sejam iguais
+    const contaOrigem = document.getElementById('conta_origem_id');
+    const contaDestino = document.getElementById('conta_destino_id');
+
+    function validarContas() {
+        if (contaOrigem.value && contaDestino.value && contaOrigem.value === contaDestino.value) {
+            contaDestino.setCustomValidity('A conta de destino deve ser diferente da conta de origem');
+        } else {
+            contaDestino.setCustomValidity('');
+        }
+    }
+
+    if (contaOrigem && contaDestino) {
+        contaOrigem.addEventListener('change', validarContas);
+        contaDestino.addEventListener('change', validarContas);
+    }
+
+    // Sincronizar checkbox realizado com data realizada
+    const realizadoCheckbox = document.getElementById('realizado');
+    const dataRealizadaInput = document.getElementById('data_realizada');
+
+    if (realizadoCheckbox && dataRealizadaInput) {
+        realizadoCheckbox.addEventListener('change', function() {
+            if (this.checked && !dataRealizadaInput.value) {
+                // Preencher com a data de hoje no formato dd/mm/aaaa
+                const hoje = new Date();
+                const dia = String(hoje.getDate()).padStart(2, '0');
+                const mes = String(hoje.getMonth() + 1).padStart(2, '0');
+                const ano = hoje.getFullYear();
+                dataRealizadaInput.value = `${dia}/${mes}/${ano}`;
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

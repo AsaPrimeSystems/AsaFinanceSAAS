@@ -424,6 +424,10 @@ class Lancamento(db.Model):
     # Plano de contas (ID)
     plano_conta_id = db.Column(db.Integer, db.ForeignKey('plano_conta.id'), nullable=True)
 
+    # Campos para transferências entre contas
+    eh_transferencia = db.Column(db.Boolean, default=False)  # Indica se é uma transferência
+    transferencia_id = db.Column(db.Integer, nullable=True)  # ID do lançamento par na transferência
+
     # Relacionamentos
     usuario = db.relationship('Usuario', backref='lancamentos', lazy=True, foreign_keys=[usuario_id])
     usuario_criacao = db.relationship('Usuario', foreign_keys=[usuario_criacao_id], lazy=True)
@@ -2360,6 +2364,15 @@ def lancamentos():
             )
         )
     
+    # Filtro por Conta Caixa
+    conta_caixa_id = request.args.get('conta_caixa_id')
+    if conta_caixa_id:
+        try:
+            conta_caixa_id = int(conta_caixa_id)
+            query = query.filter(Lancamento.conta_caixa_id == conta_caixa_id)
+        except (ValueError, TypeError):
+            pass
+
     # Filtro por Nota Fiscal (Suporte a múltiplos NFs separados por ponto e vírgula)
     nf_raw = request.args.get('nota_fiscal', '').strip()
     if nf_raw:
@@ -2438,14 +2451,20 @@ def lancamentos():
         PlanoConta.natureza == 'analitica',
         PlanoConta.ativo == True
     ).order_by(PlanoConta.codigo).all()
-    
+
+    # Buscar contas caixa da empresa
+    contas_caixa = ContaCaixa.query.filter(
+        ContaCaixa.usuario_id.in_(usuarios_ids),
+        ContaCaixa.ativo == True
+    ).order_by(ContaCaixa.nome).all()
+
     # Criar lista de strings formatadas para compatibilidade ou objetos para o novo template
     # Para o template moderno, melhor passar os objetos
 
     return render_template('lancamentos_moderno.html', usuario=usuario, lancamentos=lancamentos,
                           total_receitas=receitas_totais, total_despesas=despesas_totais,
-                          saldo_atual=saldo_atual, categorias=categorias_plano, hoje=hoje,
-                          data_inicio=data_inicio_str, data_fim=data_fim_str,
+                          saldo_atual=saldo_atual, categorias=categorias_plano, contas_caixa=contas_caixa,
+                          hoje=hoje, data_inicio=data_inicio_str, data_fim=data_fim_str,
                           # Valores separados para receitas
                           receita_total=receitas_totais,
                           receita_realizada=receitas_realizadas,
@@ -2794,53 +2813,76 @@ def novo_lancamento():
                         valor_total_calculado = max(0.0, (valor_digitado - desconto))
             
             tipo = request.form.get('tipo', '').strip()
-            if not tipo or tipo not in ['receita', 'despesa']:
-                return render_form({'tipo': 'Tipo deve ser receita ou despesa'})
-            
-            categoria_input = request.form.get('categoria', '').strip()
-            if not categoria_input:
-                return render_form({'categoria': 'Categoria é obrigatória'})
-            
-            plano_conta_id = None
-            categoria_nome = categoria_input
-            
-            # Tentar converter para ID se for numérico
-            if categoria_input.isdigit():
-                plano_conta_id = int(categoria_input)
-                pc = db.session.get(PlanoConta, plano_conta_id)
-                if pc:
-                    categoria_nome = pc.nome
+            if not tipo or tipo not in ['receita', 'despesa', 'transferencia']:
+                return render_form({'tipo': 'Tipo deve ser receita, despesa ou transferência'})
+
+            # Se for transferência, validar contas origem e destino
+            if tipo == 'transferencia':
+                conta_origem_id = request.form.get('conta_caixa_id', '').strip()
+                conta_destino_id = request.form.get('conta_caixa_destino_id', '').strip()
+
+                if not conta_origem_id or not conta_destino_id:
+                    return render_form({'conta_caixa_id': 'Contas origem e destino são obrigatórias para transferência'})
+
+                try:
+                    conta_origem_id = int(conta_origem_id)
+                    conta_destino_id = int(conta_destino_id)
+                except ValueError:
+                    return render_form({'conta_caixa_id': 'IDs de conta inválidos'})
+
+                if conta_origem_id == conta_destino_id:
+                    return render_form({'conta_caixa_id': 'Contas origem e destino devem ser diferentes'})
+
+                # Processar transferência (criar 2 lançamentos vinculados)
+                # Pular validações de categoria para transferência
+                plano_conta_id = None
+                categoria_nome = "Transferência entre contas"
             else:
-                # Caso venha como nome (compatibilidade), buscar o ID
-                empresa_id_sessao = obter_empresa_id_sessao(session, usuario)
-                usuarios_empresa = Usuario.query.filter_by(empresa_id=empresa_id_sessao, ativo=True).all()
-                u_ids = [u.id for u in usuarios_empresa]
-                pc = PlanoConta.query.filter(PlanoConta.usuario_id.in_(u_ids), PlanoConta.nome == categoria_input, PlanoConta.tipo == tipo).first()
-                if pc:
-                    plano_conta_id = pc.id
-            
-            # Validação: só permitir analíticas (opcional, já filtrado no front)
-            if plano_conta_id:
-                pc = db.session.get(PlanoConta, plano_conta_id)
-                if pc and pc.natureza == 'sintetica':
-                    return render_form({'categoria': 'Não é permitido lançar em contas sintéticas'})
-            
-            # Se categoria não existe no plano de contas, criar automaticamente
-            empresa_id_para_categoria = obter_empresa_id_sessao(session, usuario)
-            usuarios_empresa = Usuario.query.filter_by(empresa_id=empresa_id_para_categoria, ativo=True).all()
-            usuarios_ids = [u.id for u in usuarios_empresa]
-            
-            if not plano_conta_id:
-                # Criar categoria automaticamente
-                nova_categoria = PlanoConta(
-                    nome=categoria_nome,
-                    tipo=tipo,
-                    descricao=f"Categoria criada automaticamente para lançamento",
-                    usuario_id=usuario.id
-                )
-                db.session.add(nova_categoria)
-                db.session.flush()  # Para obter o ID sem fazer commit ainda
-                plano_conta_id = nova_categoria.id
+                # Lógica normal para receita/despesa
+                categoria_input = request.form.get('categoria', '').strip()
+                if not categoria_input:
+                    return render_form({'categoria': 'Categoria é obrigatória'})
+
+                plano_conta_id = None
+                categoria_nome = categoria_input
+
+                # Tentar converter para ID se for numérico
+                if categoria_input.isdigit():
+                    plano_conta_id = int(categoria_input)
+                    pc = db.session.get(PlanoConta, plano_conta_id)
+                    if pc:
+                        categoria_nome = pc.nome
+                else:
+                    # Caso venha como nome (compatibilidade), buscar o ID
+                    empresa_id_sessao = obter_empresa_id_sessao(session, usuario)
+                    usuarios_empresa = Usuario.query.filter_by(empresa_id=empresa_id_sessao, ativo=True).all()
+                    u_ids = [u.id for u in usuarios_empresa]
+                    pc = PlanoConta.query.filter(PlanoConta.usuario_id.in_(u_ids), PlanoConta.nome == categoria_input, PlanoConta.tipo == tipo).first()
+                    if pc:
+                        plano_conta_id = pc.id
+
+                # Validação: só permitir analíticas (opcional, já filtrado no front)
+                if plano_conta_id:
+                    pc = db.session.get(PlanoConta, plano_conta_id)
+                    if pc and pc.natureza == 'sintetica':
+                        return render_form({'categoria': 'Não é permitido lançar em contas sintéticas'})
+
+                # Se categoria não existe no plano de contas, criar automaticamente
+                empresa_id_para_categoria = obter_empresa_id_sessao(session, usuario)
+                usuarios_empresa = Usuario.query.filter_by(empresa_id=empresa_id_para_categoria, ativo=True).all()
+                usuarios_ids = [u.id for u in usuarios_empresa]
+
+                if not plano_conta_id:
+                    # Criar categoria automaticamente
+                    nova_categoria = PlanoConta(
+                        nome=categoria_nome,
+                        tipo=tipo,
+                        descricao=f"Categoria criada automaticamente para lançamento",
+                        usuario_id=usuario.id
+                    )
+                    db.session.add(nova_categoria)
+                    db.session.flush()  # Para obter o ID sem fazer commit ainda
+                    plano_conta_id = nova_categoria.id
             
             data_prevista_str = request.form.get('data_prevista', '').strip()
             if not data_prevista_str:
@@ -2923,39 +2965,102 @@ def novo_lancamento():
             empresa_id_correta = obter_empresa_id_sessao(session, usuario)
             if not empresa_id_correta:
                 return render_form({'__all__': 'Usuário não possui empresa associada'})
-            
+
             nota_fiscal = request.form.get('nota_fiscal', '').strip() or None
-            
-            novo_lancamento = Lancamento(
-                descricao=descricao,
-                valor=valor_total_calculado,
-                tipo=tipo,
-                categoria=categoria_nome,
-                plano_conta_id=plano_conta_id,
-                data_prevista=data_prevista,
-                data_realizada=data_realizada_obj,
-                realizado=realizado,
-                nota_fiscal=nota_fiscal,
-                usuario_id=usuario.id,
-                empresa_id=empresa_id_correta,
-                conta_caixa_id=conta_caixa_id_obj,
-                cliente_id=cliente_id_obj,
-                fornecedor_id=fornecedor_id_obj,
-                observacoes=observacoes,
-                produto_servico=produto_servico_nome,  # Salvar nome do produto/serviço
-                tipo_produto_servico=tipo_produto_servico,  # Salvar tipo (produto ou servico)
-                itens_carrinho=itens_carrinho_json,  # Salvar itens do carrinho em JSON
-                usuario_criacao_id=usuario.id,  # Registrar quem criou
-            )
-        
-        # REMOVIDO: Atualização manual de saldo - agora é calculado dinamicamente
-        # O saldo_atual é calculado automaticamente pelo método calcular_saldo_atual()
-            
-            db.session.add(novo_lancamento)
-            db.session.flush()  # Para obter o ID do lançamento antes do commit
+
+            # Se for transferência, criar 2 lançamentos vinculados
+            if tipo == 'transferencia':
+                # Lançamento 1: DESPESA (saída da conta origem)
+                lancamento_saida = Lancamento(
+                    descricao=f"{descricao} (Origem)",
+                    valor=valor_total_calculado,
+                    tipo='despesa',
+                    categoria=categoria_nome,
+                    plano_conta_id=None,  # Transferências não têm categoria do plano de contas
+                    data_prevista=data_prevista,
+                    data_realizada=data_realizada_obj,
+                    realizado=realizado,
+                    nota_fiscal=nota_fiscal,
+                    usuario_id=usuario.id,
+                    empresa_id=empresa_id_correta,
+                    conta_caixa_id=conta_origem_id,
+                    cliente_id=None,
+                    fornecedor_id=None,
+                    observacoes=observacoes,
+                    produto_servico=None,
+                    tipo_produto_servico=None,
+                    itens_carrinho=None,
+                    usuario_criacao_id=usuario.id,
+                    eh_transferencia=True,
+                )
+                db.session.add(lancamento_saida)
+                db.session.flush()
+
+                # Lançamento 2: RECEITA (entrada na conta destino)
+                lancamento_entrada = Lancamento(
+                    descricao=f"{descricao} (Destino)",
+                    valor=valor_total_calculado,
+                    tipo='receita',
+                    categoria=categoria_nome,
+                    plano_conta_id=None,
+                    data_prevista=data_prevista,
+                    data_realizada=data_realizada_obj,
+                    realizado=realizado,
+                    nota_fiscal=nota_fiscal,
+                    usuario_id=usuario.id,
+                    empresa_id=empresa_id_correta,
+                    conta_caixa_id=conta_destino_id,
+                    cliente_id=None,
+                    fornecedor_id=None,
+                    observacoes=observacoes,
+                    produto_servico=None,
+                    tipo_produto_servico=None,
+                    itens_carrinho=None,
+                    usuario_criacao_id=usuario.id,
+                    eh_transferencia=True,
+                )
+                db.session.add(lancamento_entrada)
+                db.session.flush()
+
+                # Vincular os dois lançamentos usando o ID do lançamento de saída
+                lancamento_saida.transferencia_id = lancamento_entrada.id
+                lancamento_entrada.transferencia_id = lancamento_saida.id
+
+                novo_lancamento = lancamento_saida  # Para compatibilidade com código abaixo
+            else:
+                # Lançamento normal (receita ou despesa)
+                novo_lancamento = Lancamento(
+                    descricao=descricao,
+                    valor=valor_total_calculado,
+                    tipo=tipo,
+                    categoria=categoria_nome,
+                    plano_conta_id=plano_conta_id,
+                    data_prevista=data_prevista,
+                    data_realizada=data_realizada_obj,
+                    realizado=realizado,
+                    nota_fiscal=nota_fiscal,
+                    usuario_id=usuario.id,
+                    empresa_id=empresa_id_correta,
+                    conta_caixa_id=conta_caixa_id_obj,
+                    cliente_id=cliente_id_obj,
+                    fornecedor_id=fornecedor_id_obj,
+                    observacoes=observacoes,
+                    produto_servico=produto_servico_nome,
+                    tipo_produto_servico=tipo_produto_servico,
+                    itens_carrinho=itens_carrinho_json,
+                    usuario_criacao_id=usuario.id,
+                    eh_transferencia=False,
+                )
+
+                # REMOVIDO: Atualização manual de saldo - agora é calculado dinamicamente
+                # O saldo_atual é calculado automaticamente pelo método calcular_saldo_atual()
+
+                db.session.add(novo_lancamento)
+                db.session.flush()  # Para obter o ID do lançamento antes do commit
 
             # Se usou carrinho e há cliente/fornecedor, criar venda/compra automaticamente
-            if itens_carrinho_json and (cliente_id_obj or fornecedor_id_obj):
+            # (não criar para transferências)
+            if not tipo == 'transferencia' and itens_carrinho_json and (cliente_id_obj or fornecedor_id_obj):
                 # Determinar se é venda ou compra
                 # RECEITA + CLIENTE = VENDA
                 # DESPESA + FORNECEDOR = COMPRA
@@ -3027,7 +3132,10 @@ def novo_lancamento():
 
             db.session.commit()
 
-            flash('Lançamento criado com sucesso!', 'success')
+            if tipo == 'transferencia':
+                flash('Transferência entre contas criada com sucesso!', 'success')
+            else:
+                flash('Lançamento criado com sucesso!', 'success')
             return redirect(url_for('lancamentos'))
             
         except Exception as e:
@@ -3077,6 +3185,138 @@ def novo_lancamento():
         categorias_despesa = []
 
     return render_template('novo_lancamento.html', usuario=usuario, contas_caixa=contas_caixa, clientes=clientes, fornecedores=fornecedores, produtos=produtos, servicos=servicos, categorias_receita=categorias_receita, categorias_despesa=categorias_despesa)
+
+@app.route('/transferencia/nova', methods=['GET', 'POST'])
+def nova_transferencia():
+    """Criar nova transferência entre contas"""
+    if 'usuario_id' not in session:
+        return redirect(url_for('login'))
+
+    usuario = db.session.get(Usuario, session['usuario_id'])
+    if usuario.tipo == 'admin':
+        return redirect(url_for('admin_dashboard'))
+
+    empresa_id_correta = obter_empresa_id_sessao(session, usuario)
+    if not empresa_id_correta:
+        flash('Erro ao obter empresa associada', 'error')
+        return redirect(url_for('dashboard'))
+
+    # Buscar contas caixa da empresa
+    usuarios_empresa = Usuario.query.filter_by(empresa_id=empresa_id_correta, ativo=True).all()
+    usuarios_ids = [u.id for u in usuarios_empresa]
+    contas_caixa = ContaCaixa.query.filter(ContaCaixa.usuario_id.in_(usuarios_ids), ContaCaixa.ativo==True).order_by(ContaCaixa.nome).all()
+
+    if request.method == 'POST':
+        try:
+            # Validar dados
+            descricao = request.form.get('descricao', '').strip()
+            valor_str = request.form.get('valor', '').strip()
+            conta_origem_id = request.form.get('conta_origem_id', '').strip()
+            conta_destino_id = request.form.get('conta_destino_id', '').strip()
+            data_prevista_str = request.form.get('data_prevista', '').strip()
+            data_realizada_str = request.form.get('data_realizada', '').strip()
+            observacoes = request.form.get('observacoes', '').strip()
+
+            errors = {}
+
+            if not descricao:
+                errors['descricao'] = 'Descrição é obrigatória'
+            if not valor_str:
+                errors['valor'] = 'Valor é obrigatório'
+            if not conta_origem_id:
+                errors['conta_origem_id'] = 'Conta origem é obrigatória'
+            if not conta_destino_id:
+                errors['conta_destino_id'] = 'Conta destino é obrigatória'
+            if not data_prevista_str:
+                errors['data_prevista'] = 'Data prevista é obrigatória'
+
+            if conta_origem_id == conta_destino_id:
+                errors['conta_destino_id'] = 'Contas origem e destino devem ser diferentes'
+
+            if errors:
+                return render_template('nova_transferencia.html', usuario=usuario, contas_caixa=contas_caixa, errors=errors, form_data=request.form)
+
+            # Converter valores
+            try:
+                valor = float(valor_str.replace(',', '.'))
+            except ValueError:
+                return render_template('nova_transferencia.html', usuario=usuario, contas_caixa=contas_caixa, errors={'valor': 'Valor inválido'}, form_data=request.form)
+
+            try:
+                data_prevista = datetime.strptime(data_prevista_str, '%d/%m/%Y').date()
+            except ValueError:
+                try:
+                    data_prevista = datetime.strptime(data_prevista_str, '%Y-%m-%d').date()
+                except ValueError:
+                    return render_template('nova_transferencia.html', usuario=usuario, contas_caixa=contas_caixa, errors={'data_prevista': 'Data inválida'}, form_data=request.form)
+
+            data_realizada_obj = None
+            realizado = False
+            if data_realizada_str:
+                try:
+                    data_realizada_obj = datetime.strptime(data_realizada_str, '%d/%m/%Y').date()
+                    realizado = True
+                except ValueError:
+                    try:
+                        data_realizada_obj = datetime.strptime(data_realizada_str, '%Y-%m-%d').date()
+                        realizado = True
+                    except ValueError:
+                        pass
+
+            # Criar lançamento de saída (despesa)
+            lancamento_saida = Lancamento(
+                descricao=f"{descricao} (Origem)",
+                valor=valor,
+                tipo='despesa',
+                categoria="Transferência entre contas",
+                plano_conta_id=None,
+                data_prevista=data_prevista,
+                data_realizada=data_realizada_obj,
+                realizado=realizado,
+                usuario_id=usuario.id,
+                empresa_id=empresa_id_correta,
+                conta_caixa_id=int(conta_origem_id),
+                observacoes=observacoes,
+                usuario_criacao_id=usuario.id,
+                eh_transferencia=True
+            )
+            db.session.add(lancamento_saida)
+            db.session.flush()
+
+            # Criar lançamento de entrada (receita)
+            lancamento_entrada = Lancamento(
+                descricao=f"{descricao} (Destino)",
+                valor=valor,
+                tipo='receita',
+                categoria="Transferência entre contas",
+                plano_conta_id=None,
+                data_prevista=data_prevista,
+                data_realizada=data_realizada_obj,
+                realizado=realizado,
+                usuario_id=usuario.id,
+                empresa_id=empresa_id_correta,
+                conta_caixa_id=int(conta_destino_id),
+                observacoes=observacoes,
+                usuario_criacao_id=usuario.id,
+                eh_transferencia=True
+            )
+            db.session.add(lancamento_entrada)
+            db.session.flush()
+
+            # Vincular os lançamentos
+            lancamento_saida.transferencia_id = lancamento_entrada.id
+            lancamento_entrada.transferencia_id = lancamento_saida.id
+
+            db.session.commit()
+            flash('Transferência criada com sucesso!', 'success')
+            return redirect(url_for('lancamentos'))
+
+        except Exception as e:
+            db.session.rollback()
+            app.logger.error(f"Erro ao criar transferência: {str(e)}")
+            return render_template('nova_transferencia.html', usuario=usuario, contas_caixa=contas_caixa, errors={'__all__': f'Erro ao criar transferência: {str(e)}'}, form_data=request.form)
+
+    return render_template('nova_transferencia.html', usuario=usuario, contas_caixa=contas_caixa)
 
 @app.route('/lancamentos/<int:lancamento_id>/toggle_realizado')
 def toggle_lancamento_realizado_old(lancamento_id):
@@ -6869,26 +7109,43 @@ def dre_visualizar():
     data_inicio = data_fim.replace(day=1)  # Primeiro dia do mês
 
     if request.args.get('data_inicio'):
-        data_inicio = datetime.strptime(request.args.get('data_inicio'), '%Y-%m-%d').date()
-    if request.args.get('data_fim'):
-        data_fim = datetime.strptime(request.args.get('data_fim'), '%Y-%m-%d').date()
+        try:
+            # Tentar formato dd/mm/aaaa primeiro
+            data_inicio = datetime.strptime(request.args.get('data_inicio'), '%d/%m/%Y').date()
+        except ValueError:
+            # Fallback para formato AAAA-MM-DD
+            try:
+                data_inicio = datetime.strptime(request.args.get('data_inicio'), '%Y-%m-%d').date()
+            except ValueError:
+                pass  # Manter data padrão
 
-    # Buscar todos os usuários da empresa para filtrar lançamentos
-    usuarios_empresa = Usuario.query.filter_by(empresa_id=empresa_id, ativo=True).all()
-    usuarios_ids = [u.id for u in usuarios_empresa]
+    if request.args.get('data_fim'):
+        try:
+            # Tentar formato dd/mm/aaaa primeiro
+            data_fim = datetime.strptime(request.args.get('data_fim'), '%d/%m/%Y').date()
+        except ValueError:
+            # Fallback para formato AAAA-MM-DD
+            try:
+                data_fim = datetime.strptime(request.args.get('data_fim'), '%Y-%m-%d').date()
+            except ValueError:
+                pass  # Manter data padrão
 
     # Calcular valores das linhas
     linhas_dre = []
+    valores_acumulados = []  # Para calcular subtotais
+
     for linha_config in linhas_config:
         valor = 0
 
         if linha_config.tipo_linha == 'conta' and linha_config.plano_conta_id:
-            # Buscar lançamentos da conta
+            # Buscar lançamentos da conta (REGIME DE COMPETÊNCIA - usa data_prevista)
+            # Não filtra por 'realizado' pois regime de competência considera independente do pagamento
+            # Exclui transferências, pois não representam receitas/despesas reais
             lancamentos = Lancamento.query.filter(
                 Lancamento.plano_conta_id == linha_config.plano_conta_id,
                 Lancamento.empresa_id == empresa_id,
-                Lancamento.data_realizada.between(data_inicio, data_fim),
-                Lancamento.realizado == True
+                Lancamento.data_prevista.between(data_inicio, data_fim),
+                db.or_(Lancamento.eh_transferencia == False, Lancamento.eh_transferencia.is_(None))
             ).all()
 
             # Somar valores (receitas positivas, despesas negativas)
@@ -6898,11 +7155,14 @@ def dre_visualizar():
                 else:
                     valor -= lanc.valor
 
-        elif linha_config.tipo_linha in ['subtotal', 'total'] and linha_config.formula:
-            # Calcular fórmula (implementação simplificada)
-            # A fórmula contém códigos de outras linhas
-            # Ex: "(+) 010 020 (-) 030" significa: 010 + 020 - 030
-            pass  # Por agora, deixar 0 (pode ser implementado depois)
+            # Adicionar aos valores acumulados para cálculo de subtotais
+            valores_acumulados.append(valor)
+
+        elif linha_config.tipo_linha in ['subtotal', 'total']:
+            # Calcular subtotal somando todos os valores acumulados desde o último subtotal
+            valor = sum(valores_acumulados)
+            # Limpar valores acumulados após calcular subtotal
+            valores_acumulados = []
 
         linhas_dre.append({
             'codigo': linha_config.codigo,
@@ -6911,8 +7171,9 @@ def dre_visualizar():
             'operacao': linha_config.operacao,
             'valor': valor,
             'nivel': linha_config.nivel,
-            'linha_acima': linha_config.linha_acima,
-            'linha_abaixo': linha_config.linha_abaixo
+            'negrito': linha_config.negrito or False,
+            'linha_acima': linha_config.linha_acima if hasattr(linha_config, 'linha_acima') else False,
+            'linha_abaixo': linha_config.linha_abaixo if hasattr(linha_config, 'linha_abaixo') else False
         })
 
     return render_template('dre_visualizar.html',
@@ -6933,41 +7194,52 @@ def dre_configurar():
         # Remover configurações antigas
         DreConfiguracao.query.filter_by(empresa_id=empresa_id).delete()
 
-        # Adicionar novas configurações
-        novas_contas = request.form.getlist('novas_contas[]')
-        linhas_existentes = request.form.getlist('linhas[]')
+        # Processar linhas serializadas do formulário
+        tipos = request.form.getlist('linha_tipo[]')
+        ordens = request.form.getlist('linha_ordem[]')
+        contas_ids = request.form.getlist('linha_conta_id[]')
+        descricoes = request.form.getlist('linha_descricao[]')
+        operacoes = request.form.getlist('linha_operacao[]')
 
-        # Combinar linhas existentes e novas
-        todas_linhas = linhas_existentes + novas_contas
+        for i in range(len(tipos)):
+            tipo = tipos[i]
+            ordem = int(ordens[i])
 
-        for ordem, item in enumerate(todas_linhas, start=1):
-            # Se for ID de linha existente, buscar
-            if item.isdigit() and int(item) in [l.id for l in DreConfiguracao.query.all()]:
-                linha_antiga = db.session.get(DreConfiguracao, int(item))
+            if tipo == 'subtotal':
+                # Criar linha sintética (subtotal)
+                descricao = descricoes[i]
+                operacao = operacoes[i]
+
                 nova_linha = DreConfiguracao(
                     empresa_id=empresa_id,
-                    plano_conta_id=linha_antiga.plano_conta_id,
-                    codigo=linha_antiga.codigo,
-                    descricao=linha_antiga.descricao,
-                    tipo_linha=linha_antiga.tipo_linha,
-                    operacao=linha_antiga.operacao,
+                    plano_conta_id=None,
+                    codigo=f"SUBTOTAL_{ordem}",
+                    descricao=descricao,
+                    tipo_linha='subtotal',
+                    operacao=operacao,
                     ordem=ordem,
-                    nivel=linha_antiga.nivel
+                    nivel=1,
+                    negrito=True
                 )
             else:
-                # Nova conta do plano de contas
-                plano_conta = db.session.get(PlanoConta, int(item))
-                if plano_conta:
-                    nova_linha = DreConfiguracao(
-                        empresa_id=empresa_id,
-                        plano_conta_id=plano_conta.id,
-                        codigo=plano_conta.codigo or f"{ordem:03d}",
-                        descricao=plano_conta.nome,
-                        tipo_linha='conta',
-                        operacao='(+)' if plano_conta.tipo == 'receita' else '(-)',
-                        ordem=ordem,
-                        nivel=1
-                    )
+                # Criar linha de conta
+                conta_id_str = contas_ids[i]
+                if conta_id_str and conta_id_str.isdigit():
+                    plano_conta = db.session.get(PlanoConta, int(conta_id_str))
+                    if plano_conta:
+                        nova_linha = DreConfiguracao(
+                            empresa_id=empresa_id,
+                            plano_conta_id=plano_conta.id,
+                            codigo=plano_conta.codigo or f"{ordem:03d}",
+                            descricao=plano_conta.nome,
+                            tipo_linha='conta',
+                            operacao='(+)' if plano_conta.tipo == 'receita' else '(-)',
+                            ordem=ordem,
+                            nivel=1,
+                            negrito=False
+                        )
+                    else:
+                        continue
                 else:
                     continue
 
@@ -6979,10 +7251,11 @@ def dre_configurar():
 
     # GET - Exibir formulário de configuração
     # Buscar contas do plano de contas (apenas analíticas)
+    # Permitir que a mesma conta seja adicionada múltiplas vezes
     contas_disponiveis = PlanoConta.query.filter_by(
         empresa_id=empresa_id,
         natureza='analitica'
-    ).order_by(PlanoConta.tipo, PlanoConta.codigo).all()
+    ).order_by(PlanoConta.codigo).all()
 
     # Buscar linhas já configuradas
     linhas_dre = DreConfiguracao.query.filter_by(

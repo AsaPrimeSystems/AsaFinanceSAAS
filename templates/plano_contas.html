@@ -75,14 +75,14 @@
 
 /* Contas sintéticas - estilo tradicional */
 .conta-sintetica td {
-    padding: 0.6rem 0.75rem;
+    padding: 0.35rem 0.75rem;
     font-weight: 700;
-    background: #f9f9f9;
+    background: #e8e8e8;
 }
 
 /* Contas analíticas */
 .conta-analitica td {
-    padding: 0.5rem 0.75rem;
+    padding: 0.25rem 0.75rem;
     font-weight: 400;
 }
 
@@ -111,6 +111,14 @@
     padding: 0.2rem 0.4rem;
     font-size: 0.8rem;
     margin: 0 0.1rem;
+}
+
+/* Coluna de ações - alinhamento horizontal */
+.acoes-col-content {
+    display: inline-flex;
+    gap: 0.3rem;
+    justify-content: center;
+    align-items: center;
 }
 
 /* Totalizador simples */
@@ -156,7 +164,6 @@
                         <th class="codigo-col">Código</th>
                         <th class="conta-col">Conta</th>
                         <th class="natureza-col">Natureza</th>
-                        <th class="saldo-col">Saldo (R$)</th>
                         <th class="acoes-col">Ações</th>
                     </tr>
                 </thead>
@@ -175,22 +182,21 @@
                                     <span class="badge bg-primary badge-natureza">A</span>
                                 {% endif %}
                             </td>
-                            <td class="valor-monetario">
-                                {{ "%.2f"|format(conta.saldo or 0) }}
-                            </td>
                             <td class="text-center">
-                                <a href="{{ url_for('editar_conta', conta_id=conta.id) }}"
-                                   class="btn btn-sm btn-outline-secondary btn-acao" title="Editar">
-                                    <i class="fas fa-edit"></i>
-                                </a>
-                                <button type="button" class="btn btn-sm btn-outline-danger btn-acao"
-                                        title="Excluir"
-                                        data-bs-toggle="modal"
-                                        data-bs-target="#modalConfirmacaoExclusao"
-                                        data-conta-id="{{ conta.id }}"
-                                        data-conta-nome="{{ conta.nome }}">
-                                    <i class="fas fa-trash"></i>
-                                </button>
+                                <div class="acoes-col-content">
+                                    <a href="{{ url_for('editar_conta', conta_id=conta.id) }}"
+                                       class="btn btn-sm btn-outline-secondary btn-acao" title="Editar">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <button type="button" class="btn btn-sm btn-outline-danger btn-acao"
+                                            title="Excluir"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#modalConfirmacaoExclusao"
+                                            data-conta-id="{{ conta.id }}"
+                                            data-conta-nome="{{ conta.nome }}">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
                             </td>
                         </tr>
                         {% if conta.filhos_lista %}
@@ -215,18 +221,11 @@
 
                     {% if not contas_receita and not contas_despesa %}
                         <tr>
-                            <td colspan="5" class="text-center text-muted py-3">
+                            <td colspan="4" class="text-center text-muted py-3">
                                 Nenhuma conta cadastrada
                             </td>
                         </tr>
                     {% endif %}
-
-                    <!-- Totalizador -->
-                    <tr class="total-row">
-                        <td colspan="3"><strong>TOTAL GERAL</strong></td>
-                        <td class="valor-monetario">{{ "%.2f"|format(saldo_geral or 0) }}</td>
-                        <td></td>
-                    </tr>
                 </tbody>
             </table>
         </div>

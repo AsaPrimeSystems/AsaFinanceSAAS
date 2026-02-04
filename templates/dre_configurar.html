@@ -7,8 +7,9 @@
     .config-container {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 2rem;
-        margin-top: 1rem;
+        gap: 1.5rem;
+        margin-top: 0;
+        max-width: 100%;
     }
 
     .panel {
@@ -16,6 +17,7 @@
         border-radius: 8px;
         padding: 1.5rem;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        overflow: hidden;
     }
 
     .panel-header {
@@ -199,7 +201,7 @@
             </div>
         </div>
 
-        <div class="card-body">
+        <div class="card-body" style="background-color: #f8f9fa; min-height: 600px; padding: 1.5rem; overflow: hidden;">
             <div class="instrucoes">
                 <h6><i class="fas fa-info-circle me-2"></i>Como configurar sua DRE</h6>
                 <p>
@@ -210,7 +212,7 @@
                 </p>
             </div>
 
-            <form id="formConfigDre" method="POST">
+            <form id="formConfigDre" method="POST" onsubmit="return serializarLinhas()">
                 <div class="config-container">
                     <!-- Painel esquerdo: Plano de Contas disponíveis -->
                     <div class="panel">
@@ -243,6 +245,10 @@
                         <button type="button" class="btn-adicionar" onclick="adicionarContaDre()" id="btnAdicionar" disabled>
                             <i class="fas fa-plus me-2"></i>Adicionar à DRE
                         </button>
+
+                        <button type="button" class="btn-adicionar" onclick="mostrarModalSubtotal()" style="background: #28a745; margin-top: 0.5rem;">
+                            <i class="fas fa-equals me-2"></i>Adicionar Subtotal
+                        </button>
                     </div>
 
                     <!-- Painel direito: Contas na DRE -->
@@ -255,18 +261,24 @@
                         <div id="linhasDre">
                             {% if linhas_dre %}
                                 {% for linha in linhas_dre %}
-                                <div class="linha-dre-item" draggable="true" data-linha-id="{{ linha.id }}">
+                                <div class="linha-dre-item {% if linha.tipo_linha == 'subtotal' %}linha-subtotal{% endif %}"
+                                     draggable="true" data-linha-id="{{ linha.id }}"
+                                     {% if linha.tipo_linha == 'subtotal' %}style="background: #f0f8ff; font-weight: 700; border-left: 4px solid #007bff;"{% endif %}>
                                     <div class="linha-info">
                                         <span class="linha-ordem">{{ loop.index }}</span>
                                         <span class="linha-descricao">{{ linha.descricao }}</span>
-                                        <span class="linha-codigo">({{ linha.codigo }})</span>
+                                        <span class="linha-codigo">({{ linha.operacao if linha.tipo_linha == 'subtotal' else linha.codigo }})</span>
                                     </div>
                                     <div class="linha-acoes">
                                         <button type="button" class="btn-remover" onclick="removerLinha(this)" title="Remover">
                                             <i class="fas fa-trash"></i>
                                         </button>
                                     </div>
-                                    <input type="hidden" name="linhas[]" value="{{ linha.id }}">
+                                    {% if linha.tipo_linha == 'subtotal' %}
+                                    <input type="hidden" class="linha-subtotal-marker" value="1">
+                                    {% else %}
+                                    <input type="hidden" name="linhas[]" value="{{ linha.plano_conta_id }}">
+                                    {% endif %}
                                 </div>
                                 {% endfor %}
                             {% else %}
@@ -278,6 +290,47 @@
                     </div>
                 </div>
             </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Adicionar Subtotal -->
+<div class="modal fade" id="modalSubtotal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-equals me-2"></i>Adicionar Linha Sintética (Subtotal)
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="subtotalDescricao" class="form-label">Descrição *</label>
+                    <input type="text" class="form-control" id="subtotalDescricao"
+                           placeholder="Ex: Receita Operacional Líquida" required>
+                    <small class="text-muted">Ex: Resultado Bruto, Lucro Líquido, etc.</small>
+                </div>
+                <div class="mb-3">
+                    <label for="subtotalOperacao" class="form-label">Operação *</label>
+                    <select class="form-select" id="subtotalOperacao">
+                        <option value="=">(=) Total/Resultado</option>
+                        <option value="+">(+) Soma</option>
+                        <option value="-">(-) Subtração</option>
+                    </select>
+                    <small class="text-muted">Como esse subtotal será exibido</small>
+                </div>
+                <div class="alert alert-info mb-0">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <small>O subtotal calculará automaticamente a soma das contas acima desde o último subtotal.</small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-success" onclick="adicionarSubtotal()">
+                    <i class="fas fa-check me-1"></i>Adicionar
+                </button>
+            </div>
         </div>
     </div>
 </div>
@@ -411,5 +464,139 @@ function getDragAfterElement(container, y) {
 
 // Configurar drag and drop para linhas existentes
 document.querySelectorAll('.linha-dre-item').forEach(configurarDragDrop);
+
+// Serializar todas as linhas antes de enviar o formulário
+function serializarLinhas() {
+    const form = document.getElementById('formConfigDre');
+    const container = document.getElementById('linhasDre');
+
+    // Remover inputs antigos de serialização se existirem
+    const oldInputs = form.querySelectorAll('[name^="linha_"]');
+    oldInputs.forEach(input => input.remove());
+
+    // Coletar todas as linhas na ordem visual
+    const linhas = container.querySelectorAll('.linha-dre-item');
+
+    linhas.forEach((linha, index) => {
+        const ordem = index + 1;
+        const isSubtotal = linha.classList.contains('linha-subtotal');
+
+        // Criar inputs hidden para esta linha
+        const inputTipo = document.createElement('input');
+        inputTipo.type = 'hidden';
+        inputTipo.name = `linha_tipo[]`;
+        inputTipo.value = isSubtotal ? 'subtotal' : 'conta';
+        form.appendChild(inputTipo);
+
+        const inputOrdem = document.createElement('input');
+        inputOrdem.type = 'hidden';
+        inputOrdem.name = `linha_ordem[]`;
+        inputOrdem.value = ordem;
+        form.appendChild(inputOrdem);
+
+        if (isSubtotal) {
+            // É um subtotal - pegar descrição e operação
+            const descricao = linha.querySelector('.linha-descricao').textContent.trim();
+            const operacao = linha.querySelector('.linha-codigo').textContent.trim().replace(/[()]/g, '');
+
+            const inputDesc = document.createElement('input');
+            inputDesc.type = 'hidden';
+            inputDesc.name = `linha_descricao[]`;
+            inputDesc.value = descricao;
+            form.appendChild(inputDesc);
+
+            const inputOp = document.createElement('input');
+            inputOp.type = 'hidden';
+            inputOp.name = `linha_operacao[]`;
+            inputOp.value = operacao;
+            form.appendChild(inputOp);
+
+            const inputContaId = document.createElement('input');
+            inputContaId.type = 'hidden';
+            inputContaId.name = `linha_conta_id[]`;
+            inputContaId.value = '';
+            form.appendChild(inputContaId);
+        } else {
+            // É uma conta - pegar ID da conta
+            const linhaIdInput = linha.querySelector('input[name="linhas[]"], input[name="novas_contas[]"]');
+            const contaId = linhaIdInput ? linhaIdInput.value : '';
+
+            const inputContaId = document.createElement('input');
+            inputContaId.type = 'hidden';
+            inputContaId.name = `linha_conta_id[]`;
+            inputContaId.value = contaId;
+            form.appendChild(inputContaId);
+
+            const inputDesc = document.createElement('input');
+            inputDesc.type = 'hidden';
+            inputDesc.name = `linha_descricao[]`;
+            inputDesc.value = '';
+            form.appendChild(inputDesc);
+
+            const inputOp = document.createElement('input');
+            inputOp.type = 'hidden';
+            inputOp.name = `linha_operacao[]`;
+            inputOp.value = '';
+            form.appendChild(inputOp);
+        }
+    });
+
+    return true; // Permitir submit
+}
+
+// Funções para adicionar subtotais
+function mostrarModalSubtotal() {
+    const modal = new bootstrap.Modal(document.getElementById('modalSubtotal'));
+    modal.show();
+}
+
+function adicionarSubtotal() {
+    const descricao = document.getElementById('subtotalDescricao').value.trim();
+    const operacao = document.getElementById('subtotalOperacao').value;
+
+    if (!descricao) {
+        alert('Por favor, preencha a descrição do subtotal');
+        return;
+    }
+
+    const container = document.getElementById('linhasDre');
+    const mensagemVazia = document.getElementById('mensagemVazia');
+
+    if (mensagemVazia) {
+        mensagemVazia.remove();
+    }
+
+    const novaOrdem = container.children.length + 1;
+
+    const novaLinha = document.createElement('div');
+    novaLinha.className = 'linha-dre-item linha-subtotal';
+    novaLinha.draggable = true;
+    novaLinha.style.background = '#f0f8ff';
+    novaLinha.style.fontWeight = '700';
+    novaLinha.style.borderLeft = '4px solid #007bff';
+    novaLinha.innerHTML = `
+        <div class="linha-info">
+            <span class="linha-ordem">${novaOrdem}</span>
+            <span class="linha-descricao">${descricao}</span>
+            <span class="linha-codigo">(${operacao})</span>
+        </div>
+        <div class="linha-acoes">
+            <button type="button" class="btn-remover" onclick="removerLinha(this)" title="Remover">
+                <i class="fas fa-trash"></i>
+            </button>
+        </div>
+        <input type="hidden" name="novas_subtotais[]" value="${JSON.stringify({descricao: descricao, operacao: operacao})}">
+    `;
+
+    container.appendChild(novaLinha);
+    atualizarContador();
+    configurarDragDrop(novaLinha);
+
+    // Fechar modal e limpar campos
+    const modal = bootstrap.Modal.getInstance(document.getElementById('modalSubtotal'));
+    modal.hide();
+    document.getElementById('subtotalDescricao').value = '';
+    document.getElementById('subtotalOperacao').value = '=';
+}
 </script>
 {% endblock %}

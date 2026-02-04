@@ -16,6 +16,9 @@
             <a href="{{ url_for('novo_lancamento') }}" class="btn btn-primary btn-sm">
                 <i class="fas fa-plus me-1"></i>Novo Lançamento
             </a>
+            <a href="{{ url_for('nova_transferencia') }}" class="btn btn-success btn-sm">
+                <i class="fas fa-exchange-alt me-1"></i>Nova Transferência
+            </a>
         </div>
     </div>
 
@@ -73,6 +76,18 @@
                 </option>
                 <option value="vencido" {{ 'selected' if request.args.get('status')=='vencido' else '' }}>Vencido
                 </option>
+            </select>
+        </div>
+
+        <div class="modern-filter-group">
+            <label class="modern-filter-label">Conta Caixa:</label>
+            <select class="modern-filter-input" id="filtro-conta-caixa">
+                <option value="">Todas</option>
+                {% for conta in contas_caixa %}
+                <option value="{{ conta.id }}" {{ 'selected' if request.args.get('conta_caixa_id')|string == conta.id|string else '' }}>
+                    {{ conta.nome }}
+                </option>
+                {% endfor %}
             </select>
         </div>
 
@@ -142,86 +157,6 @@
                 </tr>
             </thead>
             <tbody>
-                <!-- Linha de Totalizadores Dinâmicos Detalhados -->
-                <tr class="modern-totals-row">
-                    <td colspan="12" class="modern-totals-cell">
-                        <div class="totals-container-enhanced">
-                            <div class="totals-header">
-                                <span class="totals-title">TOTAIS ({{ lancamentos|length }} lançamentos)</span>
-                            </div>
-
-                            <div class="totals-grid">
-                                <!-- Receitas -->
-                                <div class="totals-group receitas-group">
-                                    <div class="group-title">
-                                        <i class="fas fa-arrow-up"></i> RECEITAS
-                                    </div>
-                                    <div class="group-items">
-                                        <div class="total-item">
-                                            <span class="item-label">Total:</span>
-                                            <span class="item-value receita-total">R$ {{ "%.2f"|format(receita_total)
-                                                }}</span>
-                                        </div>
-                                        <div class="total-item">
-                                            <span class="item-label">Realizada:</span>
-                                            <span class="item-value receita-realizada">R$ {{
-                                                "%.2f"|format(receita_realizada) }}</span>
-                                        </div>
-                                        <div class="total-item">
-                                            <span class="item-label">A vencer:</span>
-                                            <span class="item-value receita-vencer">R$ {{
-                                                "%.2f"|format(receita_a_vencer) }}</span>
-                                        </div>
-                                        <div class="total-item">
-                                            <span class="item-label">Vencida:</span>
-                                            <span class="item-value receita-vencida">R$ {{
-                                                "%.2f"|format(receita_vencida) }}</span>
-                                        </div>
-                                        <div class="total-item">
-                                            <span class="item-label">Agendada:</span>
-                                            <span class="item-value receita-agendada">R$ {{
-                                                "%.2f"|format(receita_agendada) }}</span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Despesas -->
-                                <div class="totals-group despesas-group">
-                                    <div class="group-title">
-                                        <i class="fas fa-arrow-down"></i> DESPESAS
-                                    </div>
-                                    <div class="group-items">
-                                        <div class="total-item">
-                                            <span class="item-label">Total:</span>
-                                            <span class="item-value despesa-total">R$ {{ "%.2f"|format(despesa_total)
-                                                }}</span>
-                                        </div>
-                                        <div class="total-item">
-                                            <span class="item-label">Realizada:</span>
-                                            <span class="item-value despesa-realizada">R$ {{
-                                                "%.2f"|format(despesa_realizada) }}</span>
-                                        </div>
-                                        <div class="total-item">
-                                            <span class="item-label">A vencer:</span>
-                                            <span class="item-value despesa-vencer">R$ {{
-                                                "%.2f"|format(despesa_a_vencer) }}</span>
-                                        </div>
-                                        <div class="total-item">
-                                            <span class="item-label">Vencida:</span>
-                                            <span class="item-value despesa-vencida">R$ {{
-                                                "%.2f"|format(despesa_vencida) }}</span>
-                                        </div>
-                                        <div class="total-item">
-                                            <span class="item-label">Agendada:</span>
-                                            <span class="item-value despesa-agendada">R$ {{
-                                                "%.2f"|format(despesa_agendada) }}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </td>
-                </tr>
                 {% if lancamentos %}
                 {% for lancamento in lancamentos %}
                 <tr data-lancamento-id="{{ lancamento.id }}">
@@ -306,6 +241,88 @@
                     </td>
                 </tr>
                 {% endfor %}
+
+                <!-- Linha de Totalizadores Dinâmicos Detalhados -->
+                <tr class="modern-totals-row">
+                    <td colspan="12" class="modern-totals-cell">
+                        <div class="totals-container-enhanced">
+                            <div class="totals-header">
+                                <span class="totals-title">TOTAIS ({{ lancamentos|length }} lançamentos)</span>
+                            </div>
+
+                            <div class="totals-grid">
+                                <!-- Receitas -->
+                                <div class="totals-group receitas-group">
+                                    <div class="group-title">
+                                        <i class="fas fa-arrow-up"></i> RECEITAS
+                                    </div>
+                                    <div class="group-items">
+                                        <div class="total-item">
+                                            <span class="item-label">Total:</span>
+                                            <span class="item-value receita-total">R$ {{ "%.2f"|format(receita_total)
+                                                }}</span>
+                                        </div>
+                                        <div class="total-item">
+                                            <span class="item-label">Realizada:</span>
+                                            <span class="item-value receita-realizada">R$ {{
+                                                "%.2f"|format(receita_realizada) }}</span>
+                                        </div>
+                                        <div class="total-item">
+                                            <span class="item-label">A vencer:</span>
+                                            <span class="item-value receita-vencer">R$ {{
+                                                "%.2f"|format(receita_a_vencer) }}</span>
+                                        </div>
+                                        <div class="total-item">
+                                            <span class="item-label">Vencida:</span>
+                                            <span class="item-value receita-vencida">R$ {{
+                                                "%.2f"|format(receita_vencida) }}</span>
+                                        </div>
+                                        <div class="total-item">
+                                            <span class="item-label">Agendada:</span>
+                                            <span class="item-value receita-agendada">R$ {{
+                                                "%.2f"|format(receita_agendada) }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Despesas -->
+                                <div class="totals-group despesas-group">
+                                    <div class="group-title">
+                                        <i class="fas fa-arrow-down"></i> DESPESAS
+                                    </div>
+                                    <div class="group-items">
+                                        <div class="total-item">
+                                            <span class="item-label">Total:</span>
+                                            <span class="item-value despesa-total">R$ {{ "%.2f"|format(despesa_total)
+                                                }}</span>
+                                        </div>
+                                        <div class="total-item">
+                                            <span class="item-label">Realizada:</span>
+                                            <span class="item-value despesa-realizada">R$ {{
+                                                "%.2f"|format(despesa_realizada) }}</span>
+                                        </div>
+                                        <div class="total-item">
+                                            <span class="item-label">A vencer:</span>
+                                            <span class="item-value despesa-vencer">R$ {{
+                                                "%.2f"|format(despesa_a_vencer) }}</span>
+                                        </div>
+                                        <div class="total-item">
+                                            <span class="item-label">Vencida:</span>
+                                            <span class="item-value despesa-vencida">R$ {{
+                                                "%.2f"|format(despesa_vencida) }}</span>
+                                        </div>
+                                        <div class="total-item">
+                                            <span class="item-label">Agendada:</span>
+                                            <span class="item-value despesa-agendada">R$ {{
+                                                "%.2f"|format(despesa_agendada) }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+
                 {% else %}
                 <tr>
                     <td colspan="12" class="text-center py-4 text-muted">

@@ -72,6 +72,20 @@
         border-bottom: 1px solid #000;
     }
 
+    /* Linhas sintéticas (subtotais) */
+    .dre-linha.linha-negrito,
+    .dre-linha.tipo-subtotal {
+        font-weight: 700;
+        background: #f0f8ff;
+        border-top: 1px solid #007bff;
+        border-bottom: 1px solid #007bff;
+    }
+
+    .dre-linha.tipo-subtotal .dre-descricao {
+        text-transform: uppercase;
+        font-size: 0.95rem;
+    }
+
     .dre-linha.linha-acima {
         border-top: 1px solid #ccc;
     }
@@ -147,6 +161,39 @@
         </div>
 
         <div class="card-body">
+            <!-- Filtros de Período -->
+            <div class="row mb-4">
+                <div class="col-md-12">
+                    <div class="card bg-light">
+                        <div class="card-body">
+                            <form method="GET" class="row g-3 align-items-end">
+                                <div class="col-md-5">
+                                    <label for="data_inicio" class="form-label">
+                                        <i class="fas fa-calendar-alt me-1"></i>Data Inicial
+                                    </label>
+                                    <input type="text" class="form-control" id="data_inicio" name="data_inicio"
+                                           placeholder="dd/mm/aaaa" pattern="\d{2}/\d{2}/\d{4}"
+                                           value="{{ data_inicio }}" required>
+                                </div>
+                                <div class="col-md-5">
+                                    <label for="data_fim" class="form-label">
+                                        <i class="fas fa-calendar-alt me-1"></i>Data Final
+                                    </label>
+                                    <input type="text" class="form-control" id="data_fim" name="data_fim"
+                                           placeholder="dd/mm/aaaa" pattern="\d{2}/\d{2}/\d{4}"
+                                           value="{{ data_fim }}" required>
+                                </div>
+                                <div class="col-md-2">
+                                    <button type="submit" class="btn btn-primary w-100">
+                                        <i class="fas fa-filter"></i>
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             {% if linhas_dre %}
             <div class="dre-container">
                 <div class="dre-header">
@@ -160,8 +207,8 @@
                 <table class="dre-table">
                     <tbody>
                         {% for linha in linhas_dre %}
-                        <tr class="dre-linha tipo-{{ linha.tipo_linha }} nivel-{{ linha.nivel }} {% if linha.linha_acima %}linha-acima{% endif %} {% if linha.linha_abaixo %}linha-abaixo{% endif %}">
-                            <td class="dre-codigo">{{ linha.codigo }}</td>
+                        <tr class="dre-linha tipo-{{ linha.tipo_linha }} nivel-{{ linha.nivel }} {% if linha.negrito %}linha-negrito{% endif %} {% if linha.linha_acima %}linha-acima{% endif %} {% if linha.linha_abaixo %}linha-abaixo{% endif %}">
+                            <td class="dre-codigo">{{ linha.codigo if linha.tipo_linha == 'conta' else '' }}</td>
                             <td class="dre-operacao">{{ linha.operacao or '' }}</td>
                             <td class="dre-descricao">{{ linha.descricao }}</td>
                             <td class="dre-valor
@@ -189,4 +236,32 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Máscara de data para os campos
+function aplicarMascaraData(input) {
+    input.addEventListener('input', function(e) {
+        let value = e.target.value.replace(/\D/g, ''); // Remove tudo que não é número
+
+        if (value.length >= 2) {
+            value = value.substring(0, 2) + '/' + value.substring(2);
+        }
+        if (value.length >= 5) {
+            value = value.substring(0, 5) + '/' + value.substring(5, 9);
+        }
+
+        e.target.value = value;
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const dataInicio = document.getElementById('data_inicio');
+    const dataFim = document.getElementById('data_fim');
+
+    if (dataInicio) aplicarMascaraData(dataInicio);
+    if (dataFim) aplicarMascaraData(dataFim);
+});
+</script>
 {% endblock %}

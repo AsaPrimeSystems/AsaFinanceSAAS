@@ -124,7 +124,7 @@
                         <div class="subscription-badge">
                             <div class="subscription-plan">
                                 <i class="fas fa-star"></i>
-                                <span class="plan-name">{{ session.get('plano_nome') or 'Plano Básico' }}</span>
+                                <span class="plan-name">{{ (session.get('plano_nome') or 'Plano Básico').split()[0] }}</span>
                             </div>
                             <div class="subscription-days-info">
                                 <span class="subscription-days">{{ session.get('dias_assinatura', 0) }}</span>

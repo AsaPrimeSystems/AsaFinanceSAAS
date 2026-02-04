@@ -44,10 +44,10 @@
                             {% endif %}
                         </div>
 
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-6 mb-3" id="campo-categoria">
                             <label for="categoria" class="form-label">Categoria</label>
                             <select class="form-select {{ 'is-invalid' if errors and errors.get('categoria') }}"
-                                id="categoria" name="categoria" required>
+                                id="categoria" name="categoria">
                                 <option value="">Selecione primeiro o tipo...</option>
                             </select>
                             {% if errors and errors.get('categoria') %}
@@ -106,9 +106,9 @@
                         </div>
                     </div>
 
-                    <div class="row">
+                    <div class="row" id="row-conta-caixa">
                         <div class="col-md-6 mb-3">
-                            <label for="conta_caixa_id" class="form-label">Conta Caixa</label>
+                            <label for="conta_caixa_id" class="form-label" id="label-conta-caixa">Conta Caixa</label>
                             <select class="form-select {{ 'is-invalid' if errors and errors.get('conta_caixa_id') }}"
                                 id="conta_caixa_id" name="conta_caixa_id">
                                 <option value="">Selecione uma conta (opcional)</option>
@@ -122,7 +122,7 @@
                             {% if errors and errors.get('conta_caixa_id') %}
                             <div class="invalid-feedback">{{ errors.get('conta_caixa_id') }}</div>
                             {% endif %}
-                            <div class="form-text">Selecione a conta caixa para este lançamento</div>
+                            <div class="form-text" id="texto-conta-caixa">Selecione a conta caixa para este lançamento</div>
                         </div>
 
                         <div class="col-md-6 mb-3">
