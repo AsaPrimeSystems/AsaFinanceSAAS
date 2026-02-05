@@ -316,6 +316,33 @@ with app.app_context():
     except Exception as e:
         print(f"⚠️ Aviso: Não foi possível verificar/adicionar nota_fiscal: {str(e)}")
         db.session.rollback()
+
+    # ============================================================================
+    # MIGRAÇÃO: Colunas adicionais na tabela importacao
+    # ============================================================================
+    try:
+        colunas_importacao = {
+            'total_entradas': 'FLOAT DEFAULT 0.0',
+            'total_saidas': 'FLOAT DEFAULT 0.0',
+            'total_vendas': 'INTEGER DEFAULT 0',
+            'total_compras': 'INTEGER DEFAULT 0',
+            'lancamentos_ids': 'TEXT',
+            'vendas_ids': 'TEXT',
+            'compras_ids': 'TEXT'
+        }
+
+        for coluna, tipo in colunas_importacao.items():
+            if not verificar_coluna_existe('importacao', coluna):
+                print(f"Adicionando coluna '{coluna}' na tabela importacao...")
+                db.session.execute(text(f"ALTER TABLE importacao ADD COLUMN {coluna} {tipo}"))
+                db.session.commit()
+                print(f"✅ Coluna '{coluna}' adicionada na tabela importacao!")
+            else:
+                print(f"✓ Coluna '{coluna}' já existe na tabela importacao!")
+    except Exception as e:
+        print(f"⚠️ Aviso: Não foi possível verificar/adicionar colunas na importacao: {str(e)}")
+        db.session.rollback()
+
     # ============================================================================
     # MIGRAÇÃO: Hierarquia no Plano de Contas
     # ============================================================================
