@@ -115,8 +115,13 @@
                         20 else compra.fornecedor.nome) if compra.fornecedor else 'N/A' }}
                     </td>
                     <td class="modern-data-col" title="{{ compra.produto or 'Produto/Serviço não informado' }}">
-                        {{ (compra.produto[:25] + '...' if compra.produto and compra.produto|length > 25 else
-                        compra.produto) if compra.produto else 'N/A' }}
+                        {% if compra.produto and ',' in compra.produto %}
+                            <span style="color: #6c757d; font-style: italic;">Produtos Diversos</span>
+                        {% elif compra.produto %}
+                            {{ compra.produto[:25] + '...' if compra.produto|length > 25 else compra.produto }}
+                        {% else %}
+                            N/A
+                        {% endif %}
                     </td>
                     <td class="modern-data-col">
                         {{ compra.nota_fiscal or '-' }}

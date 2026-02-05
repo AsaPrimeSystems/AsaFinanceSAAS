@@ -596,5 +596,41 @@
                 });
         }
     });
+
+    // Funções de filtro
+    function aplicarFiltros() {
+        const params = new URLSearchParams();
+
+        const tipo = document.getElementById('filtro-tipo').value;
+        const categoria = document.getElementById('filtro-categoria').value;
+        const dataInicio = document.getElementById('filtro-data-inicio').value;
+        const dataFim = document.getElementById('filtro-data-fim').value;
+        const notaFiscal = document.getElementById('filtro-nf').value;
+        const status = document.getElementById('filtro-status').value;
+        const contaCaixa = document.getElementById('filtro-conta-caixa').value;
+
+        if (tipo) params.append('tipo', tipo);
+        if (categoria) params.append('categoria', categoria);
+        if (dataInicio) params.append('data_inicio', dataInicio);
+        if (dataFim) params.append('data_fim', dataFim);
+        if (notaFiscal) params.append('nota_fiscal', notaFiscal);
+        if (status) params.append('status', status);
+        if (contaCaixa) params.append('conta_caixa_id', contaCaixa);
+
+        const queryString = params.toString();
+        window.location.href = '/lancamentos' + (queryString ? '?' + queryString : '');
+    }
+
+    function limparFiltros() {
+        document.getElementById('filtro-tipo').value = '';
+        document.getElementById('filtro-categoria').value = '';
+        document.getElementById('filtro-data-inicio').value = '';
+        document.getElementById('filtro-data-fim').value = '';
+        document.getElementById('filtro-nf').value = '';
+        document.getElementById('filtro-status').value = '';
+        document.getElementById('filtro-conta-caixa').value = '';
+
+        window.location.href = '/lancamentos';
+    }
 </script>
 {% endblock %}

@@ -6347,46 +6347,47 @@ def perfil():
     return render_template('perfil.html', usuario=usuario)
 
 # Funções auxiliares para atualização de estoque
-def atualizar_estoque_compra(compra, usuario_id):
-    """Atualiza o estoque quando uma compra é registrada (independente do status)"""
-    if compra.tipo_compra == 'servico':
-        return True, None
-    
-    # Verificar se o produto já existe no estoque
-    produto_estoque = Produto.query.filter_by(
-        nome=compra.produto, 
-        usuario_id=usuario_id
-    ).first()
-    
-    if produto_estoque:
-        # Calcular estoque real baseado em todas as compras e vendas realizadas
-        estoque_real = calcular_estoque_produto(compra.produto, usuario_id)
-        
-        # Calcular preço médio real baseado em todas as compras realizadas
-        preco_medio_real = calcular_preco_medio_produto(compra.produto, usuario_id)
-        
-        # Atualizar produto
-        produto_estoque.estoque = estoque_real
-        produto_estoque.preco_custo = preco_medio_real
-        db.session.commit()
-        return True, f'Estoque do produto "{compra.produto}" atualizado. Quantidade total: {estoque_real}. Preço médio: R$ {preco_medio_real:.2f}'
-    else:
-        # Criar novo produto no estoque
-        # Se estoque > 0, ativar automaticamente
-        ativo_produto = compra.quantidade > 0
-        
-        novo_produto = Produto(
-            nome=compra.produto,
-            descricao=f'Produto adicionado via compra - {compra.observacoes}' if compra.observacoes else f'Produto adicionado via compra',
-            preco_custo=compra.preco_custo,
-            preco_venda=compra.preco_custo * 1.3,  # Margem de 30% por padrão
-            estoque=compra.quantidade,
-            ativo=ativo_produto,
-            usuario_id=usuario_id
-        )
-        db.session.add(novo_produto)
-        db.session.commit()
-        return True, f'Produto "{compra.produto}" criado no estoque com {compra.quantidade} unidades.'
+# DESABILITADO: Função antiga substituída pela versão na linha ~13490 que suporta múltiplos produtos
+# def atualizar_estoque_compra(compra, usuario_id):
+#     """Atualiza o estoque quando uma compra é registrada (independente do status)"""
+#     if compra.tipo_compra == 'servico':
+#         return True, None
+#
+#     # Verificar se o produto já existe no estoque
+#     produto_estoque = Produto.query.filter_by(
+#         nome=compra.produto,
+#         usuario_id=usuario_id
+#     ).first()
+#
+#     if produto_estoque:
+#         # Calcular estoque real baseado em todas as compras e vendas realizadas
+#         estoque_real = calcular_estoque_produto(compra.produto, usuario_id)
+#
+#         # Calcular preço médio real baseado em todas as compras realizadas
+#         preco_medio_real = calcular_preco_medio_produto(compra.produto, usuario_id)
+#
+#         # Atualizar produto
+#         produto_estoque.estoque = estoque_real
+#         produto_estoque.preco_custo = preco_medio_real
+#         db.session.commit()
+#         return True, f'Estoque do produto "{compra.produto}" atualizado. Quantidade total: {estoque_real}. Preço médio: R$ {preco_medio_real:.2f}'
+#     else:
+#         # Criar novo produto no estoque
+#         # Se estoque > 0, ativar automaticamente
+#         ativo_produto = compra.quantidade > 0
+#
+#         novo_produto = Produto(
+#             nome=compra.produto,
+#             descricao=f'Produto adicionado via compra - {compra.observacoes}' if compra.observacoes else f'Produto adicionado via compra',
+#             preco_custo=compra.preco_custo,
+#             preco_venda=compra.preco_custo * 1.3,  # Margem de 30% por padrão
+#             estoque=compra.quantidade,
+#             ativo=ativo_produto,
+#             usuario_id=usuario_id
+#         )
+#         db.session.add(novo_produto)
+#         db.session.commit()
+#         return True, f'Produto "{compra.produto}" criado no estoque com {compra.quantidade} unidades.'
 
 def atualizar_estoque_venda(venda, usuario_id):
     """Atualiza o estoque quando uma venda é registrada (independente do status)"""
@@ -13488,48 +13489,88 @@ def atualizar_estoque_venda(venda, usuario_id):
         return False, f"Erro ao atualizar estoque: {str(e)}"
 
 def atualizar_estoque_compra(compra, usuario_id):
-    """Atualiza o estoque após uma compra (independente do status)"""
+    """Atualiza o estoque após uma compra (independente do status) - Suporta múltiplos produtos"""
     try:
-        # Verificar se a compra é de mercadoria e tem produto especificado
+        # Verificar se a compra é de mercadoria
         if not hasattr(compra, 'tipo_compra') or compra.tipo_compra == 'servico':
             return True, "Compra não é de produto - estoque não será atualizado"
-        
+
         if not hasattr(compra, 'produto') or not compra.produto:
             return True, "Produto não especificado - estoque não será atualizado"
-        
-        # Normalizar nome do produto
-        nome_produto_normalizado = normalizar_nome_produto(compra.produto)
-        compra.produto = nome_produto_normalizado
-        
-        # Buscar ou criar produto no estoque
-        produto_estoque = Produto.query.filter_by(
-            nome=nome_produto_normalizado,
-            usuario_id=usuario_id
-        ).first()
-        
-        if not produto_estoque:
-            # Criar produto no estoque
-            produto_estoque = Produto(
+
+        # Buscar lançamento vinculado para pegar itens_carrinho
+        lancamento = Lancamento.query.filter_by(compra_id=compra.id).first()
+        itens_para_processar = []
+
+        if lancamento and lancamento.itens_carrinho:
+            # Compra com múltiplos produtos (carrinho)
+            try:
+                import json
+                itens_carrinho = json.loads(lancamento.itens_carrinho)
+
+                for item in itens_carrinho:
+                    # Processar apenas mercadorias
+                    if item.get('tipo') == 'mercadoria':
+                        itens_para_processar.append({
+                            'nome': item['nome'],
+                            'quantidade': item['qtd'],
+                            'preco_custo': item['preco']
+                        })
+
+                app.logger.info(f"🛒 Processando {len(itens_para_processar)} produtos do carrinho")
+            except Exception as e:
+                app.logger.warning(f"⚠️ Erro ao parsear itens_carrinho: {e}, processando como produto único")
+                itens_para_processar = []
+
+        # Se não tem itens do carrinho, processar como produto único (comportamento antigo)
+        if not itens_para_processar:
+            itens_para_processar = [{
+                'nome': compra.produto,
+                'quantidade': compra.quantidade if hasattr(compra, 'quantidade') else 1,
+                'preco_custo': compra.preco_custo
+            }]
+
+        # Processar cada item
+        mensagens = []
+        for item in itens_para_processar:
+            nome_produto_normalizado = normalizar_nome_produto(item['nome'])
+
+            # Buscar ou criar produto no estoque
+            produto_estoque = Produto.query.filter_by(
                 nome=nome_produto_normalizado,
-                descricao=f'Produto criado automaticamente via compra - {compra.produto}',
-                preco_custo=compra.preco_custo,
-                preco_venda=compra.preco_custo * 1.3,  # Margem de 30%
-                estoque=0,  # Será calculado
                 usuario_id=usuario_id
-            )
-            db.session.add(produto_estoque)
-            db.session.flush()
-            app.logger.info(f"✅ Produto '{compra.produto}' criado no estoque (ID: {produto_estoque.id})")
-        
-        # Calcular estoque e preço médio reais baseado em todas as compras e vendas
-        estoque_real = calcular_estoque_produto(compra.produto, usuario_id)
-        preco_medio_real = calcular_preco_medio_produto(compra.produto, usuario_id)
-        
-        produto_estoque.estoque = estoque_real
-        produto_estoque.preco_custo = preco_medio_real
+            ).first()
+
+            if not produto_estoque:
+                # Criar produto no estoque
+                produto_estoque = Produto(
+                    nome=nome_produto_normalizado,
+                    descricao=f'Produto criado automaticamente via compra - {item["nome"]}',
+                    preco_custo=item['preco_custo'],
+                    preco_venda=item['preco_custo'] * 1.3,  # Margem de 30%
+                    estoque=0,  # Será calculado
+                    usuario_id=usuario_id
+                )
+                db.session.add(produto_estoque)
+                db.session.flush()
+                app.logger.info(f"✅ Produto '{item['nome']}' criado no estoque (ID: {produto_estoque.id})")
+
+            # Calcular estoque e preço médio reais baseado em todas as compras e vendas
+            estoque_real = calcular_estoque_produto(nome_produto_normalizado, usuario_id)
+            preco_medio_real = calcular_preco_medio_produto(nome_produto_normalizado, usuario_id)
+
+            produto_estoque.estoque = estoque_real
+            produto_estoque.preco_custo = preco_medio_real
+
+            mensagens.append(f"{item['nome']}: {estoque_real} un, R$ {preco_medio_real:.2f}")
+
         db.session.commit()
-        return True, f"Estoque atualizado: {estoque_real} unidades, Preço médio: R$ {preco_medio_real:.2f}"
-        
+
+        if len(mensagens) > 1:
+            return True, f"Estoque atualizado: {len(mensagens)} produtos processados"
+        else:
+            return True, f"Estoque atualizado: {mensagens[0]}"
+
     except Exception as e:
         app.logger.error(f"❌ Erro ao atualizar estoque da compra: {str(e)}")
         return False, f"Erro ao atualizar estoque: {str(e)}"
