@@ -364,7 +364,7 @@ class LancamentosManager {
             return 'R$ ' + Math.abs(num).toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
         };
 
-        // Atualizar receitas (novos seletores)
+        // Atualizar entradas (novos seletores)
         const updateElement = (selector, value) => {
             const el = document.querySelector(selector);
             if (el) {
@@ -372,30 +372,30 @@ class LancamentosManager {
             }
         };
 
-        // Receitas
-        if (totais.receita_total !== undefined) updateElement('.receita-total', totais.receita_total);
-        if (totais.receita_realizada !== undefined) updateElement('.receita-realizada', totais.receita_realizada);
-        if (totais.receita_a_vencer !== undefined) updateElement('.receita-vencer', totais.receita_a_vencer);
-        if (totais.receita_vencida !== undefined) updateElement('.receita-vencida', totais.receita_vencida);
-        if (totais.receita_agendada !== undefined) updateElement('.receita-agendada', totais.receita_agendada);
+        // Entradas
+        if (totais.entrada_total !== undefined) updateElement('.entrada-total', totais.entrada_total);
+        if (totais.entrada_realizada !== undefined) updateElement('.entrada-realizada', totais.entrada_realizada);
+        if (totais.entrada_a_vencer !== undefined) updateElement('.entrada-vencer', totais.entrada_a_vencer);
+        if (totais.entrada_vencida !== undefined) updateElement('.entrada-vencida', totais.entrada_vencida);
+        if (totais.entrada_agendada !== undefined) updateElement('.entrada-agendada', totais.entrada_agendada);
 
-        // Despesas
-        if (totais.despesa_total !== undefined) updateElement('.despesa-total', totais.despesa_total);
-        if (totais.despesa_realizada !== undefined) updateElement('.despesa-realizada', totais.despesa_realizada);
-        if (totais.despesa_a_vencer !== undefined) updateElement('.despesa-vencer', totais.despesa_a_vencer);
-        if (totais.despesa_vencida !== undefined) updateElement('.despesa-vencida', totais.despesa_vencida);
-        if (totais.despesa_agendada !== undefined) updateElement('.despesa-agendada', totais.despesa_agendada);
+        // Saídas
+        if (totais.saida_total !== undefined) updateElement('.saida-total', totais.saida_total);
+        if (totais.saida_realizada !== undefined) updateElement('.saida-realizada', totais.saida_realizada);
+        if (totais.saida_a_vencer !== undefined) updateElement('.saida-vencer', totais.saida_a_vencer);
+        if (totais.saida_vencida !== undefined) updateElement('.saida-vencida', totais.saida_vencida);
+        if (totais.saida_agendada !== undefined) updateElement('.saida-agendada', totais.saida_agendada);
 
-        // Atualizar receitas totais (seletores legados)
-        const receitasElement = document.querySelector('.totals-section .total-value.positive');
-        if (receitasElement && totais.total_receitas !== undefined) {
-            receitasElement.textContent = formatarMoeda(totais.total_receitas);
+        // Atualizar entradas totais (seletores legados)
+        const entradasElement = document.querySelector('.totals-section .total-value.positive');
+        if (entradasElement && totais.total_entradas !== undefined) {
+            entradasElement.textContent = formatarMoeda(totais.total_entradas);
         }
 
-        // Atualizar despesas totais (seletores legados)
-        const despesasElement = document.querySelector('.totals-section .total-value.negative');
-        if (despesasElement && totais.total_despesas !== undefined) {
-            despesasElement.textContent = formatarMoeda(totais.total_despesas);
+        // Atualizar saidas totais (seletores legados)
+        const saidasElement = document.querySelector('.totals-section .total-value.negative');
+        if (saidasElement && totais.total_saidas !== undefined) {
+            saidasElement.textContent = formatarMoeda(totais.total_saidas);
         }
 
         // Atualizar saldo atual (seletores legados)
@@ -442,8 +442,8 @@ class LancamentosManager {
         hoje.setHours(0, 0, 0, 0);
 
         // Inicializar contadores
-        let receita_total = 0, receita_realizada = 0, receita_vencer = 0, receita_vencida = 0, receita_agendada = 0;
-        let despesa_total = 0, despesa_realizada = 0, despesa_vencer = 0, despesa_vencida = 0, despesa_agendada = 0;
+        let entrada_total = 0, entrada_realizada = 0, entrada_vencer = 0, entrada_vencida = 0, entrada_agendada = 0;
+        let saida_total = 0, saida_realizada = 0, saida_vencer = 0, saida_vencida = 0, saida_agendada = 0;
 
         linhasVisiveis.forEach(linha => {
             const tipoBadge = linha.querySelector('.badge');
@@ -470,41 +470,41 @@ class LancamentosManager {
             }
 
             // Contabilizar por tipo
-            if (tipo === 'receita') {
-                receita_total += valor;
-                if (statusDetalhado === 'realizado') receita_realizada += valor;
-                else if (statusDetalhado === 'agendado') receita_agendada += valor;
-                else if (statusDetalhado === 'vencido') receita_vencida += valor;
-                else receita_vencer += valor;
-            } else if (tipo === 'despesa') {
-                despesa_total += valor;
-                if (statusDetalhado === 'realizado') despesa_realizada += valor;
-                else if (statusDetalhado === 'agendado') despesa_agendada += valor;
-                else if (statusDetalhado === 'vencido') despesa_vencida += valor;
-                else despesa_vencer += valor;
+            if (tipo === 'entrada') {
+                entrada_total += valor;
+                if (statusDetalhado === 'realizado') entrada_realizada += valor;
+                else if (statusDetalhado === 'agendado') entrada_agendada += valor;
+                else if (statusDetalhado === 'vencido') entrada_vencida += valor;
+                else entrada_vencer += valor;
+            } else if (tipo === 'saida') {
+                saida_total += valor;
+                if (statusDetalhado === 'realizado') saida_realizada += valor;
+                else if (statusDetalhado === 'agendado') saida_agendada += valor;
+                else if (statusDetalhado === 'vencido') saida_vencida += valor;
+                else saida_vencer += valor;
             }
         });
 
         // Atualizar totais na interface
         this.atualizarTotais({
-            receita_total,
-            receita_realizada,
-            receita_a_vencer: receita_vencer,
-            receita_vencida,
-            receita_agendada,
-            despesa_total,
-            despesa_realizada,
-            despesa_a_vencer: despesa_vencer,
-            despesa_vencida,
-            despesa_agendada,
+            entrada_total,
+            entrada_realizada,
+            entrada_a_vencer: entrada_vencer,
+            entrada_vencida,
+            entrada_agendada,
+            saida_total,
+            saida_realizada,
+            saida_a_vencer: saida_vencer,
+            saida_vencida,
+            saida_agendada,
             // Valores legados
-            total_receitas: receita_total,
-            total_despesas: despesa_total,
-            saldo_atual: receita_realizada - despesa_realizada,
-            saldo_realizado: receita_realizada - despesa_realizada,
-            saldo_a_vencer: Math.abs(receita_vencer - despesa_vencer),
-            saldo_vencido: Math.abs(receita_vencida - despesa_vencida),
-            saldo_agendado: Math.abs(receita_agendada - despesa_agendada)
+            total_entradas: entrada_total,
+            total_saidas: saida_total,
+            saldo_atual: entrada_realizada - saida_realizada,
+            saldo_realizado: entrada_realizada - saida_realizada,
+            saldo_a_vencer: Math.abs(entrada_vencer - saida_vencer),
+            saldo_vencido: Math.abs(entrada_vencida - saida_vencida),
+            saldo_agendado: Math.abs(entrada_agendada - saida_agendada)
         });
 
         // Atualizar contador de lançamentos

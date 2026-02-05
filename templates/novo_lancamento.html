@@ -34,10 +34,10 @@
                             <select class="form-select {{ 'is-invalid' if errors and errors.get('tipo') }}" id="tipo"
                                 name="tipo" required>
                                 <option value="">Selecione...</option>
-                                <option value="receita" {{ 'selected' if form_data and form_data.get('tipo')=='receita'
-                                    else '' }}>Receita</option>
-                                <option value="despesa" {{ 'selected' if form_data and form_data.get('tipo')=='despesa'
-                                    else '' }}>Despesa</option>
+                                <option value="entrada" {{ 'selected' if form_data and form_data.get('tipo')=='entrada'
+                                    else '' }}>Entrada</option>
+                                <option value="saida" {{ 'selected' if form_data and form_data.get('tipo')=='saida'
+                                    else '' }}>Saída</option>
                             </select>
                             {% if errors and errors.get('tipo') %}
                             <div class="invalid-feedback">{{ errors.get('tipo') }}</div>

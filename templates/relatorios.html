@@ -21,7 +21,8 @@
                             <div class="card-body text-center">
                                 <i class="fas fa-balance-scale fa-3x text-primary mb-3"></i>
                                 <h5 class="card-title">Relatório de Saldos</h5>
-                                <p class="card-text">Visualize receitas, despesas e saldo geral organizados por categoria.</p>
+                                <p class="card-text">Visualize entradas, saidas e saldo geral organizados por
+                                    categoria.</p>
                                 <a href="{{ url_for('relatorio_saldos') }}" class="btn btn-primary">
                                     <i class="fas fa-eye me-2"></i>Visualizar
                                 </a>
@@ -35,7 +36,8 @@
                             <div class="card-body text-center">
                                 <i class="fas fa-money-bill-wave fa-3x text-info mb-3"></i>
                                 <h5 class="card-title">Relatório de Lançamentos</h5>
-                                <p class="card-text">Filtre e analise todos os lançamentos financeiros com opções avançadas.</p>
+                                <p class="card-text">Filtre e analise todos os lançamentos financeiros com opções
+                                    avançadas.</p>
                                 <a href="{{ url_for('relatorio_lancamentos') }}" class="btn btn-info">
                                     <i class="fas fa-filter me-2"></i>Visualizar
                                 </a>
@@ -73,17 +75,18 @@
 
                     <!-- DRE - Demonstração do Resultado do Exercício -->
                     <div class="col-md-6 col-lg-4 mb-4">
-                        <div class="card h-100 border-purple" style="border-color: #6f42c1 !important;">
+                        <div class="card h-100 border-purple">
                             <div class="card-body text-center">
-                                <i class="fas fa-file-invoice-dollar fa-3x mb-3" style="color: #6f42c1;"></i>
+                                <i class="fas fa-file-invoice-dollar fa-3x text-purple mb-3"></i>
                                 <h5 class="card-title">DRE - Resultado do Exercício</h5>
-                                <p class="card-text">Demonstração do resultado: receitas, despesas e lucro líquido do período.</p>
-                                <div class="d-flex gap-2 justify-content-center">
-                                    <a href="{{ url_for('dre_visualizar') }}" class="btn btn-sm" style="background-color: #6f42c1; color: white;">
-                                        <i class="fas fa-eye me-1"></i>Visualizar
+                                <p class="card-text">Demonstração do resultado: entradas, saidas e lucro líquido do
+                                    período.</p>
+                                <div class="d-flex gap-2 justify-content-center mt-3">
+                                    <a href="{{ url_for('dre_visualizar') }}" class="btn btn-purple">
+                                        <i class="fas fa-eye me-2"></i>Visualizar
                                     </a>
-                                    <a href="{{ url_for('dre_configurar') }}" class="btn btn-sm btn-outline-secondary">
-                                        <i class="fas fa-cog me-1"></i>Configurar
+                                    <a href="{{ url_for('dre_configurar') }}" class="btn btn-outline-secondary">
+                                        <i class="fas fa-cog me-2"></i>Configurar
                                     </a>
                                 </div>
                             </div>
@@ -111,7 +114,8 @@
                             <div class="card-body text-center">
                                 <i class="fas fa-warehouse fa-3x text-secondary mb-3"></i>
                                 <h5 class="card-title">Relatório de Estoque</h5>
-                                <p class="card-text">Visualize estoque atual ou em data específica (temporal). Analise níveis e margens.</p>
+                                <p class="card-text">Visualize estoque atual ou em data específica (temporal). Analise
+                                    níveis e margens.</p>
                                 <a href="{{ url_for('relatorio_estoque') }}" class="btn btn-secondary">
                                     <i class="fas fa-clipboard-list me-2"></i>Visualizar
                                 </a>
@@ -131,8 +135,10 @@
                                 <li>Os relatórios são atualizados em tempo real com os dados do sistema</li>
                                 <li>Você pode exportar os dados para análise externa</li>
                                 <li>Relatórios de saldos mostram apenas transações realizadas</li>
-                                {% if usuario and usuario.empresa and usuario.empresa.tipo_empresa not in ['comercio', 'industria'] %}
-                                <li><strong>Relatórios de produtos e estoque estão disponíveis apenas para empresas de comércio ou indústria</strong></li>
+                                {% if usuario and usuario.empresa and usuario.empresa.tipo_empresa not in ['comercio',
+                                'industria'] %}
+                                <li><strong>Relatórios de produtos e estoque estão disponíveis apenas para empresas de
+                                        comércio ou indústria</strong></li>
                                 {% endif %}
                             </ul>
                         </div>
@@ -142,4 +148,4 @@
         </div>
     </div>
 </div>
-{% endblock %} 
+{% endblock %}

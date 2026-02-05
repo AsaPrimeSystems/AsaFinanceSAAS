@@ -20,7 +20,7 @@
                             <h6><i class="fas fa-info-circle me-2"></i>Informações</h6>
                             <ul class="mb-0">
                                 <li>Recalcula os saldos com base nos lançamentos realizados</li>
-                                <li>Fórmula: Saldo Inicial + Receitas - Despesas</li>
+                                <li>Fórmula: Saldo Inicial + Entradas - Saídas</li>
                                 <li>Apenas lançamentos com status "Realizado" são considerados</li>
                                 <li>Use esta ferramenta se os saldos estiverem inconsistentes</li>
                             </ul>
@@ -95,7 +95,7 @@
                                 </td>
                                 <td class="text-center">
                                     <button type="button" class="btn btn-sm btn-outline-info"
-                                            onclick="mostrarDetalhes('{{ info.conta.nome }}', {{ info.total_receitas }}, {{ info.total_despesas }}, {{ info.qtd_lancamentos }})">
+                                            onclick="mostrarDetalhes('{{ info.conta.nome }}', {{ info.total_entradas }}, {{ info.total_saidas }}, {{ info.qtd_lancamentos }})">
                                         <i class="fas fa-eye"></i> {{ info.qtd_lancamentos }}
                                     </button>
                                 </td>
@@ -125,7 +125,7 @@
                             <h6><i class="fas fa-info-circle me-2"></i>Legenda:</h6>
                             <ul class="mb-0">
                                 <li><strong>Saldo Atual:</strong> Valor armazenado no banco de dados</li>
-                                <li><strong>Saldo Calculado:</strong> Saldo Inicial + Receitas Realizadas - Despesas Realizadas</li>
+                                <li><strong>Saldo Calculado:</strong> Saldo Inicial + Entradas Realizadas - Saídas Realizadas</li>
                                 <li><strong>Diferença:</strong> Diferença entre Saldo Atual e Calculado (valores em vermelho indicam inconsistência)</li>
                                 <li class="text-warning"><strong>Linha Amarela:</strong> Conta com inconsistência que precisa ser corrigida</li>
                             </ul>
@@ -167,16 +167,16 @@
 </div>
 
 <script>
-function mostrarDetalhes(nome, receitas, despesas, qtd) {
+function mostrarDetalhes(nome, entradas, saidas, qtd) {
     const content = document.getElementById('detalhesContaContent');
     content.innerHTML = `
         <div class="row">
             <div class="col-12">
                 <h6>${nome}</h6>
                 <hr>
-                <p><strong>Total de Receitas Realizadas:</strong> <span class="text-success">R$ ${receitas.toFixed(2)}</span></p>
-                <p><strong>Total de Despesas Realizadas:</strong> <span class="text-danger">R$ ${despesas.toFixed(2)}</span></p>
-                <p><strong>Saldo das Movimentações:</strong> <span class="text-primary">R$ ${(receitas - despesas).toFixed(2)}</span></p>
+                <p><strong>Total de Entradas Realizadas:</strong> <span class="text-success">R$ ${entradas.toFixed(2)}</span></p>
+                <p><strong>Total de Saídas Realizadas:</strong> <span class="text-danger">R$ ${saidas.toFixed(2)}</span></p>
+                <p><strong>Saldo das Movimentações:</strong> <span class="text-primary">R$ ${(entradas - saidas).toFixed(2)}</span></p>
                 <p><strong>Quantidade de Lançamentos Realizados:</strong> ${qtd}</p>
             </div>
         </div>

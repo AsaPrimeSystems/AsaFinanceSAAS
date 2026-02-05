@@ -135,9 +135,9 @@
                 <span class="modern-total-value positive">{{ clientes|selectattr('ativo')|list|length if clientes else 0 }}</span>
             </div>
             <div>
-                <span class="modern-total-label">Total em Receitas:</span>
+                <span class="modern-total-label">Total em Entradas:</span>
                 <span class="modern-total-value positive">
-                    R$ {{ "%.2f"|format(clientes|sum(attribute='total_receitas') or 0) if clientes else '0,00' }}
+                    R$ {{ "%.2f"|format(clientes|sum(attribute='total_entradas') or 0) if clientes else '0,00' }}
                 </span>
             </div>
         </div>

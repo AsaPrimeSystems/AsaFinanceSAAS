@@ -88,8 +88,8 @@
                                                     <li><a class="dropdown-item vendas_selTipo" href="#" linha="1"
                                                             value="frete"><i class="fa fa-truck"></i> Frete</a></li>
                                                     <li><a class="dropdown-item vendas_selTipo" href="#" linha="1"
-                                                            value="despesa"><i class="fa fa-money"></i> Outras
-                                                            despesas</a></li>
+                                                            value="saida"><i class="fa fa-money"></i> Outras
+                                                            saidas</a></li>
                                                 </ul>
                                             </div>
                                             <input type="hidden" name="item_tipo[]" value="produto">
@@ -918,7 +918,7 @@
                             var label = 'Produto';
                             if (v === 'servico') { icon = 'fa-wrench'; label = 'Serviço'; }
                             else if (v === 'frete') { icon = 'fa-truck'; label = 'Frete'; }
-                            else if (v === 'despesa') { icon = 'fa-money'; label = 'Outras despesas'; }
+                            else if (v === 'saida') { icon = 'fa-money'; label = 'Outras saidas'; }
                             btnTipo.innerHTML = `<i class="fa ${icon}"></i> ${label}`;
                             btnTipo.setAttribute('valor', v);
                         }
@@ -987,7 +987,7 @@
                         <li><a class="dropdown-item vendas_selTipo" href="#" linha="${idx}" value="produto"><i class="fa fa-cubes"></i> Produto</a></li>
                         <li><a class="dropdown-item vendas_selTipo" href="#" linha="${idx}" value="servico"><i class="fa fa-wrench"></i> Serviço</a></li>
                         <li><a class="dropdown-item vendas_selTipo" href="#" linha="${idx}" value="frete"><i class="fa fa-truck"></i> Frete</a></li>
-                        <li><a class="dropdown-item vendas_selTipo" href="#" linha="${idx}" value="despesa"><i class="fa fa-money"></i> Outras despesas</a></li>
+                        <li><a class="dropdown-item vendas_selTipo" href="#" linha="${idx}" value="saida"><i class="fa fa-money"></i> Outras saidas</a></li>
                     </ul>
                 </div>
                 <input type="hidden" name="item_tipo[]" value="produto">

@@ -17,7 +17,7 @@
                 <i class="fas fa-plus me-1"></i>Novo Lançamento
             </a>
             <a href="{{ url_for('nova_transferencia') }}" class="btn btn-success btn-sm">
-                <i class="fas fa-exchange-alt me-1"></i>Nova Transferência
+                <i class="fas fa-exchange-alt me-1"></i>Nova Transferência entre contas
             </a>
         </div>
     </div>
@@ -28,8 +28,8 @@
             <label class="modern-filter-label">Tipo:</label>
             <select class="modern-filter-input" id="filtro-tipo">
                 <option value="">Todos</option>
-                <option value="receita" {{ 'selected' if request.args.get('tipo')=='receita' else '' }}>Receita</option>
-                <option value="despesa" {{ 'selected' if request.args.get('tipo')=='despesa' else '' }}>Despesa</option>
+                <option value="entrada" {{ 'selected' if request.args.get('tipo')=='entrada' else '' }}>Entrada</option>
+                <option value="saida" {{ 'selected' if request.args.get('tipo')=='saida' else '' }}>Saída</option>
             </select>
         </div>
 
@@ -84,7 +84,8 @@
             <select class="modern-filter-input" id="filtro-conta-caixa">
                 <option value="">Todas</option>
                 {% for conta in contas_caixa %}
-                <option value="{{ conta.id }}" {{ 'selected' if request.args.get('conta_caixa_id')|string == conta.id|string else '' }}>
+                <option value="{{ conta.id }}" {{ 'selected' if
+                    request.args.get('conta_caixa_id')|string==conta.id|string else '' }}>
                     {{ conta.nome }}
                 </option>
                 {% endfor %}
@@ -113,6 +114,72 @@
             <button class="btn btn-secondary btn-sm ms-2" onclick="limparBusca()">
                 <i class="fas fa-times"></i> Limpar
             </button>
+        </div>
+    </div>
+
+    <!-- Linha de Totalizadores Dinâmicos Detalhados - SEMPRE VISÍVEL -->
+    <div class="modern-totals-summary mt-3">
+        <div class="totals-container-enhanced">
+            <div class="totals-header">
+                <span class="totals-title"><i class="fas fa-chart-pie me-2"></i>RESUMO DOS LANÇAMENTOS ({{
+                    lancamentos|length if lancamentos else 0 }} itens)</span>
+            </div>
+
+            <div class="totals-grid">
+                <!-- Entradas -->
+                <div class="totals-group entradas-group">
+                    <div class="group-title">
+                        <i class="fas fa-arrow-up"></i> ENTRADAS
+                    </div>
+                    <div class="group-items">
+                        <div class="total-item">
+                            <span class="item-label">Total:</span>
+                            <span class="item-value entrada-total text-success">R$ {{ "%.2f"|format(entrada_total or 0)
+                                }}</span>
+                        </div>
+                        <div class="total-item">
+                            <span class="item-label">Realizada:</span>
+                            <span class="item-value entrada-realizada">R$ {{ "%.2f"|format(entrada_realizada or 0)
+                                }}</span>
+                        </div>
+                        <div class="total-item">
+                            <span class="item-label">A vencer:</span>
+                            <span class="item-value entrada-vencer">R$ {{ "%.2f"|format(entrada_a_vencer or 0) }}</span>
+                        </div>
+                        <div class="total-item">
+                            <span class="item-label">Vencida:</span>
+                            <span class="item-value entrada-vencida">R$ {{ "%.2f"|format(entrada_vencida or 0) }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Saídas -->
+                <div class="totals-group saidas-group">
+                    <div class="group-title">
+                        <i class="fas fa-arrow-down"></i> SAÍDAS
+                    </div>
+                    <div class="group-items">
+                        <div class="total-item">
+                            <span class="item-label">Total:</span>
+                            <span class="item-value saida-total text-danger">R$ {{ "%.2f"|format(saida_total or 0)
+                                }}</span>
+                        </div>
+                        <div class="total-item">
+                            <span class="item-label">Realizada:</span>
+                            <span class="item-value saida-realizada">R$ {{ "%.2f"|format(saida_realizada or 0)
+                                }}</span>
+                        </div>
+                        <div class="total-item">
+                            <span class="item-label">A vencer:</span>
+                            <span class="item-value saida-vencer">R$ {{ "%.2f"|format(saida_a_vencer or 0) }}</span>
+                        </div>
+                        <div class="total-item">
+                            <span class="item-label">Vencida:</span>
+                            <span class="item-value saida-vencida">R$ {{ "%.2f"|format(saida_vencida or 0) }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -159,7 +226,7 @@
             <tbody>
                 {% if lancamentos %}
                 {% for lancamento in lancamentos %}
-                <tr data-lancamento-id="{{ lancamento.id }}">
+                <tr data-lancamento-id="{{ lancamento.id }}" class="{{ 'transferencia-row' if lancamento.eh_transferencia else '' }}">
                     <td class="modern-checkbox-col">
                         <input type="checkbox" class="modern-checkbox lancamento-checkbox" value="{{ lancamento.id }}">
                     </td>
@@ -174,7 +241,7 @@
                         lancamento.descricao }}
                     </td>
                     <td class="modern-data-col">
-                        <span class="badge {{ 'bg-success' if lancamento.tipo == 'receita' else 'bg-danger' }}">
+                        <span class="badge {{ 'bg-success' if lancamento.tipo == 'entrada' else 'bg-danger' }}">
                             {{ lancamento.tipo.title() }}
                         </span>
                     </td>
@@ -185,7 +252,7 @@
                     <td class="modern-data-col" title="Nota Fiscal">
                         {{ lancamento.nota_fiscal or '-' }}
                     </td>
-                    <td class="modern-value-col {{ 'positive' if lancamento.tipo == 'receita' else 'negative' }}">
+                    <td class="modern-value-col {{ 'positive' if lancamento.tipo == 'entrada' else 'negative' }}">
                         R$ {{ "%.2f"|format(lancamento.valor) }}
                     </td>
                     <td class="modern-status-col">
@@ -242,92 +309,15 @@
                 </tr>
                 {% endfor %}
 
-                <!-- Linha de Totalizadores Dinâmicos Detalhados -->
-                <tr class="modern-totals-row">
-                    <td colspan="12" class="modern-totals-cell">
-                        <div class="totals-container-enhanced">
-                            <div class="totals-header">
-                                <span class="totals-title">TOTAIS ({{ lancamentos|length }} lançamentos)</span>
-                            </div>
-
-                            <div class="totals-grid">
-                                <!-- Receitas -->
-                                <div class="totals-group receitas-group">
-                                    <div class="group-title">
-                                        <i class="fas fa-arrow-up"></i> RECEITAS
-                                    </div>
-                                    <div class="group-items">
-                                        <div class="total-item">
-                                            <span class="item-label">Total:</span>
-                                            <span class="item-value receita-total">R$ {{ "%.2f"|format(receita_total)
-                                                }}</span>
-                                        </div>
-                                        <div class="total-item">
-                                            <span class="item-label">Realizada:</span>
-                                            <span class="item-value receita-realizada">R$ {{
-                                                "%.2f"|format(receita_realizada) }}</span>
-                                        </div>
-                                        <div class="total-item">
-                                            <span class="item-label">A vencer:</span>
-                                            <span class="item-value receita-vencer">R$ {{
-                                                "%.2f"|format(receita_a_vencer) }}</span>
-                                        </div>
-                                        <div class="total-item">
-                                            <span class="item-label">Vencida:</span>
-                                            <span class="item-value receita-vencida">R$ {{
-                                                "%.2f"|format(receita_vencida) }}</span>
-                                        </div>
-                                        <div class="total-item">
-                                            <span class="item-label">Agendada:</span>
-                                            <span class="item-value receita-agendada">R$ {{
-                                                "%.2f"|format(receita_agendada) }}</span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Despesas -->
-                                <div class="totals-group despesas-group">
-                                    <div class="group-title">
-                                        <i class="fas fa-arrow-down"></i> DESPESAS
-                                    </div>
-                                    <div class="group-items">
-                                        <div class="total-item">
-                                            <span class="item-label">Total:</span>
-                                            <span class="item-value despesa-total">R$ {{ "%.2f"|format(despesa_total)
-                                                }}</span>
-                                        </div>
-                                        <div class="total-item">
-                                            <span class="item-label">Realizada:</span>
-                                            <span class="item-value despesa-realizada">R$ {{
-                                                "%.2f"|format(despesa_realizada) }}</span>
-                                        </div>
-                                        <div class="total-item">
-                                            <span class="item-label">A vencer:</span>
-                                            <span class="item-value despesa-vencer">R$ {{
-                                                "%.2f"|format(despesa_a_vencer) }}</span>
-                                        </div>
-                                        <div class="total-item">
-                                            <span class="item-label">Vencida:</span>
-                                            <span class="item-value despesa-vencida">R$ {{
-                                                "%.2f"|format(despesa_vencida) }}</span>
-                                        </div>
-                                        <div class="total-item">
-                                            <span class="item-label">Agendada:</span>
-                                            <span class="item-value despesa-agendada">R$ {{
-                                                "%.2f"|format(despesa_agendada) }}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </td>
-                </tr>
-
                 {% else %}
                 <tr>
-                    <td colspan="12" class="text-center py-4 text-muted">
-                        <i class="fas fa-inbox fa-2x mb-2"></i><br>
-                        Nenhum lançamento encontrado
+                    <td colspan="12" class="text-center py-5 text-muted">
+                        <div class="empty-state">
+                            <i class="fas fa-inbox fa-3x mb-3" style="opacity: 0.3;"></i>
+                            <p class="mb-0" style="font-size: 1.1rem;">Nenhum lançamento encontrado para os filtros
+                                selecionados</p>
+                            <small>Tente ajustar as datas ou remover filtros</small>
+                        </div>
                     </td>
                 </tr>
                 {% endif %}
@@ -335,30 +325,89 @@
         </table>
     </div>
 
+
     <!-- Rodapé com Totais -->
-    <div class="modern-panel-footer">
-        <div class="modern-totals">
-            <div>
-                <span class="modern-total-label">Total Receitas:</span>
-                <span class="modern-total-value positive">R$ {{ "%.2f"|format(total_receitas) if total_receitas else
-                    '0,00' }}</span>
-            </div>
-            <div>
-                <span class="modern-total-label">Total Despesas:</span>
-                <span class="modern-total-value negative">R$ {{ "%.2f"|format(total_despesas) if total_despesas else
-                    '0,00' }}</span>
-            </div>
-            <div>
-                <span class="modern-total-label">Saldo:</span>
-                <span
-                    class="modern-total-value {{ 'positive' if (total_receitas - total_despesas) >= 0 else 'negative' }}">
-                    R$ {{ "%.2f"|format(total_receitas - total_despesas) if total_receitas and total_despesas else
-                    '0,00' }}
-                </span>
+    <div class="modern-panel-footer mt-3"
+        style="border-radius: 12px; background: white; box-shadow: 0 -2px 10px rgba(0,0,0,0.05); border-top: 1px solid #eee;">
+        <div class="modern-totals py-3 px-4">
+            <div class="d-flex align-items-center gap-4 w-100 justify-content-between">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="total-badge bg-success-light">
+                        <i class="fas fa-arrow-up text-success"></i>
+                    </div>
+                    <div class="d-flex flex-column">
+                        <span class="modern-total-label" style="font-size: 0.75rem; color: #7f8c8d;">TOTAL
+                            ENTRADAS</span>
+                        <span class="modern-total-value positive" style="font-size: 1.25rem; font-weight: 700;">
+                            R$ {{ "%.2f"|format(total_entradas) if total_entradas else '0,00' }}
+                        </span>
+                    </div>
+                </div>
+
+                <div class="d-flex align-items-center gap-2">
+                    <div class="total-badge bg-danger-light">
+                        <i class="fas fa-arrow-down text-danger"></i>
+                    </div>
+                    <div class="d-flex flex-column">
+                        <span class="modern-total-label" style="font-size: 0.75rem; color: #7f8c8d;">TOTAL
+                            SAÍDAS</span>
+                        <span class="modern-total-value negative" style="font-size: 1.25rem; font-weight: 700;">
+                            R$ {{ "%.2f"|format(total_saidas) if total_saidas else '0,00' }}
+                        </span>
+                    </div>
+                </div>
+
+                <div class="d-flex align-items-center gap-2">
+                    <div
+                        class="total-badge {{ 'bg-success-light' if (total_entradas - total_saidas) >= 0 else 'bg-danger-light' }}">
+                        <i
+                            class="fas fa-wallet {{ 'text-success' if (total_entradas - total_saidas) >= 0 else 'text-danger' }}"></i>
+                    </div>
+                    <div class="d-flex flex-column">
+                        <span class="modern-total-label" style="font-size: 0.75rem; color: #7f8c8d;">SALDO FINAL</span>
+                        <span
+                            class="modern-total-value {{ 'positive' if (total_entradas - total_saidas) >= 0 else 'negative' }}"
+                            style="font-size: 1.5rem; font-weight: 800;">
+                            R$ {{ "%.2f"|format(total_entradas - total_saidas) if total_entradas and total_saidas
+                            else '0,00' }}
+                        </span>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </div>
+
+<style>
+    /* Destaque suave para lançamentos de transferência entre contas */
+    tr.transferencia-row {
+        background: linear-gradient(to right,
+            rgba(13, 110, 253, 0.03) 0%,
+            rgba(13, 110, 253, 0.05) 50%,
+            rgba(13, 110, 253, 0.03) 100%) !important;
+        border-left: 3px solid rgba(13, 110, 253, 0.4) !important;
+        transition: all 0.2s ease;
+    }
+
+    tr.transferencia-row:hover {
+        background: linear-gradient(to right,
+            rgba(13, 110, 253, 0.06) 0%,
+            rgba(13, 110, 253, 0.08) 50%,
+            rgba(13, 110, 253, 0.06) 100%) !important;
+        border-left-color: rgba(13, 110, 253, 0.6) !important;
+        box-shadow: 0 2px 8px rgba(13, 110, 253, 0.12);
+    }
+
+    /* Ícone de transferência opcional */
+    tr.transferencia-row td.modern-data-col:first-of-type::before {
+        content: '\f0ec'; /* Font Awesome exchange-alt icon */
+        font-family: 'Font Awesome 5 Free';
+        font-weight: 900;
+        color: rgba(13, 110, 253, 0.5);
+        margin-right: 6px;
+        font-size: 0.85em;
+    }
+</style>
 
 <script>
     // IMPORTANTE: Parar propagação para evitar conflito com clientes.js

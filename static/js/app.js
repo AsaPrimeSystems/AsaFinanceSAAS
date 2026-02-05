@@ -735,11 +735,11 @@ function inicializarPainelFinanceiro() {
                     adicionarFeedbackVisual(caixinha);
                     setTimeout(() => {
                         switch(acao) {
-                            case 'ver-receitas':
-                                window.location.href = '/lancamentos?tipo=receita';
+                            case 'ver-entradas':
+                                window.location.href = '/lancamentos?tipo=entrada';
                                 break;
-                            case 'ver-despesas':
-                                window.location.href = '/lancamentos?tipo=despesa';
+                            case 'ver-saidas':
+                                window.location.href = '/lancamentos?tipo=saida';
                                 break;
                             case 'ver-saldo':
                                 window.location.href = '/relatorio-saldos';

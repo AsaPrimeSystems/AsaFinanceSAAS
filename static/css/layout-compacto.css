@@ -350,14 +350,14 @@
     letter-spacing: 0.5px !important;
 }
 
-/* Grid com duas colunas (Receitas | Despesas) */
+/* Grid com duas colunas (Entradas | Saídas) */
 .totals-grid {
     display: grid !important;
     grid-template-columns: 1fr 1fr !important;
     gap: 15px !important;
 }
 
-/* Grupos de Receitas e Despesas */
+/* Grupos de Entradas e Saídas */
 .totals-group {
     display: flex !important;
     flex-direction: column !important;
@@ -368,11 +368,11 @@
     border: 1px solid #e0e6ed !important;
 }
 
-.receitas-group {
+.entradas-group {
     border-left: 3px solid #28a745 !important;
 }
 
-.despesas-group {
+.saidas-group {
     border-left: 3px solid #dc3545 !important;
 }
 
@@ -387,11 +387,11 @@
     gap: 6px !important;
 }
 
-.receitas-group .group-title {
+.entradas-group .group-title {
     color: #28a745 !important;
 }
 
-.despesas-group .group-title {
+.saidas-group .group-title {
     color: #dc3545 !important;
 }
 
@@ -424,21 +424,21 @@
     font-size: 11px !important;
 }
 
-/* Cores específicas para receitas */
-.receita-total,
-.receita-realizada,
-.receita-vencer,
-.receita-vencida,
-.receita-agendada {
+/* Cores específicas para entradas */
+.entrada-total,
+.entrada-realizada,
+.entrada-vencer,
+.entrada-vencida,
+.entrada-agendada {
     color: #28a745 !important;
 }
 
-/* Cores específicas para despesas */
-.despesa-total,
-.despesa-realizada,
-.despesa-vencer,
-.despesa-vencida,
-.despesa-agendada {
+/* Cores específicas para saidas */
+.saida-total,
+.saida-realizada,
+.saida-vencer,
+.saida-vencida,
+.saida-agendada {
     color: #dc3545 !important;
 }
 

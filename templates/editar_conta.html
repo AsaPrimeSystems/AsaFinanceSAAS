@@ -17,7 +17,7 @@
                                 <div class="mb-3">
                                     <label for="tipo_display" class="form-label">Tipo de Lançamento</label>
                                     <input type="text" class="form-control" id="tipo_display"
-                                        value="{% if conta.tipo == 'receita' %}Receita{% else %}Despesa{% endif %}"
+                                        value="{% if conta.tipo == 'entrada' %}Entrada{% else %}Saída{% endif %}"
                                         disabled>
                                     <input type="hidden" id="tipo" name="tipo" value="{{ conta.tipo }}">
                                 </div>

@@ -144,7 +144,7 @@
                                     <div class="col-md-6">
                                         <h6>Campos Obrigatórios:</h6>
                                         <ul class="list-unstyled">
-                                            <li><strong>Tipo:</strong> receita ou despesa</li>
+                                            <li><strong>Tipo:</strong> entrada ou saida</li>
                                             <li><strong>Descrição:</strong> descrição do lançamento</li>
                                             <li><strong>Valor:</strong> valor numérico (ex: 1000.00)</li>
                                             <li><strong>Categoria:</strong> categoria do lançamento</li>
@@ -173,7 +173,7 @@
                                         <li><strong>Cabeçalhos:</strong> Podem ter variações (maiúsculas/minúsculas)</li>
                                         <li><strong>Valores:</strong> Aceita múltiplos formatos (1000,50 / 1000.50 / 1.000,50)</li>
                                         <li><strong>Datas:</strong> Suporta DD/MM/AAAA, DD-MM-AAAA, AAAA-MM-DD, etc.</li>
-                                        <li><strong>Tipo:</strong> Aceita 'receita', 'despesa', 'entrada', 'saída', 'r', 'd'</li>
+                                        <li><strong>Tipo:</strong> Aceita 'entrada', 'saida', 'entrada', 'saída', 'r', 'd'</li>
                                         <li><strong>Status:</strong> Aceita 'sim', 'não', 'true', 'false', '1', '0'</li>
                                         <li><strong>Busca Inteligente:</strong> Clientes/fornecedores/contas são encontrados automaticamente</li>
                                         <li><strong>Integração:</strong> Cria automaticamente vendas/compras quando aplicável</li>
@@ -334,7 +334,7 @@ function mostrarPreview(data) {
                             <tr ${item.valor_total_divergente ? 'class="table-danger"' : ''}>
                                 <td>${item.linha}</td>
                                 <td>
-                                    <span class="badge ${item.tipo === 'receita' ? 'bg-success' : 'bg-danger'}">
+                                    <span class="badge ${item.tipo === 'entrada' ? 'bg-success' : 'bg-danger'}">
                                         ${item.tipo.toUpperCase()}
                                     </span>
                                 </td>
@@ -681,7 +681,7 @@ function mostrarHistoricoImportacoes(importacoes) {
     
     let html = '<div class="table-responsive"><table class="table table-striped table-hover">';
     html += '<thead class="table-dark"><tr>';
-    html += '<th>Arquivo</th><th>Data</th><th>Lançamentos</th><th>Receitas</th><th>Despesas</th><th>Vendas</th><th>Compras</th><th>Status</th><th>Ações</th>';
+    html += '<th>Arquivo</th><th>Data</th><th>Lançamentos</th><th>Entradas</th><th>Saídas</th><th>Vendas</th><th>Compras</th><th>Status</th><th>Ações</th>';
     html += '</tr></thead><tbody>';
     
     importacoes.forEach(imp => {
@@ -692,8 +692,8 @@ function mostrarHistoricoImportacoes(importacoes) {
         html += `<td><strong>${imp.nome_arquivo}</strong></td>`;
         html += `<td>${imp.data_importacao}</td>`;
         html += `<td><span class="badge bg-info">${imp.total_lancamentos}</span></td>`;
-        html += `<td class="text-success">R$ ${imp.total_receitas.toFixed(2).replace('.', ',')}</td>`;
-        html += `<td class="text-danger">R$ ${imp.total_despesas.toFixed(2).replace('.', ',')}</td>`;
+        html += `<td class="text-success">R$ ${imp.total_entradas.toFixed(2).replace('.', ',')}</td>`;
+        html += `<td class="text-danger">R$ ${imp.total_saidas.toFixed(2).replace('.', ',')}</td>`;
         html += `<td><span class="badge bg-primary">${imp.total_vendas}</span></td>`;
         html += `<td><span class="badge bg-warning">${imp.total_compras}</span></td>`;
         html += `<td><span class="badge bg-${statusClass}">${statusText}</span></td>`;

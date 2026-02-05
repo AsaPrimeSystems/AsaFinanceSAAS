@@ -15,21 +15,22 @@
                 </h5>
             </div>
             <div class="card-body">
-                <form method="GET" action="{{ url_for('relatorio_saldos') }}" class="row g-3" id="form-relatorio-saldos">
+                <form method="GET" action="{{ url_for('relatorio_saldos') }}" class="row g-3"
+                    id="form-relatorio-saldos">
                     <div class="col-md-4">
                         <label for="data_inicio" class="form-label">Data de Início</label>
                         <input type="text" class="form-control" id="data_inicio" name="data_inicio"
-                               value="{{ data_inicio }}" placeholder="__/__/____"
-                               pattern="\d{2}/\d{2}/\d{4}" title="Formato: DD/MM/AAAA">
+                            value="{{ data_inicio }}" placeholder="__/__/____" pattern="\d{2}/\d{2}/\d{4}"
+                            title="Formato: DD/MM/AAAA">
                     </div>
                     <div class="col-md-4">
                         <label for="data_fim" class="form-label">Data de Fim</label>
-                        <input type="text" class="form-control" id="data_fim" name="data_fim"
-                               value="{{ data_fim }}" placeholder="__/__/____"
-                               pattern="\d{2}/\d{2}/\d{4}" title="Formato: DD/MM/AAAA">
+                        <input type="text" class="form-control" id="data_fim" name="data_fim" value="{{ data_fim }}"
+                            placeholder="__/__/____" pattern="\d{2}/\d{2}/\d{4}" title="Formato: DD/MM/AAAA">
                     </div>
                     <div class="col-md-4 d-flex align-items-end">
-                        <button type="button" class="btn btn-primary me-2" onclick="document.getElementById('form-relatorio-saldos').submit();">
+                        <button type="button" class="btn btn-primary me-2"
+                            onclick="document.getElementById('form-relatorio-saldos').submit();">
                             <i class="fas fa-search me-1"></i>Filtrar
                         </button>
                         <a href="{{ url_for('relatorio_saldos') }}" class="btn btn-secondary" data-no-intercept>
@@ -52,12 +53,12 @@
             </div>
             <div class="card-body">
                 <div class="d-flex justify-content-between mb-2">
-                    <span>Receitas Realizadas:</span>
-                    <span class="text-success fw-bold">R$ {{ "%.2f"|format(total_receitas) }}</span>
+                    <span>Entradas Realizadas:</span>
+                    <span class="text-success fw-bold">R$ {{ "%.2f"|format(total_entradas) }}</span>
                 </div>
                 <div class="d-flex justify-content-between mb-2">
-                    <span>Despesas Realizadas:</span>
-                    <span class="text-danger fw-bold">R$ {{ "%.2f"|format(total_despesas) }}</span>
+                    <span>Saídas Realizadas:</span>
+                    <span class="text-danger fw-bold">R$ {{ "%.2f"|format(total_saidas) }}</span>
                 </div>
                 <hr>
                 <div class="d-flex justify-content-between">
@@ -78,12 +79,12 @@
             </div>
             <div class="card-body">
                 <div class="d-flex justify-content-between mb-2">
-                    <span>Receitas Vencidas (a receber):</span>
-                    <span class="text-danger fw-bold">R$ {{ "%.2f"|format(total_receitas_vencidas) }}</span>
+                    <span>Entradas Vencidas (a receber):</span>
+                    <span class="text-danger fw-bold">R$ {{ "%.2f"|format(total_entradas_vencidas) }}</span>
                 </div>
                 <div class="d-flex justify-content-between mb-2">
-                    <span>Despesas Vencidas (a pagar):</span>
-                    <span class="text-danger fw-bold">R$ {{ "%.2f"|format(total_despesas_vencidas) }}</span>
+                    <span>Saídas Vencidas (a pagar):</span>
+                    <span class="text-danger fw-bold">R$ {{ "%.2f"|format(total_saidas_vencidas) }}</span>
                 </div>
                 <hr>
                 <div class="d-flex justify-content-between">
@@ -105,11 +106,11 @@
             <div class="card-body">
                 <div class="d-flex justify-content-between mb-2">
                     <span>Total a Receber:</span>
-                    <span class="text-primary fw-bold">R$ {{ "%.2f"|format(total_receitas_pendentes) }}</span>
+                    <span class="text-primary fw-bold">R$ {{ "%.2f"|format(total_entradas_pendentes) }}</span>
                 </div>
                 <div class="d-flex justify-content-between mb-2">
                     <span>Total a Pagar:</span>
-                    <span class="text-warning fw-bold">R$ {{ "%.2f"|format(total_despesas_pendentes) }}</span>
+                    <span class="text-warning fw-bold">R$ {{ "%.2f"|format(total_saidas_pendentes) }}</span>
                 </div>
                 <hr>
                 <div class="d-flex justify-content-between">
@@ -123,13 +124,13 @@
     </div>
 </div>
 
-<!-- CARDS DE DETALHAMENTO RECEITAS vs DESPESAS -->
+<!-- CARDS DE DETALHAMENTO ENTRADAS vs SAÍDAS -->
 <div class="row mb-4">
     <div class="col-md-12">
         <div class="card border-0 shadow-sm">
             <div class="card-header bg-dark text-white">
                 <h5 class="card-title mb-0">
-                    <i class="fas fa-columns me-2"></i>Demonstrativo Detalhado - Receitas vs Despesas
+                    <i class="fas fa-columns me-2"></i>Demonstrativo Detalhado - Entradas vs Saídas
                 </h5>
             </div>
             <div class="card-body p-0">
@@ -138,8 +139,8 @@
                         <thead class="table-dark">
                             <tr>
                                 <th class="text-center" style="width:20%">Status</th>
-                                <th class="text-end" style="width:20%">Receitas</th>
-                                <th class="text-end" style="width:20%">Despesas</th>
+                                <th class="text-end" style="width:20%">Entradas</th>
+                                <th class="text-end" style="width:20%">Saídas</th>
                                 <th class="text-end" style="width:20%">Saldo</th>
                                 <th class="text-center" style="width:20%">Indicador</th>
                             </tr>
@@ -147,56 +148,64 @@
                         <tbody>
                             <tr>
                                 <td><span class="badge bg-success">Realizado</span></td>
-                                <td class="text-end text-success fw-bold">R$ {{ "%.2f"|format(total_receitas) }}</td>
-                                <td class="text-end text-danger fw-bold">R$ {{ "%.2f"|format(total_despesas) }}</td>
-                                {% set saldo_realizado = total_receitas - total_despesas %}
-                                <td class="text-end fw-bold {{ 'text-success' if saldo_realizado >= 0 else 'text-danger' }}">R$ {{ "%.2f"|format(saldo_realizado) }}</td>
+                                <td class="text-end text-success fw-bold">R$ {{ "%.2f"|format(total_entradas) }}</td>
+                                <td class="text-end text-danger fw-bold">R$ {{ "%.2f"|format(total_saidas) }}</td>
+                                {% set saldo_realizado = total_entradas - total_saidas %}
+                                <td
+                                    class="text-end fw-bold {{ 'text-success' if saldo_realizado >= 0 else 'text-danger' }}">
+                                    R$ {{ "%.2f"|format(saldo_realizado) }}</td>
                                 <td class="text-center">
                                     {% if saldo_realizado >= 0 %}
-                                        <i class="fas fa-arrow-up text-success"></i>
+                                    <i class="fas fa-arrow-up text-success"></i>
                                     {% else %}
-                                        <i class="fas fa-arrow-down text-danger"></i>
+                                    <i class="fas fa-arrow-down text-danger"></i>
                                     {% endif %}
                                 </td>
                             </tr>
                             <tr>
                                 <td><span class="badge bg-warning text-dark">A Vencer</span></td>
-                                <td class="text-end text-success">R$ {{ "%.2f"|format(total_receitas_a_vencer) }}</td>
-                                <td class="text-end text-danger">R$ {{ "%.2f"|format(total_despesas_a_vencer) }}</td>
-                                {% set saldo_a_vencer = total_receitas_a_vencer - total_despesas_a_vencer %}
-                                <td class="text-end fw-bold {{ 'text-success' if saldo_a_vencer >= 0 else 'text-danger' }}">R$ {{ "%.2f"|format(saldo_a_vencer) }}</td>
+                                <td class="text-end text-success">R$ {{ "%.2f"|format(total_entradas_a_vencer) }}</td>
+                                <td class="text-end text-danger">R$ {{ "%.2f"|format(total_saidas_a_vencer) }}</td>
+                                {% set saldo_a_vencer = total_entradas_a_vencer - total_saidas_a_vencer %}
+                                <td
+                                    class="text-end fw-bold {{ 'text-success' if saldo_a_vencer >= 0 else 'text-danger' }}">
+                                    R$ {{ "%.2f"|format(saldo_a_vencer) }}</td>
                                 <td class="text-center">
                                     {% if saldo_a_vencer >= 0 %}
-                                        <i class="fas fa-arrow-up text-success"></i>
+                                    <i class="fas fa-arrow-up text-success"></i>
                                     {% else %}
-                                        <i class="fas fa-arrow-down text-danger"></i>
+                                    <i class="fas fa-arrow-down text-danger"></i>
                                     {% endif %}
                                 </td>
                             </tr>
                             <tr class="table-danger">
                                 <td><span class="badge bg-danger">Vencido</span></td>
-                                <td class="text-end text-success">R$ {{ "%.2f"|format(total_receitas_vencidas) }}</td>
-                                <td class="text-end text-danger">R$ {{ "%.2f"|format(total_despesas_vencidas) }}</td>
-                                <td class="text-end fw-bold {{ 'text-success' if saldo_vencido >= 0 else 'text-danger' }}">R$ {{ "%.2f"|format(saldo_vencido) }}</td>
+                                <td class="text-end text-success">R$ {{ "%.2f"|format(total_entradas_vencidas) }}</td>
+                                <td class="text-end text-danger">R$ {{ "%.2f"|format(total_saidas_vencidas) }}</td>
+                                <td
+                                    class="text-end fw-bold {{ 'text-success' if saldo_vencido >= 0 else 'text-danger' }}">
+                                    R$ {{ "%.2f"|format(saldo_vencido) }}</td>
                                 <td class="text-center">
                                     {% if saldo_vencido >= 0 %}
-                                        <i class="fas fa-arrow-up text-success"></i>
+                                    <i class="fas fa-arrow-up text-success"></i>
                                     {% else %}
-                                        <i class="fas fa-arrow-down text-danger"></i>
+                                    <i class="fas fa-arrow-down text-danger"></i>
                                     {% endif %}
                                 </td>
                             </tr>
                             <tr>
                                 <td><span class="badge bg-info">Agendado</span></td>
-                                <td class="text-end text-success">R$ {{ "%.2f"|format(total_receitas_agendadas) }}</td>
-                                <td class="text-end text-danger">R$ {{ "%.2f"|format(total_despesas_agendadas) }}</td>
-                                {% set saldo_agendado = total_receitas_agendadas - total_despesas_agendadas %}
-                                <td class="text-end fw-bold {{ 'text-success' if saldo_agendado >= 0 else 'text-danger' }}">R$ {{ "%.2f"|format(saldo_agendado) }}</td>
+                                <td class="text-end text-success">R$ {{ "%.2f"|format(total_entradas_agendadas) }}</td>
+                                <td class="text-end text-danger">R$ {{ "%.2f"|format(total_saidas_agendadas) }}</td>
+                                {% set saldo_agendado = total_entradas_agendadas - total_saidas_agendadas %}
+                                <td
+                                    class="text-end fw-bold {{ 'text-success' if saldo_agendado >= 0 else 'text-danger' }}">
+                                    R$ {{ "%.2f"|format(saldo_agendado) }}</td>
                                 <td class="text-center">
                                     {% if saldo_agendado >= 0 %}
-                                        <i class="fas fa-arrow-up text-success"></i>
+                                    <i class="fas fa-arrow-up text-success"></i>
                                     {% else %}
-                                        <i class="fas fa-arrow-down text-danger"></i>
+                                    <i class="fas fa-arrow-down text-danger"></i>
                                     {% endif %}
                                 </td>
                             </tr>
@@ -204,9 +213,13 @@
                         <tfoot class="table-dark">
                             <tr>
                                 <td class="fw-bold">TOTAL GERAL</td>
-                                <td class="text-end fw-bold text-success">R$ {{ "%.2f"|format(total_receitas + total_receitas_pendentes) }}</td>
-                                <td class="text-end fw-bold text-danger">R$ {{ "%.2f"|format(total_despesas + total_despesas_pendentes) }}</td>
-                                <td class="text-end fw-bold {{ 'text-success' if saldo_projetado >= 0 else 'text-danger' }}">R$ {{ "%.2f"|format(saldo_projetado) }}</td>
+                                <td class="text-end fw-bold text-success">R$ {{ "%.2f"|format(total_entradas +
+                                    total_entradas_pendentes) }}</td>
+                                <td class="text-end fw-bold text-danger">R$ {{ "%.2f"|format(total_saidas +
+                                    total_saidas_pendentes) }}</td>
+                                <td
+                                    class="text-end fw-bold {{ 'text-success' if saldo_projetado >= 0 else 'text-danger' }}">
+                                    R$ {{ "%.2f"|format(saldo_projetado) }}</td>
                                 <td></td>
                             </tr>
                         </tfoot>
@@ -220,124 +233,92 @@
 <!-- SALDOS DAS CONTAS CAIXA DETALHADOS -->
 <div class="row mb-4">
     <div class="col-md-12">
-        <div class="card border-0 shadow-sm">
-            <div class="card-header bg-dark text-white">
+        <div class="card border-0 shadow-sm overflow-hidden">
+            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-3">
                 <h5 class="card-title mb-0">
-                    <i class="fas fa-university me-2"></i>Saldos das Contas Caixa - Demonstrativo Detalhado
+                    <i class="fas fa-university me-2"></i>Saldos das Contas Caixa - Detalhamento
                 </h5>
+                <span class="badge bg-primary px-3 py-2">Total Consolidado: R$ {{ "%.2f"|format(saldo_total_caixa)
+                    }}</span>
             </div>
             <div class="card-body p-0">
                 {% if contas_caixa_detalhadas %}
-                    <div class="table-responsive">
-                        <table class="table table-striped table-hover mb-0">
-                            <thead class="table-dark">
-                                <tr>
-                                    <th>Conta</th>
-                                    <th>Tipo</th>
-                                    <th>Banco</th>
-                                    <th class="text-end">Saldo Atual</th>
-                                    <th class="text-end">Rec. A Vencer</th>
-                                    <th class="text-end">Desp. A Vencer</th>
-                                    <th class="text-end">Rec. Vencidas</th>
-                                    <th class="text-end">Desp. Vencidas</th>
-                                    <th class="text-end">Saldo Projetado</th>
-                                    <th>Status</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for item in contas_caixa_detalhadas %}
-                                <tr>
-                                    <td>
-                                        <strong>{{ item.conta.nome }}</strong>
-                                        {% if item.conta.descricao %}
-                                        <br><small class="text-muted">{{ item.conta.descricao }}</small>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        {% if item.conta.tipo == 'conta_corrente' %}
-                                            <span class="badge bg-primary">Conta Corrente</span>
-                                        {% elif item.conta.tipo == 'poupanca' %}
-                                            <span class="badge bg-success">Poupança</span>
-                                        {% elif item.conta.tipo == 'caixa_fisico' %}
-                                            <span class="badge bg-warning text-dark">Caixa Físico</span>
-                                        {% elif item.conta.tipo == 'cartao_credito' %}
-                                            <span class="badge bg-info">Cartão de Crédito</span>
-                                        {% else %}
-                                            <span class="badge bg-secondary">{{ item.conta.tipo|title }}</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>{{ item.conta.banco or '-' }}</td>
-                                    <td class="text-end">
-                                        <span class="fw-bold {% if item.saldo_atual >= 0 %}text-success{% else %}text-danger{% endif %}">
-                                            R$ {{ "%.2f"|format(item.saldo_atual) }}
-                                        </span>
-                                    </td>
-                                    <td class="text-end text-success">R$ {{ "%.2f"|format(item.rec_a_vencer) }}</td>
-                                    <td class="text-end text-danger">R$ {{ "%.2f"|format(item.desp_a_vencer) }}</td>
-                                    <td class="text-end">
-                                        {% if item.rec_vencido > 0 %}
-                                            <span class="text-danger">R$ {{ "%.2f"|format(item.rec_vencido) }}</span>
-                                        {% else %}
-                                            <span class="text-muted">R$ 0.00</span>
-                                        {% endif %}
-                                    </td>
-                                    <td class="text-end">
-                                        {% if item.desp_vencido > 0 %}
-                                            <span class="text-danger fw-bold">R$ {{ "%.2f"|format(item.desp_vencido) }}</span>
-                                        {% else %}
-                                            <span class="text-muted">R$ 0.00</span>
-                                        {% endif %}
-                                    </td>
-                                    <td class="text-end">
-                                        <span class="fw-bold {% if item.saldo_projetado >= 0 %}text-success{% else %}text-danger{% endif %}">
-                                            R$ {{ "%.2f"|format(item.saldo_projetado) }}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        {% if item.conta.ativo %}
-                                            <span class="badge bg-success">Ativa</span>
-                                        {% else %}
-                                            <span class="badge bg-danger">Inativa</span>
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                            <tfoot class="table-dark">
-                                <tr>
-                                    <td colspan="3"><strong>TOTAL GERAL DAS CONTAS</strong></td>
-                                    <td class="text-end fw-bold {{ 'text-success' if saldo_total_caixa >= 0 else 'text-danger' }}">
-                                        R$ {{ "%.2f"|format(saldo_total_caixa) }}
-                                    </td>
-                                    <td class="text-end fw-bold text-success">
-                                        R$ {{ "%.2f"|format(sum_rec_a_vencer) }}
-                                    </td>
-                                    <td class="text-end fw-bold text-danger">
-                                        R$ {{ "%.2f"|format(sum_desp_a_vencer) }}
-                                    </td>
-                                    <td class="text-end fw-bold text-danger">
-                                        R$ {{ "%.2f"|format(sum_rec_vencido) }}
-                                    </td>
-                                    <td class="text-end fw-bold text-danger">
-                                        R$ {{ "%.2f"|format(sum_desp_vencido) }}
-                                    </td>
-                                    <td class="text-end fw-bold {{ 'text-success' if sum_saldo_projetado_contas >= 0 else 'text-danger' }}">
-                                        R$ {{ "%.2f"|format(sum_saldo_projetado_contas) }}
-                                    </td>
-                                    <td></td>
-                                </tr>
-                            </tfoot>
-                        </table>
-                    </div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="bg-light text-muted text-uppercase small">
+                            <tr>
+                                <th class="ps-4">Conta / Banco</th>
+                                <th>Tipo</th>
+                                <th class="text-end">Saldo Realizado</th>
+                                <th class="text-end">Pendentes (Entradas)</th>
+                                <th class="text-end">Pendentes (Saídas)</th>
+                                <th class="text-end pe-4">Saldo Projetado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in contas_caixa_detalhadas %}
+                            <tr>
+                                <td class="ps-4">
+                                    <div class="d-flex align-items-center">
+                                        <div class="rounded-circle bg-light p-2 me-3 text-primary">
+                                            <i class="fas fa-wallet"></i>
+                                        </div>
+                                        <div>
+                                            <div class="fw-bold text-dark">{{ item.conta.nome }}</div>
+                                            <div class="small text-muted text-truncate" style="max-width: 150px;">{{
+                                                item.conta.banco or 'Banco não informado' }}</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    {% if item.conta.tipo == 'conta_corrente' %}
+                                    <span
+                                        class="badge rounded-pill bg-soft-primary text-primary border border-primary">CC</span>
+                                    {% elif item.conta.tipo == 'poupanca' %}
+                                    <span
+                                        class="badge rounded-pill bg-soft-success text-success border border-success">PO</span>
+                                    {% elif item.conta.tipo == 'caixa_fisico' %}
+                                    <span
+                                        class="badge rounded-pill bg-soft-warning text-warning border border-warning">DI</span>
+                                    {% else %}
+                                    <span
+                                        class="badge rounded-pill bg-soft-secondary text-secondary border border-secondary">OT</span>
+                                    {% endif %}
+                                </td>
+                                <td
+                                    class="text-end fw-bold {{ 'text-success' if item.saldo_atual >= 0 else 'text-danger' }}">
+                                    R$ {{ "%.2f"|format(item.saldo_atual) }}
+                                </td>
+                                <td class="text-end">
+                                    <span class="text-success small"><i class="fas fa-arrow-up me-1"></i>R$ {{
+                                        "%.2f"|format(item.rec_a_vencer + item.rec_vencido + item.rec_agendado)
+                                        }}</span>
+                                </td>
+                                <td class="text-end">
+                                    <span class="text-danger small"><i class="fas fa-arrow-down me-1"></i>R$ {{
+                                        "%.2f"|format(item.desp_a_vencer + item.desp_vencido + item.desp_agendado)
+                                        }}</span>
+                                </td>
+                                <td class="text-end pe-4">
+                                    <div
+                                        class="fw-bold {{ 'text-success' if item.saldo_projetado >= 0 else 'text-danger' }} fs-6">
+                                        R$ {{ "%.2f"|format(item.saldo_projetado) }}
+                                    </div>
+                                    <div class="small text-muted" style="font-size: 0.75rem;">Projeção final</div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
                 {% else %}
-                    <div class="text-center py-4">
-                        <i class="fas fa-university fa-3x text-muted mb-3"></i>
-                        <h6 class="text-muted">Nenhuma conta caixa cadastrada</h6>
-                        <p class="text-muted">Cadastre contas caixa para acompanhar seus saldos.</p>
-                        <a href="{{ url_for('nova_conta_caixa') }}" class="btn btn-primary">
-                            <i class="fas fa-plus me-2"></i>Criar Conta Caixa
-                        </a>
-                    </div>
+                <div class="text-center py-5">
+                    <i class="fas fa-university fa-3x text-muted mb-3 opacity-25"></i>
+                    <h6 class="text-muted">Nenhuma conta caixa ativa no período</h6>
+                    <a href="{{ url_for('nova_conta_caixa') }}" class="btn btn-sm btn-outline-primary mt-2">
+                        <i class="fas fa-plus me-1"></i>Adicionar Conta
+                    </a>
+                </div>
                 {% endif %}
             </div>
         </div>
@@ -347,86 +328,72 @@
 <!-- RELATÓRIO CONSOLIDADO POR CATEGORIA -->
 <div class="row mb-4">
     <div class="col-md-12">
-        <div class="card border-0 shadow-sm">
-            <div class="card-header bg-dark text-white">
+        <div class="card border-0 shadow-sm overflow-hidden">
+            <div class="card-header bg-dark text-white py-3">
                 <h5 class="card-title mb-0">
-                    <i class="fas fa-chart-line me-2"></i>Relatório Consolidado por Categoria
+                    <i class="fas fa-tags me-2"></i>Saldos Detalhados por Categoria (Plano de Contas)
                 </h5>
             </div>
             <div class="card-body p-0">
                 <div class="table-responsive">
-                    <table class="table table-striped table-hover mb-0">
-                        <thead class="table-dark">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="bg-light text-muted text-uppercase small">
                             <tr>
-                                <th>Categoria</th>
-                                <th class="text-end">Rec. Realizado</th>
-                                <th class="text-end">Rec. A Vencer</th>
-                                <th class="text-end">Rec. Vencido</th>
-                                <th class="text-end">Rec. Agendado</th>
-                                <th class="text-end">Total Receitas</th>
-                                <th class="text-end">Desp. Realizado</th>
-                                <th class="text-end">Desp. A Vencer</th>
-                                <th class="text-end">Desp. Vencido</th>
-                                <th class="text-end">Desp. Agendado</th>
-                                <th class="text-end">Total Despesas</th>
-                                <th class="text-end">Saldo</th>
+                                <th class="ps-4">Categoria / Código</th>
+                                <th class="text-end">Realizado</th>
+                                <th class="text-end">A Vencer</th>
+                                <th class="text-end">Vencido</th>
+                                <th class="text-end pe-4">Saldo Total</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% set todas_categorias = [] %}
-                            {% for categoria in categorias_receitas.keys() %}
-                                {% if categoria not in todas_categorias %}
-                                    {% set _ = todas_categorias.append(categoria) %}
-                                {% endif %}
+                            {% for categoria in categorias_entradas.keys() %}
+                            {% if categoria not in todas_categorias %}
+                            {% set _ = todas_categorias.append(categoria) %}
+                            {% endif %}
                             {% endfor %}
-                            {% for categoria in categorias_despesas.keys() %}
-                                {% if categoria not in todas_categorias %}
-                                    {% set _ = todas_categorias.append(categoria) %}
-                                {% endif %}
+                            {% for categoria in categorias_saidas.keys() %}
+                            {% if categoria not in todas_categorias %}
+                            {% set _ = todas_categorias.append(categoria) %}
+                            {% endif %}
                             {% endfor %}
 
-                            {% for categoria in todas_categorias %}
-                            {% set r = categorias_receitas.get(categoria, {'realizado': 0, 'a_vencer': 0, 'vencido': 0, 'agendado': 0}) %}
-                            {% set d = categorias_despesas.get(categoria, {'realizado': 0, 'a_vencer': 0, 'vencido': 0, 'agendado': 0}) %}
+                            {% for categoria in todas_categorias|sort %}
+                            {% set r = categorias_entradas.get(categoria, {'realizado': 0, 'a_vencer': 0, 'vencido': 0,
+                            'agendado': 0}) %}
+                            {% set d = categorias_saidas.get(categoria, {'realizado': 0, 'a_vencer': 0, 'vencido': 0,
+                            'agendado': 0}) %}
                             {% set total_rec = r.realizado + r.a_vencer + r.vencido + r.agendado %}
                             {% set total_desp = d.realizado + d.a_vencer + d.vencido + d.agendado %}
                             {% set saldo_cat = total_rec - total_desp %}
+
+                            {% if total_rec > 0 or total_desp > 0 %}
                             <tr>
-                                <td><strong>{{ categoria }}</strong></td>
-                                <td class="text-end text-success">R$ {{ "%.2f"|format(r.realizado) }}</td>
-                                <td class="text-end text-warning">R$ {{ "%.2f"|format(r.a_vencer) }}</td>
-                                <td class="text-end text-danger">R$ {{ "%.2f"|format(r.vencido) }}</td>
-                                <td class="text-end text-info">R$ {{ "%.2f"|format(r.agendado) }}</td>
-                                <td class="text-end text-success fw-bold">R$ {{ "%.2f"|format(total_rec) }}</td>
-                                <td class="text-end text-danger">R$ {{ "%.2f"|format(d.realizado) }}</td>
-                                <td class="text-end text-warning">R$ {{ "%.2f"|format(d.a_vencer) }}</td>
-                                <td class="text-end text-danger">R$ {{ "%.2f"|format(d.vencido) }}</td>
-                                <td class="text-end text-info">R$ {{ "%.2f"|format(d.agendado) }}</td>
-                                <td class="text-end text-danger fw-bold">R$ {{ "%.2f"|format(total_desp) }}</td>
-                                <td class="text-end fw-bold {{ 'text-success' if saldo_cat >= 0 else 'text-danger' }}">
-                                    R$ {{ "%.2f"|format(saldo_cat) }}
+                                <td class="ps-4">
+                                    <span class="fw-bold">{{ categoria }}</span>
+                                </td>
+                                <td class="text-end">
+                                    <div class="text-success small">Rec: R$ {{ "%.2f"|format(r.realizado) }}</div>
+                                    <div class="text-danger small">Desp: R$ {{ "%.2f"|format(d.realizado) }}</div>
+                                </td>
+                                <td class="text-end">
+                                    <div class="text-success small">Rec: R$ {{ "%.2f"|format(r.a_vencer) }}</div>
+                                    <div class="text-danger small">Desp: R$ {{ "%.2f"|format(d.a_vencer) }}</div>
+                                </td>
+                                <td class="text-end">
+                                    <div class="text-success small">Rec: R$ {{ "%.2f"|format(r.vencido) }}</div>
+                                    <div class="text-danger small">Desp: R$ {{ "%.2f"|format(d.vencido) }}</div>
+                                </td>
+                                <td class="text-end pe-4">
+                                    <span class="fw-bold {{ 'text-success' if saldo_cat >= 0 else 'text-danger' }}">
+                                        R$ {{ "%.2f"|format(saldo_cat) }}
+                                    </span>
                                 </td>
                             </tr>
+                            {% endif %}
                             {% endfor %}
                         </tbody>
-                        <tfoot class="table-dark">
-                            <tr>
-                                <td><strong>TOTAL GERAL</strong></td>
-                                <td class="text-end text-success fw-bold">R$ {{ "%.2f"|format(total_receitas) }}</td>
-                                <td class="text-end text-warning fw-bold">R$ {{ "%.2f"|format(total_receitas_a_vencer) }}</td>
-                                <td class="text-end text-danger fw-bold">R$ {{ "%.2f"|format(total_receitas_vencidas) }}</td>
-                                <td class="text-end text-info fw-bold">R$ {{ "%.2f"|format(total_receitas_agendadas) }}</td>
-                                <td class="text-end text-success fw-bold">R$ {{ "%.2f"|format(total_receitas + total_receitas_pendentes) }}</td>
-                                <td class="text-end text-danger fw-bold">R$ {{ "%.2f"|format(total_despesas) }}</td>
-                                <td class="text-end text-warning fw-bold">R$ {{ "%.2f"|format(total_despesas_a_vencer) }}</td>
-                                <td class="text-end text-danger fw-bold">R$ {{ "%.2f"|format(total_despesas_vencidas) }}</td>
-                                <td class="text-end text-info fw-bold">R$ {{ "%.2f"|format(total_despesas_agendadas) }}</td>
-                                <td class="text-end text-danger fw-bold">R$ {{ "%.2f"|format(total_despesas + total_despesas_pendentes) }}</td>
-                                <td class="text-end fw-bold {{ 'text-success' if saldo_projetado >= 0 else 'text-danger' }}">
-                                    R$ {{ "%.2f"|format(saldo_projetado) }}
-                                </td>
-                            </tr>
-                        </tfoot>
                     </table>
                 </div>
             </div>
@@ -434,93 +401,93 @@
     </div>
 </div>
 
-<!-- RECEITAS E DESPESAS POR CATEGORIA LADO A LADO -->
+<!-- ENTRADAS E SAÍDAS POR CATEGORIA LADO A LADO -->
 <div class="row mb-4">
-    <!-- Receitas por Categoria -->
+    <!-- Entradas por Categoria -->
     <div class="col-md-6 mb-3">
         <div class="card border-0 shadow-sm h-100">
             <div class="card-header bg-success text-white">
                 <h5 class="card-title mb-0">
-                    <i class="fas fa-chart-pie me-2"></i>Receitas por Categoria
+                    <i class="fas fa-chart-pie me-2"></i>Entradas por Categoria
                 </h5>
             </div>
             <div class="card-body p-0">
-                {% if categorias_receitas %}
-                    <div class="table-responsive">
-                        <table class="table table-striped mb-0">
-                            <thead>
-                                <tr>
-                                    <th>Categoria</th>
-                                    <th class="text-end">Realizado</th>
-                                    <th class="text-end">A Vencer</th>
-                                    <th class="text-end">Vencido</th>
-                                    <th class="text-end">Total</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for categoria, dados in categorias_receitas.items() %}
-                                {% set total_cat = dados.realizado + dados.a_vencer + dados.vencido + dados.agendado %}
-                                <tr>
-                                    <td>{{ categoria }}</td>
-                                    <td class="text-end text-success">R$ {{ "%.2f"|format(dados.realizado) }}</td>
-                                    <td class="text-end text-warning">R$ {{ "%.2f"|format(dados.a_vencer) }}</td>
-                                    <td class="text-end text-danger">R$ {{ "%.2f"|format(dados.vencido) }}</td>
-                                    <td class="text-end text-success fw-bold">R$ {{ "%.2f"|format(total_cat) }}</td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
+                {% if categorias_entradas %}
+                <div class="table-responsive">
+                    <table class="table table-striped mb-0">
+                        <thead>
+                            <tr>
+                                <th>Categoria</th>
+                                <th class="text-end">Realizado</th>
+                                <th class="text-end">A Vencer</th>
+                                <th class="text-end">Vencido</th>
+                                <th class="text-end">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for categoria, dados in categorias_entradas.items() %}
+                            {% set total_cat = dados.realizado + dados.a_vencer + dados.vencido + dados.agendado %}
+                            <tr>
+                                <td>{{ categoria }}</td>
+                                <td class="text-end text-success">R$ {{ "%.2f"|format(dados.realizado) }}</td>
+                                <td class="text-end text-warning">R$ {{ "%.2f"|format(dados.a_vencer) }}</td>
+                                <td class="text-end text-danger">R$ {{ "%.2f"|format(dados.vencido) }}</td>
+                                <td class="text-end text-success fw-bold">R$ {{ "%.2f"|format(total_cat) }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
                 {% else %}
-                    <div class="text-center py-4">
-                        <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
-                        <h6 class="text-muted">Nenhuma receita registrada</h6>
-                    </div>
+                <div class="text-center py-4">
+                    <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                    <h6 class="text-muted">Nenhuma entrada registrada</h6>
+                </div>
                 {% endif %}
             </div>
         </div>
     </div>
 
-    <!-- Despesas por Categoria -->
+    <!-- Saídas por Categoria -->
     <div class="col-md-6 mb-3">
         <div class="card border-0 shadow-sm h-100">
             <div class="card-header bg-danger text-white">
                 <h5 class="card-title mb-0">
-                    <i class="fas fa-chart-pie me-2"></i>Despesas por Categoria
+                    <i class="fas fa-chart-pie me-2"></i>Saídas por Categoria
                 </h5>
             </div>
             <div class="card-body p-0">
-                {% if categorias_despesas %}
-                    <div class="table-responsive">
-                        <table class="table table-striped mb-0">
-                            <thead>
-                                <tr>
-                                    <th>Categoria</th>
-                                    <th class="text-end">Realizado</th>
-                                    <th class="text-end">A Vencer</th>
-                                    <th class="text-end">Vencido</th>
-                                    <th class="text-end">Total</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for categoria, dados in categorias_despesas.items() %}
-                                {% set total_cat = dados.realizado + dados.a_vencer + dados.vencido + dados.agendado %}
-                                <tr>
-                                    <td>{{ categoria }}</td>
-                                    <td class="text-end text-danger">R$ {{ "%.2f"|format(dados.realizado) }}</td>
-                                    <td class="text-end text-warning">R$ {{ "%.2f"|format(dados.a_vencer) }}</td>
-                                    <td class="text-end text-danger">R$ {{ "%.2f"|format(dados.vencido) }}</td>
-                                    <td class="text-end text-danger fw-bold">R$ {{ "%.2f"|format(total_cat) }}</td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
+                {% if categorias_saidas %}
+                <div class="table-responsive">
+                    <table class="table table-striped mb-0">
+                        <thead>
+                            <tr>
+                                <th>Categoria</th>
+                                <th class="text-end">Realizado</th>
+                                <th class="text-end">A Vencer</th>
+                                <th class="text-end">Vencido</th>
+                                <th class="text-end">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for categoria, dados in categorias_saidas.items() %}
+                            {% set total_cat = dados.realizado + dados.a_vencer + dados.vencido + dados.agendado %}
+                            <tr>
+                                <td>{{ categoria }}</td>
+                                <td class="text-end text-danger">R$ {{ "%.2f"|format(dados.realizado) }}</td>
+                                <td class="text-end text-warning">R$ {{ "%.2f"|format(dados.a_vencer) }}</td>
+                                <td class="text-end text-danger">R$ {{ "%.2f"|format(dados.vencido) }}</td>
+                                <td class="text-end text-danger fw-bold">R$ {{ "%.2f"|format(total_cat) }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
                 {% else %}
-                    <div class="text-center py-4">
-                        <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
-                        <h6 class="text-muted">Nenhuma despesa registrada</h6>
-                    </div>
+                <div class="text-center py-4">
+                    <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                    <h6 class="text-muted">Nenhuma saida registrada</h6>
+                </div>
                 {% endif %}
             </div>
         </div>
@@ -533,26 +500,28 @@
         <div class="card border-0 shadow-sm">
             <div class="card-header bg-dark text-white">
                 <h5 class="card-title mb-0">
-                    <i class="fas fa-chart-bar me-2"></i>Comparativo Receitas vs Despesas
+                    <i class="fas fa-chart-bar me-2"></i>Comparativo Entradas vs Saídas
                 </h5>
             </div>
             <div class="card-body">
                 <div class="row">
                     <div class="col-md-6">
-                        <h6 class="text-success">Receitas (Realizadas)</h6>
+                        <h6 class="text-success">Entradas (Realizadas)</h6>
                         <div class="progress mb-3" style="height: 25px;">
                             <div class="progress-bar bg-success"
-                                 style="width: {{ (total_receitas / (total_receitas + total_despesas)) * 100 if (total_receitas + total_despesas) > 0 else 0 }}%">
-                                {{ "%.1f"|format((total_receitas / (total_receitas + total_despesas)) * 100 if (total_receitas + total_despesas) > 0 else 0) }}%
+                                style="width: {{ (total_entradas / (total_entradas + total_saidas)) * 100 if (total_entradas + total_saidas) > 0 else 0 }}%">
+                                {{ "%.1f"|format((total_entradas / (total_entradas + total_saidas)) * 100 if
+                                (total_entradas + total_saidas) > 0 else 0) }}%
                             </div>
                         </div>
                     </div>
                     <div class="col-md-6">
-                        <h6 class="text-danger">Despesas (Realizadas)</h6>
+                        <h6 class="text-danger">Saídas (Realizadas)</h6>
                         <div class="progress mb-3" style="height: 25px;">
                             <div class="progress-bar bg-danger"
-                                 style="width: {{ (total_despesas / (total_receitas + total_despesas)) * 100 if (total_receitas + total_despesas) > 0 else 0 }}%">
-                                {{ "%.1f"|format((total_despesas / (total_receitas + total_despesas)) * 100 if (total_receitas + total_despesas) > 0 else 0) }}%
+                                style="width: {{ (total_saidas / (total_entradas + total_saidas)) * 100 if (total_entradas + total_saidas) > 0 else 0 }}%">
+                                {{ "%.1f"|format((total_saidas / (total_entradas + total_saidas)) * 100 if
+                                (total_entradas + total_saidas) > 0 else 0) }}%
                             </div>
                         </div>
                     </div>
@@ -573,10 +542,12 @@
                 <button onclick="window.print()" class="btn btn-primary">
                     <i class="fas fa-print me-2"></i>Imprimir
                 </button>
-                <a href="{{ url_for('exportar_relatorio_saldos', formato='excel') }}{% if data_inicio %}?data_inicio={{ data_inicio }}&data_fim={{ data_fim }}{% endif %}" class="btn btn-success">
+                <a href="{{ url_for('exportar_relatorio_saldos', formato='excel') }}{% if data_inicio %}?data_inicio={{ data_inicio }}&data_fim={{ data_fim }}{% endif %}"
+                    class="btn btn-success">
                     <i class="fas fa-file-excel me-2"></i>Exportar Excel
                 </a>
-                <a href="{{ url_for('exportar_relatorio_saldos', formato='pdf') }}{% if data_inicio %}?data_inicio={{ data_inicio }}&data_fim={{ data_fim }}{% endif %}" class="btn btn-danger">
+                <a href="{{ url_for('exportar_relatorio_saldos', formato='pdf') }}{% if data_inicio %}?data_inicio={{ data_inicio }}&data_fim={{ data_fim }}{% endif %}"
+                    class="btn btn-danger">
                     <i class="fas fa-file-pdf me-2"></i>Exportar PDF
                 </a>
                 <a href="{{ url_for('dashboard') }}" class="btn btn-info">
@@ -588,62 +559,66 @@
 </div>
 
 <style>
-@media print {
-    .btn, .navbar, .sidebar {
-        display: none !important;
+    @media print {
+
+        .btn,
+        .navbar,
+        .sidebar {
+            display: none !important;
+        }
+
+        .card {
+            border: 1px solid #000 !important;
+            break-inside: avoid;
+        }
     }
-    .card {
-        border: 1px solid #000 !important;
-        break-inside: avoid;
+
+    input[type="text"][pattern] {
+        font-family: monospace;
+        letter-spacing: 1px;
     }
-}
 
-input[type="text"][pattern] {
-    font-family: monospace;
-    letter-spacing: 1px;
-}
+    .table-responsive {
+        max-height: 600px;
+        overflow-y: auto;
+    }
 
-.table-responsive {
-    max-height: 600px;
-    overflow-y: auto;
-}
+    .table-responsive::-webkit-scrollbar {
+        width: 10px;
+        background: #f8f9fa;
+    }
 
-.table-responsive::-webkit-scrollbar {
-    width: 10px;
-    background: #f8f9fa;
-}
+    .table-responsive::-webkit-scrollbar-thumb {
+        background: #6c757d;
+        border-radius: 5px;
+    }
 
-.table-responsive::-webkit-scrollbar-thumb {
-    background: #6c757d;
-    border-radius: 5px;
-}
-
-.table-responsive {
-    scrollbar-width: thin;
-    scrollbar-color: #6c757d #f8f9fa;
-}
+    .table-responsive {
+        scrollbar-width: thin;
+        scrollbar-color: #6c757d #f8f9fa;
+    }
 </style>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const dataInicio = document.getElementById('data_inicio');
-    const dataFim = document.getElementById('data_fim');
+    document.addEventListener('DOMContentLoaded', function () {
+        const dataInicio = document.getElementById('data_inicio');
+        const dataFim = document.getElementById('data_fim');
 
-    function aplicarMascaraData(input) {
-        input.addEventListener('input', function(e) {
-            let value = e.target.value.replace(/\D/g, '');
-            if (value.length >= 2) {
-                value = value.substring(0, 2) + '/' + value.substring(2);
-            }
-            if (value.length >= 5) {
-                value = value.substring(0, 5) + '/' + value.substring(5, 9);
-            }
-            e.target.value = value;
-        });
-    }
+        function aplicarMascaraData(input) {
+            input.addEventListener('input', function (e) {
+                let value = e.target.value.replace(/\D/g, '');
+                if (value.length >= 2) {
+                    value = value.substring(0, 2) + '/' + value.substring(2);
+                }
+                if (value.length >= 5) {
+                    value = value.substring(0, 5) + '/' + value.substring(5, 9);
+                }
+                e.target.value = value;
+            });
+        }
 
-    aplicarMascaraData(dataInicio);
-    aplicarMascaraData(dataFim);
-});
+        aplicarMascaraData(dataInicio);
+        aplicarMascaraData(dataFim);
+    });
 </script>
 {% endblock %}

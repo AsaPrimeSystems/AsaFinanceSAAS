@@ -206,20 +206,20 @@
                         {% endif %}
                     {% endmacro %}
 
-                    <!-- Renderizar todas as contas (receitas e despesas juntas) -->
-                    {% if contas_receita %}
-                        {% for conta in contas_receita %}
+                    <!-- Renderizar todas as contas (entradas e saidas juntas) -->
+                    {% if contas_entrada %}
+                        {% for conta in contas_entrada %}
                             {{ renderizar_conta(conta) }}
                         {% endfor %}
                     {% endif %}
 
-                    {% if contas_despesa %}
-                        {% for conta in contas_despesa %}
+                    {% if contas_saida %}
+                        {% for conta in contas_saida %}
                             {{ renderizar_conta(conta) }}
                         {% endfor %}
                     {% endif %}
 
-                    {% if not contas_receita and not contas_despesa %}
+                    {% if not contas_entrada and not contas_saida %}
                         <tr>
                             <td colspan="4" class="text-center text-muted py-3">
                                 Nenhuma conta cadastrada

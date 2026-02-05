@@ -67,12 +67,12 @@ class DashboardManager {
             
             let html = '<div class="row">';
             data.lancamentos.forEach(lancamento => {
-                const tipoIcon = lancamento.tipo === 'receita' ? 'fa-arrow-up text-success' : 'fa-arrow-down text-danger';
-                const tipoTexto = lancamento.tipo === 'receita' ? 'Receita' : 'Despesa';
+                const tipoIcon = lancamento.tipo === 'entrada' ? 'fa-arrow-up text-success' : 'fa-arrow-down text-danger';
+                const tipoTexto = lancamento.tipo === 'entrada' ? 'Entrada' : 'Saída';
                 
                 html += `
                     <div class="col-md-6 col-lg-4 mb-3">
-                        <div class="card border-${lancamento.tipo === 'receita' ? 'success' : 'danger'}">
+                        <div class="card border-${lancamento.tipo === 'entrada' ? 'success' : 'danger'}">
                             <div class="card-body">
                                 <div class="d-flex justify-content-between align-items-start">
                                     <div>

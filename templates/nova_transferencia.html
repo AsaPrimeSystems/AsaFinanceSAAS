@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 
-{% block title %}Nova Transferência - Sistema de Gestão Financeira{% endblock %}
+{% block title %}Nova Transferência entre contas - Sistema de Gestão Financeira{% endblock %}
 
-{% block page_title %}Nova Transferência{% endblock %}
+{% block page_title %}Nova Transferência entre contas{% endblock %}
 
 {% block content %}
 <div class="row">
@@ -10,14 +10,14 @@
         <div class="card">
             <div class="card-header">
                 <h5 class="card-title mb-0">
-                    <i class="fas fa-exchange-alt me-2"></i>Nova Transferência entre Contas
+                    <i class="fas fa-exchange-alt me-2"></i>Nova Transferência entre contas entre Contas
                 </h5>
             </div>
             <div class="card-body">
                 <div class="alert alert-info">
                     <i class="fas fa-info-circle me-2"></i>
                     <strong>Como funciona:</strong> A transferência cria automaticamente dois lançamentos vinculados:
-                    uma saída (despesa) da conta origem e uma entrada (receita) na conta destino.
+                    uma saída (saida) da conta origem e uma entrada (entrada) na conta destino.
                 </div>
 
                 <form method="POST">

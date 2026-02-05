@@ -1,11 +1,12 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
-    <meta charset="utf-8"/>
-    <meta http-equiv="X-UA-Compatible" content="IE=Edge"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
     <title>{% block title %}Asa Finance - Gestão Financeira{% endblock %}</title>
-    
+
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=3.1">
@@ -19,50 +20,80 @@
         .subscription-badge {
             display: flex;
             flex-direction: column;
-            gap: 0.15rem;
-            padding: 0.35rem 0.6rem;
-            background: #f8f9fa;
-            border-radius: 6px;
-            border-left: 3px solid #ffd700;
+            align-items: center;
+            gap: 0;
+            padding: 0.4rem 0.6rem;
+            background: #ffffff;
+            border-radius: 8px;
+            border-left: 4px solid #ffd700;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            min-width: 90px;
         }
 
         .subscription-plan {
             display: flex;
             align-items: center;
-            gap: 0.3rem;
-            font-weight: 600;
-            font-size: 0.75rem;
+            justify-content: center;
+            gap: 0.2rem;
+            font-weight: 700;
+            font-size: 0.7rem;
+            color: #2c3e50;
+            margin-bottom: 2px;
+            width: 100%;
         }
 
         .subscription-plan i {
             color: #ffd700;
-            font-size: 0.7rem;
+            font-size: 0.65rem;
         }
 
         .plan-name {
-            color: #2c3e50;
             white-space: nowrap;
         }
 
         .subscription-days-info {
             display: flex;
-            align-items: baseline;
-            gap: 0.25rem;
-            font-size: 0.7rem;
+            flex-direction: column;
+            align-items: center;
+            line-height: 1;
         }
 
         .subscription-days {
-            font-weight: 700;
-            font-size: 0.9rem;
+            font-weight: 800;
+            font-size: 1.2rem;
             color: #3498db;
         }
 
         .subscription-text {
-            color: #7f8c8d;
-            font-size: 0.65rem;
+            color: #95a5a6;
+            font-size: 0.6rem;
+            font-weight: 600;
+        }
+        }
+
+        /* Cores utilitárias para relatórios */
+        .text-purple {
+            color: #6f42c1 !important;
+        }
+
+        .border-purple {
+            border-color: #6f42c1 !important;
+        }
+
+        .btn-purple {
+            background-color: #6f42c1 !important;
+            border-color: #6f42c1 !important;
+            color: white !important;
+        }
+
+        .btn-purple:hover {
+            background-color: #59359a !important;
+            border-color: #59359a !important;
+            color: white !important;
         }
     </style>
 </head>
+
 <body>
     {% if session.usuario_id or session.sub_usuario_id %}
     <header class="modern-header">
@@ -81,7 +112,8 @@
 
             <div class="header-company">
                 {% if session.get('acesso_contador') and session.get('empresa_nome_original') %}
-                <div class="company-card" style="border: 2px solid #ffc107; background: #fff3cd; display: flex; align-items: center; gap: 15px; padding: 10px 15px;">
+                <div class="company-card"
+                    style="border: 2px solid #ffc107; background: #fff3cd; display: flex; align-items: center; gap: 15px; padding: 10px 15px;">
                     <div class="company-icon">
                         <i class="fas fa-user-tie"></i>
                     </div>
@@ -91,12 +123,14 @@
                         </div>
                         <div class="company-details" style="margin-top: 5px;">
                             <small style="color: #856404; font-size: 12px;">
-                                <i class="fas fa-arrow-right me-1"></i>Acessando como: <strong>{{ session.empresa_nome }}</strong>
+                                <i class="fas fa-arrow-right me-1"></i>Acessando como: <strong>{{ session.empresa_nome
+                                    }}</strong>
                             </small>
                         </div>
                     </div>
                     <div>
-                        <form method="POST" action="{{ url_for('contador_voltar_perfil') }}" style="display: inline; margin: 0;">
+                        <form method="POST" action="{{ url_for('contador_voltar_perfil') }}"
+                            style="display: inline; margin: 0;">
                             <button type="submit" class="btn btn-sm btn-warning" style="white-space: nowrap;">
                                 <i class="fas fa-arrow-left me-1"></i>Voltar ao painel do Contador/BPO
                             </button>
@@ -119,12 +153,14 @@
                             <span id="company-sector-text"></span>
                         </div>
                     </div>
-                    {% if session.get('tipo_conta') and session.get('tipo_conta') != 'admin' and session.get('dias_assinatura') is not none %}
+                    {% if session.get('tipo_conta') and session.get('tipo_conta') != 'admin' and
+                    session.get('dias_assinatura') is not none %}
                     <div class="company-subscription">
                         <div class="subscription-badge">
                             <div class="subscription-plan">
                                 <i class="fas fa-star"></i>
-                                <span class="plan-name">{{ (session.get('plano_nome') or 'Plano Básico').split()[0] }}</span>
+                                <span class="plan-name">Plano {{ (session.get('plano_nome') or 'Básico').split()[0]
+                                    }}</span>
                             </div>
                             <div class="subscription-days-info">
                                 <span class="subscription-days">{{ session.get('dias_assinatura', 0) }}</span>
@@ -162,7 +198,8 @@
                         <li>
                             <div class="dropdown-header">
                                 <div class="dropdown-user-info">
-                                    <div class="dropdown-user-name" id="dropdown-user-name">{{ session.usuario_nome }}</div>
+                                    <div class="dropdown-user-name" id="dropdown-user-name">{{ session.usuario_nome }}
+                                    </div>
                                     <div class="dropdown-user-company" id="dropdown-user-company">
                                         {% if session.get('acesso_contador') and session.get('empresa_nome_original') %}
                                         {{ session.empresa_nome_original }}
@@ -173,7 +210,9 @@
                                 </div>
                             </div>
                         </li>
-                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <hr class="dropdown-divider">
+                        </li>
                         <li>
                             <a class="dropdown-item" href="{{ url_for('perfil') }}">
                                 <i class="fas fa-user-edit"></i> Alterar Dados
@@ -219,23 +258,24 @@
                             <span class="aux-js">Sair do Sistema</span>
                         </a>
                     </li>
-                    {% elif (session.get('tipo_conta') == 'contador_bpo' or session.get('usuario_tipo') == 'sub_contador') and not session.get('acesso_contador') %}
+                    {% elif (session.get('tipo_conta') == 'contador_bpo' or session.get('usuario_tipo') ==
+                    'sub_contador') and not session.get('acesso_contador') %}
                     <li role="presentation">
                         <a class="link-menu" href="{{ url_for('dashboard_contador') }}">
-                            <span class="icon fa fa-home"></span> 
+                            <span class="icon fa fa-home"></span>
                             <span class="aux-js">Dashboard</span>
                         </a>
                     </li>
                     {% if session.get('usuario_tipo') != 'sub_contador' %}
                     <li role="presentation">
                         <a class="link-menu" href="{{ url_for('contador_gerenciar_vinculos') }}">
-                            <span class="icon fa fa-link"></span> 
+                            <span class="icon fa fa-link"></span>
                             <span class="aux-js">Gerenciar Vínculos</span>
                         </a>
                     </li>
                     <li role="presentation">
                         <a class="link-menu" href="{{ url_for('contador_gerenciar_usuarios') }}">
-                            <span class="icon fa fa-users-cog"></span> 
+                            <span class="icon fa fa-users-cog"></span>
                             <span class="aux-js">Gerenciar Usuários</span>
                         </a>
                     </li>
@@ -243,76 +283,76 @@
                     {% else %}
                     <li role="presentation">
                         <a class="link-menu" href="{{ url_for('dashboard') }}">
-                            <span class="icon fa fa-home"></span> 
+                            <span class="icon fa fa-home"></span>
                             <span class="aux-js">Dashboard</span>
                         </a>
                     </li>
                     <li role="presentation">
                         <a class="link-menu" href="{{ url_for('lancamentos') }}">
-                            <span class="icon fa fa-money-bill"></span> 
+                            <span class="icon fa fa-money-bill"></span>
                             <span class="aux-js">Financeiro</span>
                         </a>
                     </li>
                     <li role="presentation" class="submenu-item">
                         <a class="link-menu" href="{{ url_for('vendas') }}">
-                            <span class="icon fa fa-shopping-cart"></span> 
+                            <span class="icon fa fa-shopping-cart"></span>
                             <span class="aux-js">Vendas</span>
                         </a>
                     </li>
                     <li role="presentation" class="submenu-item">
                         <a class="link-menu" href="{{ url_for('compras') }}">
-                            <span class="icon fa fa-shopping-bag"></span> 
+                            <span class="icon fa fa-shopping-bag"></span>
                             <span class="aux-js">Compras</span>
                         </a>
                     </li>
                     <li role="presentation">
                         <a class="link-menu" href="{{ url_for('plano_contas') }}">
-                            <span class="icon fa fa-list"></span> 
+                            <span class="icon fa fa-list"></span>
                             <span class="aux-js">Plano de Contas</span>
                         </a>
                     </li>
                     <li role="presentation">
                         <a class="link-menu" href="{{ url_for('clientes') }}">
-                            <span class="icon fa fa-users"></span> 
+                            <span class="icon fa fa-users"></span>
                             <span class="aux-js">Clientes</span>
                         </a>
                     </li>
                     <li role="presentation">
                         <a class="link-menu" href="{{ url_for('fornecedores') }}">
-                            <span class="icon fa fa-truck"></span> 
+                            <span class="icon fa fa-truck"></span>
                             <span class="aux-js">Fornecedores</span>
                         </a>
                     </li>
                     {% if usuario and usuario.empresa and usuario.empresa.tipo_empresa in ['comercio', 'industria'] %}
                     <li role="presentation">
                         <a class="link-menu" href="{{ url_for('estoque') }}">
-                            <span class="icon fa fa-boxes"></span> 
+                            <span class="icon fa fa-boxes"></span>
                             <span class="aux-js">Estoque</span>
                         </a>
                     </li>
                     {% endif %}
                     <li role="presentation">
                         <a class="link-menu" href="{{ url_for('relatorios') }}">
-                            <span class="icon fa fa-chart-bar"></span> 
+                            <span class="icon fa fa-chart-bar"></span>
                             <span class="aux-js">Relatórios</span>
                         </a>
                     </li>
                     <li role="presentation">
                         <a class="link-menu" href="{{ url_for('importacao') }}">
-                            <span class="icon fa fa-file-import"></span> 
+                            <span class="icon fa fa-file-import"></span>
                             <span class="aux-js">Importação</span>
                         </a>
                     </li>
                     <li role="presentation">
                         <a class="link-menu" href="{{ url_for('configuracoes') }}">
-                            <span class="icon fa fa-cog"></span> 
+                            <span class="icon fa fa-cog"></span>
                             <span class="aux-js">Configurações</span>
                         </a>
                     </li>
                     {% if session.get('acesso_contador') %}
                     <li role="presentation">
                         <a class="link-menu" href="{{ url_for('dashboard_contador') }}">
-                            <span class="icon fa fa-arrow-left"></span> 
+                            <span class="icon fa fa-arrow-left"></span>
                             <span class="aux-js">Voltar ao painel do Contador/BPO</span>
                         </a>
                     </li>
@@ -332,14 +372,15 @@
 
                 <div class="row conteudo-row relative">
                     {% with messages = get_flashed_messages(with_categories=true) %}
-                        {% if messages %}
-                            {% for category, message in messages %}
-                                <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
-                                    {{ message }}
-                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                                </div>
-                            {% endfor %}
-                        {% endif %}
+                    {% if messages %}
+                    {% for category, message in messages %}
+                    <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show"
+                        role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                    {% endfor %}
+                    {% endif %}
                     {% endwith %}
 
                     {% block content %}{% endblock %}
@@ -350,14 +391,15 @@
     {% else %}
     <div class="container-fluid">
         {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
-                        {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
-                {% endfor %}
-            {% endif %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show"
+            role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endfor %}
+        {% endif %}
         {% endwith %}
 
         {% block auth_content %}{% endblock %}
@@ -371,11 +413,12 @@
     <script src="{{ url_for('static', filename='js/utils/subscription-badge.js') }}"></script>
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
     <script src="{{ url_for('static', filename='js/mascara-data.js') }}"></script>
-    
+
     <script src="{{ url_for('static', filename='js/dashboard/dashboard.js') }}"></script>
     <script src="{{ url_for('static', filename='js/clientes/clientes.js') }}"></script>
     <script src="{{ url_for('static', filename='js/lancamentos/lancamentos.js') }}"></script>
-    
+
     {% block scripts %}{% endblock %}
 </body>
-</html> 
+
+</html>

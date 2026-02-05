@@ -40,9 +40,9 @@
                             <label for="tipo" class="form-label">Tipo</label>
                             <select class="form-select" id="tipo" name="tipo" required>
                                 <option value="">Selecione...</option>
-                                <option value="receita" {{ 'selected' if lancamento.tipo=='receita' else '' }}>Receita
+                                <option value="entrada" {{ 'selected' if lancamento.tipo=='entrada' else '' }}>Entrada
                                 </option>
-                                <option value="despesa" {{ 'selected' if lancamento.tipo=='despesa' else '' }}>Despesa
+                                <option value="saida" {{ 'selected' if lancamento.tipo=='saida' else '' }}>Saída
                                 </option>
                             </select>
                         </div>

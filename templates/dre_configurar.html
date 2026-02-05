@@ -151,12 +151,12 @@
         margin-left: 0.5rem;
     }
 
-    .badge-receita {
+    .badge-entrada {
         background: #d4edda;
         color: #155724;
     }
 
-    .badge-despesa {
+    .badge-saida {
         background: #f8d7da;
         color: #721c24;
     }
@@ -231,7 +231,7 @@
                                     <div>
                                         <span class="linha-descricao">{{ conta.nome }}</span>
                                         <span class="linha-codigo">({{ conta.codigo or '-' }})</span>
-                                        <span class="tipo-badge badge-{{ 'receita' if conta.tipo == 'receita' else 'despesa' }}">
+                                        <span class="tipo-badge badge-{{ 'entrada' if conta.tipo == 'entrada' else 'saida' }}">
                                             {{ conta.tipo }}
                                         </span>
                                     </div>
@@ -308,7 +308,7 @@
                 <div class="mb-3">
                     <label for="subtotalDescricao" class="form-label">Descrição *</label>
                     <input type="text" class="form-control" id="subtotalDescricao"
-                           placeholder="Ex: Receita Operacional Líquida" required>
+                           placeholder="Ex: Entrada Operacional Líquida" required>
                     <small class="text-muted">Ex: Resultado Bruto, Lucro Líquido, etc.</small>
                 </div>
                 <div class="mb-3">
