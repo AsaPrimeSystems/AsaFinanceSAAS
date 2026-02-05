@@ -4201,7 +4201,7 @@ def editar_cliente(cliente_id):
     
     return render_template('editar_cliente.html', usuario=usuario, cliente=cliente)
 
-@app.route('/clientes/<int:cliente_id>/deletar')
+@app.route('/clientes/<int:cliente_id>/deletar', methods=['GET', 'POST', 'DELETE'])
 def deletar_cliente(cliente_id):
     if 'usuario_id' not in session:
         return redirect(url_for('login'))
