@@ -4998,7 +4998,8 @@ def nova_conta():
             pai_id=pai_id,
             nivel=nivel,
             usuario_id=usuario.id,
-            empresa_id=empresa_id
+            empresa_id=empresa_id,
+            ativo=True
         )
         
         db.session.add(nova_conta)
