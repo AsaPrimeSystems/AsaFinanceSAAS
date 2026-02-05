@@ -229,6 +229,43 @@
                 </tbody>
             </table>
         </div>
+
+        <!-- DEBUG: Mostrar todas as contas sem hierarquia -->
+        {% if todas_contas %}
+        <div class="mt-4 p-3 bg-light border">
+            <h6 class="text-danger">🐛 DEBUG - Todas as contas no banco ({{ todas_contas|length }}):</h6>
+            <div style="max-height: 300px; overflow-y: auto;">
+                <table class="table table-sm table-striped">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Código</th>
+                            <th>Nome</th>
+                            <th>Tipo</th>
+                            <th>Natureza</th>
+                            <th>Pai ID</th>
+                            <th>Nível</th>
+                            <th>Ativo</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for conta in todas_contas %}
+                        <tr>
+                            <td>{{ conta.id }}</td>
+                            <td>{{ conta.codigo or '-' }}</td>
+                            <td>{{ conta.nome }}</td>
+                            <td>{{ conta.tipo }}</td>
+                            <td>{{ conta.natureza }}</td>
+                            <td>{{ conta.pai_id or '-' }}</td>
+                            <td>{{ conta.nivel }}</td>
+                            <td>{{ conta.ativo }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
     </div>
 </div>
 

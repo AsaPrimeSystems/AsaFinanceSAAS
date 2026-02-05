@@ -4926,7 +4926,7 @@ def plano_contas():
 
     app.logger.info(f"📊 Plano de contas - empresa_id={empresa_id}, usuario_id={usuario.id}, contas encontradas: {len(contas)}")
     if contas:
-        app.logger.info(f"   Primeiras contas: {[(c.id, c.nome, c.codigo) for c in contas[:3]]}")
+        app.logger.info(f"   Todas as contas: {[(c.id, c.nome, c.codigo, c.pai_id, c.tipo) for c in contas]}")
 
     # Calcular saldo de cada conta (somando lançamentos das analíticas)
     for conta in contas:
@@ -4989,6 +4989,7 @@ def plano_contas():
                           usuario=usuario,
                           contas_receita=contas_receita,
                           contas_despesa=contas_despesa,
+                          todas_contas=contas,  # Todas as contas sem hierarquia para debug
                           total_entradas=total_entradas,
                           total_saidas=total_saidas,
                           saldo_geral=saldo_geral)
@@ -5062,7 +5063,7 @@ def nova_conta():
         db.session.commit()
         db.session.refresh(nova_conta)  # Garantir que o ID foi gerado
 
-        app.logger.info(f"✅ Conta criada: ID={nova_conta.id}, nome='{nome}', codigo='{codigo}', tipo={tipo}, natureza={natureza}, empresa_id={empresa_id}, usuario_id={usuario.id}, ativo={nova_conta.ativo}")
+        app.logger.info(f"✅ Conta criada: ID={nova_conta.id}, nome='{nome}', codigo='{codigo}', tipo={tipo}, natureza={natureza}, pai_id={pai_id}, nivel={nivel}, empresa_id={empresa_id}, usuario_id={usuario.id}, ativo={nova_conta.ativo}")
 
         flash(f'Conta "{nome}" criada com sucesso! (ID: {nova_conta.id})', 'success')
         return redirect(url_for('plano_contas'))
