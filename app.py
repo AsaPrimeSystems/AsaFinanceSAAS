@@ -4218,15 +4218,19 @@ def deletar_cliente(cliente_id):
     
     cliente = Cliente.query.filter(Cliente.id==cliente_id, Cliente.empresa_id == empresa_id).first()
     if not cliente:
+        app.logger.warning(f"❌ Tentativa de excluir cliente inexistente: {cliente_id}")
         flash('Cliente não encontrado.', 'danger')
         return redirect(url_for('clientes'))
-    
+
+    app.logger.info(f"🗑️ Tentando excluir cliente: ID={cliente.id}, nome='{cliente.nome}', empresa_id={empresa_id}")
+
     try:
         # Verificar todas as dependências antes de excluir
         problemas = []
 
         # 1. Verificar vendas
         vendas = Venda.query.filter_by(cliente_id=cliente.id).all()
+        app.logger.info(f"   Vendas encontradas: {len(vendas)}")
         if vendas:
             problemas.append(f"{len(vendas)} venda(s)")
 
@@ -4235,10 +4239,12 @@ def deletar_cliente(cliente_id):
             Lancamento.cliente_id == cliente.id,
             Lancamento.venda_id != None
         ).all()
+        app.logger.info(f"   Lançamentos com venda: {len(lancamentos_com_venda)}")
         if lancamentos_com_venda:
             problemas.append(f"{len(lancamentos_com_venda)} lançamento(s) de venda")
 
         if problemas:
+            app.logger.warning(f"   ❌ Não pode excluir - dependências: {problemas}")
             flash(f'Não é possível excluir o cliente "{cliente.nome}" pois existem: {", ".join(problemas)}. Exclua as vendas primeiro.', 'warning')
             return redirect(url_for('clientes'))
 
@@ -4248,11 +4254,15 @@ def deletar_cliente(cliente_id):
             Lancamento.venda_id == None
         ).all()
 
+        app.logger.info(f"   Lançamentos manuais para desvincular: {len(lancamentos_manuais)}")
+
         for lanc in lancamentos_manuais:
             lanc.cliente_id = None
 
         db.session.delete(cliente)
         db.session.commit()
+
+        app.logger.info(f"✅ Cliente {cliente.id} excluído com sucesso!")
 
         msg = f'Cliente "{cliente.nome}" excluído com sucesso!'
         if lancamentos_manuais:
@@ -4987,8 +4997,8 @@ def plano_contas():
 
     return render_template('plano_contas.html',
                           usuario=usuario,
-                          contas_receita=contas_receita,
-                          contas_despesa=contas_despesa,
+                          contas_entrada=contas_receita,  # Template usa contas_entrada
+                          contas_saida=contas_despesa,    # Template usa contas_saida
                           todas_contas=contas,  # Todas as contas sem hierarquia para debug
                           total_entradas=total_entradas,
                           total_saidas=total_saidas,
