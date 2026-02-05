@@ -4222,23 +4222,48 @@ def deletar_cliente(cliente_id):
         return redirect(url_for('clientes'))
     
     try:
-        # Verificar se o cliente tem vendas associadas
-        venda = Venda.query.filter_by(cliente_id=cliente.id).first()
-        if venda:
-            flash(f'Não é possível excluir o cliente "{cliente.nome}" pois existe a Venda #{venda.id} associada a ele. Exclua a venda primeiro.', 'warning')
+        # Verificar todas as dependências antes de excluir
+        problemas = []
+
+        # 1. Verificar vendas
+        vendas = Venda.query.filter_by(cliente_id=cliente.id).all()
+        if vendas:
+            problemas.append(f"{len(vendas)} venda(s)")
+
+        # 2. Verificar lançamentos que vieram de vendas (não podem ser desvinculados)
+        lancamentos_com_venda = Lancamento.query.filter(
+            Lancamento.cliente_id == cliente.id,
+            Lancamento.venda_id != None
+        ).all()
+        if lancamentos_com_venda:
+            problemas.append(f"{len(lancamentos_com_venda)} lançamento(s) de venda")
+
+        if problemas:
+            flash(f'Não é possível excluir o cliente "{cliente.nome}" pois existem: {", ".join(problemas)}. Exclua as vendas primeiro.', 'warning')
             return redirect(url_for('clientes'))
-        
-        # Desvincular lançamentos órfãos antes de deletar
-        # (Lançamentos manuais que não vieram de vendas mas estão ligados ao cliente)
-        Lancamento.query.filter_by(cliente_id=cliente.id).update({Lancamento.cliente_id: None})
-        
+
+        # Desvincular lançamentos manuais (que não vieram de vendas)
+        lancamentos_manuais = Lancamento.query.filter(
+            Lancamento.cliente_id == cliente.id,
+            Lancamento.venda_id == None
+        ).all()
+
+        for lanc in lancamentos_manuais:
+            lanc.cliente_id = None
+
         db.session.delete(cliente)
         db.session.commit()
-        flash('Cliente excluído com sucesso!', 'success')
-        
+
+        msg = f'Cliente "{cliente.nome}" excluído com sucesso!'
+        if lancamentos_manuais:
+            msg += f' ({len(lancamentos_manuais)} lançamento(s) manual(is) desvinculado(s))'
+        flash(msg, 'success')
+
     except Exception as e:
         db.session.rollback()
-        app.logger.error(f"Erro ao excluir cliente {cliente_id}: {str(e)}")
+        import traceback
+        erro_detalhado = traceback.format_exc()
+        app.logger.error(f"Erro ao excluir cliente {cliente_id}: {erro_detalhado}")
         flash(f'Erro ao excluir cliente: {str(e)}', 'danger')
     
     return redirect(url_for('clientes'))
@@ -4899,6 +4924,10 @@ def plano_contas():
         PlanoConta.ativo == True
     ).order_by(PlanoConta.tipo, PlanoConta.codigo, PlanoConta.nome).all()
 
+    app.logger.info(f"📊 Plano de contas - empresa_id={empresa_id}, usuario_id={usuario.id}, contas encontradas: {len(contas)}")
+    if contas:
+        app.logger.info(f"   Primeiras contas: {[(c.id, c.nome, c.codigo) for c in contas[:3]]}")
+
     # Calcular saldo de cada conta (somando lançamentos das analíticas)
     for conta in contas:
         # Apenas contas analíticas têm lançamentos diretos
@@ -5028,11 +5057,14 @@ def nova_conta():
             empresa_id=empresa_id,
             ativo=True
         )
-        
+
         db.session.add(nova_conta)
         db.session.commit()
-        
-        flash('Conta criada com sucesso!', 'success')
+        db.session.refresh(nova_conta)  # Garantir que o ID foi gerado
+
+        app.logger.info(f"✅ Conta criada: ID={nova_conta.id}, nome='{nome}', codigo='{codigo}', tipo={tipo}, natureza={natureza}, empresa_id={empresa_id}, usuario_id={usuario.id}, ativo={nova_conta.ativo}")
+
+        flash(f'Conta "{nome}" criada com sucesso! (ID: {nova_conta.id})', 'success')
         return redirect(url_for('plano_contas'))
     
     planos_sinteticos = PlanoConta.query.filter(
