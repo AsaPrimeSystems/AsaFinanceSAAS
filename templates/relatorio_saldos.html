@@ -230,6 +230,128 @@
     </div>
 </div>
 
+<!-- SALDOS POR CONTA DO PLANO DE CONTAS -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card border-0 shadow-sm overflow-hidden">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center py-3">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-sitemap me-2"></i>Saldos por Conta do Plano de Contas
+                </h5>
+                <span class="badge bg-light text-primary px-3 py-2">Por Período Filtrado</span>
+            </div>
+            <div class="card-body p-0">
+                {% if categorias_receitas or categorias_despesas %}
+                <div class="row g-0">
+                    <!-- Receitas -->
+                    <div class="col-md-6 border-end">
+                        <div class="p-3 bg-light border-bottom">
+                            <h6 class="mb-0 text-success"><i class="fas fa-arrow-up me-2"></i>Contas de Receita</h6>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover align-middle mb-0">
+                                <thead class="bg-light text-muted text-uppercase" style="font-size: 0.75rem;">
+                                    <tr>
+                                        <th>Conta</th>
+                                        <th class="text-end">Realizado</th>
+                                        <th class="text-end">A Vencer</th>
+                                        <th class="text-end">Vencido</th>
+                                        <th class="text-end">Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% if categorias_receitas %}
+                                        {% for nome, valores in categorias_receitas.items() %}
+                                        <tr>
+                                            <td class="small">{{ nome }}</td>
+                                            <td class="text-end text-success small">R$ {{ "%.2f"|format(valores.realizado) }}</td>
+                                            <td class="text-end text-warning small">R$ {{ "%.2f"|format(valores.a_vencer) }}</td>
+                                            <td class="text-end text-danger small">R$ {{ "%.2f"|format(valores.vencido) }}</td>
+                                            {% set total_conta = valores.realizado + valores.a_vencer + valores.vencido + valores.agendado %}
+                                            <td class="text-end fw-bold text-success small">R$ {{ "%.2f"|format(total_conta) }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    {% else %}
+                                        <tr>
+                                            <td colspan="5" class="text-center text-muted py-3">
+                                                <i class="fas fa-inbox me-2"></i>Nenhuma conta de receita encontrada
+                                            </td>
+                                        </tr>
+                                    {% endif %}
+                                </tbody>
+                                <tfoot class="table-light fw-bold">
+                                    <tr>
+                                        <td>TOTAL RECEITAS</td>
+                                        <td class="text-end text-success">R$ {{ "%.2f"|format(total_receitas_realizadas) }}</td>
+                                        <td class="text-end text-warning">R$ {{ "%.2f"|format(total_receitas_a_vencer) }}</td>
+                                        <td class="text-end text-danger">R$ {{ "%.2f"|format(total_receitas_vencidas) }}</td>
+                                        <td class="text-end text-success">R$ {{ "%.2f"|format(total_receitas_realizadas + total_receitas_a_vencer + total_receitas_vencidas + total_receitas_agendadas) }}</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Despesas -->
+                    <div class="col-md-6">
+                        <div class="p-3 bg-light border-bottom">
+                            <h6 class="mb-0 text-danger"><i class="fas fa-arrow-down me-2"></i>Contas de Despesa</h6>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover align-middle mb-0">
+                                <thead class="bg-light text-muted text-uppercase" style="font-size: 0.75rem;">
+                                    <tr>
+                                        <th>Conta</th>
+                                        <th class="text-end">Realizado</th>
+                                        <th class="text-end">A Vencer</th>
+                                        <th class="text-end">Vencido</th>
+                                        <th class="text-end">Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% if categorias_despesas %}
+                                        {% for nome, valores in categorias_despesas.items() %}
+                                        <tr>
+                                            <td class="small">{{ nome }}</td>
+                                            <td class="text-end text-success small">R$ {{ "%.2f"|format(valores.realizado) }}</td>
+                                            <td class="text-end text-warning small">R$ {{ "%.2f"|format(valores.a_vencer) }}</td>
+                                            <td class="text-end text-danger small">R$ {{ "%.2f"|format(valores.vencido) }}</td>
+                                            {% set total_conta = valores.realizado + valores.a_vencer + valores.vencido + valores.agendado %}
+                                            <td class="text-end fw-bold text-danger small">R$ {{ "%.2f"|format(total_conta) }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    {% else %}
+                                        <tr>
+                                            <td colspan="5" class="text-center text-muted py-3">
+                                                <i class="fas fa-inbox me-2"></i>Nenhuma conta de despesa encontrada
+                                            </td>
+                                        </tr>
+                                    {% endif %}
+                                </tbody>
+                                <tfoot class="table-light fw-bold">
+                                    <tr>
+                                        <td>TOTAL DESPESAS</td>
+                                        <td class="text-end text-success">R$ {{ "%.2f"|format(total_despesas_realizadas) }}</td>
+                                        <td class="text-end text-warning">R$ {{ "%.2f"|format(total_despesas_a_vencer) }}</td>
+                                        <td class="text-end text-danger">R$ {{ "%.2f"|format(total_despesas_vencidas) }}</td>
+                                        <td class="text-end text-danger">R$ {{ "%.2f"|format(total_despesas_realizadas + total_despesas_a_vencer + total_despesas_vencidas + total_despesas_agendadas) }}</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <div class="text-center text-muted py-5">
+                    <i class="fas fa-inbox fa-3x mb-3"></i>
+                    <p>Nenhuma transação encontrada no período selecionado</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- SALDOS DAS CONTAS CAIXA DETALHADOS -->
 <div class="row mb-4">
     <div class="col-md-12">
