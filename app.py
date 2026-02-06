@@ -44,7 +44,7 @@ logging.basicConfig(
 # SEMPRE usar templates HTML da pasta static
 app = Flask(__name__, static_folder='static', static_url_path='/static')
 print("Usando templates HTML do sistema")
-app.config['SECRET_KEY'] = 'sua_chave_secreta_aqui'
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', os.urandom(32).hex())
 # Configuração do banco de dados (Suporte a PostgreSQL para produção)
 database_url = os.getenv('DATABASE_URL', 'sqlite:///saas_financeiro_v2.db')
 if database_url.startswith("postgres://"):
@@ -372,6 +372,68 @@ with app.app_context():
 
     except Exception as e:
         print(f"⚠️ Aviso: Não foi possível verificar/adicionar colunas de hierarquia: {str(e)}")
+        db.session.rollback()
+
+    # ============================================================================
+    # MIGRAÇÃO: Adicionar Índices para Performance
+    # ============================================================================
+    try:
+        print("🔍 Verificando e criando índices para melhor performance...")
+
+        # Lista de índices a serem criados
+        indices = [
+            # Índices compostos para Lancamento (queries mais comuns)
+            ("idx_lancamento_empresa_data", "lancamento", ["empresa_id", "data_prevista"]),
+            ("idx_lancamento_empresa_tipo_realizado", "lancamento", ["empresa_id", "tipo", "realizado"]),
+            ("idx_lancamento_transferencia", "lancamento", ["transferencia_id"]),
+            ("idx_lancamento_usuario_empresa", "lancamento", ["usuario_id", "empresa_id"]),
+
+            # Índices para Cliente
+            ("idx_cliente_empresa", "cliente", ["empresa_id"]),
+            ("idx_cliente_usuario_empresa", "cliente", ["usuario_id", "empresa_id"]),
+
+            # Índices para Fornecedor
+            ("idx_fornecedor_empresa", "fornecedor", ["empresa_id"]),
+            ("idx_fornecedor_usuario_empresa", "fornecedor", ["usuario_id", "empresa_id"]),
+
+            # Índices para Venda
+            ("idx_venda_empresa_data", "venda", ["empresa_id", "data_prevista"]),
+            ("idx_venda_usuario_empresa", "venda", ["usuario_id", "empresa_id"]),
+
+            # Índices para Compra
+            ("idx_compra_empresa_data", "compra", ["empresa_id", "data_prevista"]),
+            ("idx_compra_usuario_empresa", "compra", ["usuario_id", "empresa_id"]),
+
+            # Índices para VinculoContador
+            ("idx_vinculo_contador_status", "vinculo_contador", ["contador_id", "status"]),
+            ("idx_vinculo_contador_empresa", "vinculo_contador", ["empresa_id", "status"]),
+        ]
+
+        for nome_indice, tabela, colunas in indices:
+            try:
+                # Verificar se o índice já existe
+                result = db.session.execute(text(f"""
+                    SELECT name FROM sqlite_master
+                    WHERE type='index' AND name='{nome_indice}'
+                """))
+                indice_existe = result.fetchone() is not None
+
+                if not indice_existe:
+                    colunas_str = ", ".join(colunas)
+                    sql = f"CREATE INDEX {nome_indice} ON {tabela}({colunas_str})"
+                    db.session.execute(text(sql))
+                    db.session.commit()
+                    print(f"  ✅ Índice '{nome_indice}' criado em {tabela}({colunas_str})")
+                else:
+                    print(f"  ℹ️  Índice '{nome_indice}' já existe")
+            except Exception as e:
+                print(f"  ⚠️  Erro ao criar índice '{nome_indice}': {str(e)}")
+                db.session.rollback()
+
+        print("✅ Verificação de índices concluída!")
+
+    except Exception as e:
+        print(f"⚠️ Aviso: Erro ao verificar/criar índices: {str(e)}")
         db.session.rollback()
 
     print("Banco de dados inicializado com todas as tabelas")
@@ -990,16 +1052,34 @@ def criar_parcelas_automaticas(venda_ou_compra, tipo, usuario_id):
             valor_total = entidade.valor_final
         else:
             valor_total = entidade.valor
-        valor_parcela = valor_total / entidade.numero_parcelas
-        
+
+        # ✅ CORREÇÃO: Distribuir centavos corretamente para evitar diferenças de arredondamento
+        import math
+        numero_parcelas = entidade.numero_parcelas
+
+        # Calcular valor base da parcela (arredondado para baixo com 2 casas decimais)
+        valor_parcela_base = math.floor((valor_total / numero_parcelas) * 100) / 100
+
+        # Calcular o resto (diferença devido ao arredondamento)
+        resto = round(valor_total - (valor_parcela_base * numero_parcelas), 2)
+
+        # Distribuir o resto nas primeiras parcelas (adicionar 0.01 em cada uma)
+        parcelas_com_centavo_extra = int(round(resto * 100))  # Quantas parcelas receberão +0.01
+
         # Criar parcelas
         parcelas_criadas = []
         data_base = entidade.data_prevista
-        
-        for i in range(1, entidade.numero_parcelas + 1):
+
+        for i in range(1, numero_parcelas + 1):
             # Calcular data de vencimento usando a função específica
             data_vencimento = calcular_data_vencimento_parcela(data_base, i, 'mensal')
-            
+
+            # Definir valor da parcela (primeiras parcelas recebem o centavo extra se houver resto)
+            if i <= parcelas_com_centavo_extra:
+                valor_parcela = round(valor_parcela_base + 0.01, 2)
+            else:
+                valor_parcela = valor_parcela_base
+
             parcela = Parcela(
                 numero=i,
                 valor=valor_parcela,
@@ -1009,7 +1089,7 @@ def criar_parcelas_automaticas(venda_ou_compra, tipo, usuario_id):
                 compra_id=entidade_id if tipo == 'compra' else None,
                 usuario_id=usuario_id
             )
-            
+
             db.session.add(parcela)
             parcelas_criadas.append(parcela)
         
@@ -2922,6 +3002,13 @@ def novo_lancamento():
                 except ValueError:
                     # Fallback para formato AAAA-MM-DD
                     data_prevista = datetime.strptime(data_prevista_str, '%Y-%m-%d').date()
+
+                # Validação: data não pode ser mais de 10 anos no futuro
+                from datetime import date, timedelta
+                data_limite = date.today() + timedelta(days=3650)  # 10 anos
+                if data_prevista > data_limite:
+                    return render_form({'data_prevista': 'Data prevista não pode ser superior a 10 anos no futuro'})
+
             except ValueError:
                 return render_form({'data_prevista': 'Data prevista inválida'})
             
@@ -4143,11 +4230,16 @@ def novo_cliente():
         return redirect(url_for('admin_dashboard'))
     
     if request.method == 'POST':
-        nome = request.form['nome']
-        email = request.form['email']
-        telefone = request.form['telefone']
-        cpf_cnpj = request.form['cpf_cnpj']
-        endereco = request.form['endereco']
+        nome = request.form.get('nome', '').strip()
+        email = request.form.get('email', '').strip()
+        telefone = request.form.get('telefone', '').strip()
+        cpf_cnpj = request.form.get('cpf_cnpj', '').strip()
+        endereco = request.form.get('endereco', '').strip()
+
+        # Validação: nome é obrigatório
+        if not nome:
+            flash('Nome do cliente é obrigatório', 'danger')
+            return redirect(url_for('novo_cliente'))
 
         # Obter empresa_id correto (considerando contexto de contador)
         empresa_id = obter_empresa_id_sessao(session, usuario)
@@ -4161,10 +4253,10 @@ def novo_cliente():
             usuario_id=usuario.id,
             empresa_id=empresa_id
         )
-        
+
         db.session.add(novo_cliente)
         db.session.commit()
-        
+
         flash('Cliente cadastrado com sucesso!', 'success')
         return redirect(url_for('clientes'))
     
@@ -4321,11 +4413,16 @@ def novo_fornecedor():
         return redirect(url_for('admin_dashboard'))
     
     if request.method == 'POST':
-        nome = request.form['nome']
-        email = request.form['email']
-        telefone = request.form['telefone']
-        cpf_cnpj = request.form['cpf_cnpj']
-        endereco = request.form['endereco']
+        nome = request.form.get('nome', '').strip()
+        email = request.form.get('email', '').strip()
+        telefone = request.form.get('telefone', '').strip()
+        cpf_cnpj = request.form.get('cpf_cnpj', '').strip()
+        endereco = request.form.get('endereco', '').strip()
+
+        # Validação: nome é obrigatório
+        if not nome:
+            flash('Nome do fornecedor é obrigatório', 'danger')
+            return redirect(url_for('novo_fornecedor'))
 
         # Obter empresa_id correto (considerando contexto de contador)
         empresa_id = obter_empresa_id_sessao(session, usuario)
@@ -4339,10 +4436,10 @@ def novo_fornecedor():
             usuario_id=usuario.id,
             empresa_id=empresa_id
         )
-        
+
         db.session.add(novo_fornecedor)
         db.session.commit()
-        
+
         flash('Fornecedor cadastrado com sucesso!', 'success')
         return redirect(url_for('fornecedores'))
     
@@ -4401,8 +4498,8 @@ def deletar_fornecedor(fornecedor_id):
     
     try:
         # Verificar se o fornecedor tem compras associadas
-        compras = Compra.query.filter_by(fornecedor_id=fornecedor.id).first()
-        if compras:
+        tem_compras = Compra.query.filter_by(fornecedor_id=fornecedor.id).count() > 0
+        if tem_compras:
             flash('Não é possível excluir este fornecedor pois existem compras associadas a ele.', 'danger')
             return redirect(url_for('fornecedores'))
         
@@ -13751,22 +13848,26 @@ def api_excluir_lote():
     """API para excluir lançamentos em lote"""
     if 'usuario_id' not in session:
         return jsonify({'error': 'Usuário não autenticado'}), 401
-    
+
     usuario = db.session.get(Usuario, session['usuario_id'])
     if not usuario or usuario.tipo == 'admin':
         return jsonify({'error': 'Acesso negado'}), 403
-    
+
     try:
         data = request.get_json()
         lancamento_ids = data.get('lancamento_ids', [])
-        
+
         if not lancamento_ids:
             return jsonify({'error': 'Nenhum lançamento selecionado'}), 400
-        
-        # Buscar lançamentos do usuário
+
+        # Obter empresa_id correta da sessão
+        empresa_id = obter_empresa_id_sessao(session, usuario)
+
+        # Buscar lançamentos do usuário E da empresa
         lancamentos = Lancamento.query.filter(
             Lancamento.id.in_(lancamento_ids),
-            Lancamento.usuario_id == usuario.id
+            Lancamento.usuario_id == usuario.id,
+            Lancamento.empresa_id == empresa_id
         ).all()
         
         if not lancamentos:
@@ -13888,22 +13989,26 @@ def api_excluir_clientes_lote():
     """API para excluir clientes em lote"""
     if 'usuario_id' not in session:
         return jsonify({'error': 'Usuário não autenticado'}), 401
-    
+
     usuario = db.session.get(Usuario, session['usuario_id'])
     if not usuario or usuario.tipo == 'admin':
         return jsonify({'error': 'Acesso negado'}), 403
-    
+
     try:
         data = request.get_json()
         cliente_ids = data.get('cliente_ids', [])
-        
+
         if not cliente_ids:
             return jsonify({'error': 'Nenhum cliente selecionado'}), 400
-        
-        # Buscar clientes do usuário
+
+        # Obter empresa_id correta da sessão
+        empresa_id = obter_empresa_id_sessao(session, usuario)
+
+        # Buscar clientes do usuário E da empresa
         clientes = Cliente.query.filter(
             Cliente.id.in_(cliente_ids),
-            Cliente.usuario_id == usuario.id
+            Cliente.usuario_id == usuario.id,
+            Cliente.empresa_id == empresa_id
         ).all()
         
         if not clientes:
@@ -13948,22 +14053,26 @@ def api_excluir_fornecedores_lote():
     """API para excluir fornecedores em lote"""
     if 'usuario_id' not in session:
         return jsonify({'error': 'Usuário não autenticado'}), 401
-    
+
     usuario = db.session.get(Usuario, session['usuario_id'])
     if not usuario or usuario.tipo == 'admin':
         return jsonify({'error': 'Acesso negado'}), 403
-    
+
     try:
         data = request.get_json()
         fornecedor_ids = data.get('fornecedor_ids', [])
-        
+
         if not fornecedor_ids:
             return jsonify({'error': 'Nenhum fornecedor selecionado'}), 400
-        
-        # Buscar fornecedores do usuário
+
+        # Obter empresa_id correta da sessão
+        empresa_id = obter_empresa_id_sessao(session, usuario)
+
+        # Buscar fornecedores do usuário E da empresa
         fornecedores = Fornecedor.query.filter(
             Fornecedor.id.in_(fornecedor_ids),
-            Fornecedor.usuario_id == usuario.id
+            Fornecedor.usuario_id == usuario.id,
+            Fornecedor.empresa_id == empresa_id
         ).all()
         
         if not fornecedores:
@@ -14120,22 +14229,26 @@ def api_excluir_vendas_lote():
     """API para excluir vendas em lote"""
     if 'usuario_id' not in session:
         return jsonify({'error': 'Usuário não autenticado'}), 401
-    
+
     usuario = db.session.get(Usuario, session['usuario_id'])
     if not usuario or usuario.tipo == 'admin':
         return jsonify({'error': 'Acesso negado'}), 403
-    
+
     try:
         data = request.get_json()
         venda_ids = data.get('venda_ids', [])
-        
+
         if not venda_ids:
             return jsonify({'error': 'Nenhuma venda selecionada'}), 400
-        
-        # Buscar vendas do usuário
+
+        # Obter empresa_id correta da sessão
+        empresa_id = obter_empresa_id_sessao(session, usuario)
+
+        # Buscar vendas do usuário E da empresa
         vendas = Venda.query.filter(
             Venda.id.in_(venda_ids),
-            Venda.usuario_id == usuario.id
+            Venda.usuario_id == usuario.id,
+            Venda.empresa_id == empresa_id
         ).all()
         
         if not vendas:
@@ -14257,10 +14370,14 @@ def api_excluir_compras_lote():
         if not compra_ids:
             return jsonify({'error': 'Nenhuma compra selecionada'}), 400
 
-        # Buscar compras do usuário
+        # Obter empresa_id correta da sessão
+        empresa_id = obter_empresa_id_sessao(session, usuario)
+
+        # Buscar compras do usuário E da empresa
         compras = Compra.query.filter(
             Compra.id.in_(compra_ids),
-            Compra.usuario_id == usuario.id
+            Compra.usuario_id == usuario.id,
+            Compra.empresa_id == empresa_id
         ).all()
 
         if not compras:
@@ -17320,10 +17437,13 @@ def dashboard_contador():
         # Buscar empresas autorizadas para este sub-usuário
         permissoes = PermissaoSubUsuario.query.filter_by(sub_usuario_id=sub_usuario_id).all()
         empresas_ids = [p.empresa_id for p in permissoes] if permissoes else []
-        
-        # Buscar vínculos autorizados que o sub-usuário tem permissão
+
+        # ✅ OTIMIZAÇÃO: Buscar vínculos autorizados COM joinedload
+        from sqlalchemy.orm import joinedload
         if empresas_ids:
-            vinculos = VinculoContador.query.filter(
+            vinculos = VinculoContador.query.options(
+                joinedload(VinculoContador.empresa)
+            ).filter(
                 VinculoContador.contador_id == contador_id,
                 VinculoContador.status == 'autorizado',
                 VinculoContador.empresa_id.in_(empresas_ids)
@@ -17331,20 +17451,23 @@ def dashboard_contador():
         else:
             # Se não há permissões, retornar lista vazia
             vinculos = []
-        
+
         sub_usuarios = []
     else:
         # Usuário principal do contador
         empresa_id = session.get('empresa_id')
-        
-        # Buscar TODOS os vínculos (autorizados, pendentes, rejeitados)
-        vinculos = VinculoContador.query.filter_by(
+
+        # ✅ OTIMIZAÇÃO: Usar joinedload para carregar empresas junto com vínculos (evita N queries)
+        from sqlalchemy.orm import joinedload
+        vinculos = VinculoContador.query.options(
+            joinedload(VinculoContador.empresa)
+        ).filter_by(
             contador_id=empresa_id
         ).order_by(VinculoContador.data_solicitacao.desc()).all()
-        
+
         # Buscar sub-usuários
         sub_usuarios = SubUsuarioContador.query.filter_by(contador_id=empresa_id).all()
-    
+
     # Estatísticas
     stats = {
         'empresas_autorizadas': len([v for v in vinculos if v.status == 'autorizado']),
@@ -17354,32 +17477,42 @@ def dashboard_contador():
         ).count() if tipo_usuario != 'sub_contador' else 0,
         'sub_usuarios': len(sub_usuarios)
     }
-    
-    # Buscar lançamentos de hoje para cada empresa vinculada
+
+    # ✅ OTIMIZAÇÃO: Buscar lançamentos de hoje de TODAS as empresas de uma vez
     from datetime import date
+    from collections import defaultdict
     hoje = date.today()
-    
+
+    # Coletar IDs de empresas autorizadas
+    empresas_ids_autorizadas = [v.empresa_id for v in vinculos if v.status == 'autorizado']
+
+    # Buscar TODOS os lançamentos do dia de TODAS as empresas autorizadas em UMA query
+    lancamentos_hoje = []
+    if empresas_ids_autorizadas:
+        lancamentos_hoje = Lancamento.query.filter(
+            Lancamento.empresa_id.in_(empresas_ids_autorizadas),
+            Lancamento.data_prevista == hoje
+        ).all()
+
+    # Agrupar lançamentos por empresa_id em memória
+    lancamentos_por_empresa = defaultdict(lambda: {'entradas': [], 'saidas': []})
+    for lancamento in lancamentos_hoje:
+        if lancamento.tipo == 'entrada':
+            lancamentos_por_empresa[lancamento.empresa_id]['entradas'].append(lancamento)
+        elif lancamento.tipo == 'saida':
+            lancamentos_por_empresa[lancamento.empresa_id]['saidas'].append(lancamento)
+
+    # Montar lista de empresas com lançamentos
     empresas_com_lancamentos = []
     for vinculo in vinculos:
         if vinculo.status == 'autorizado':
-            empresa = vinculo.empresa
-            
-            # Buscar lançamentos de hoje
-            entradas = Lancamento.query.filter(
-                Lancamento.empresa_id == empresa.id,
-                Lancamento.tipo == 'entrada',
-                Lancamento.data_prevista == hoje
-            ).all()
-            
-            saidas = Lancamento.query.filter(
-                Lancamento.empresa_id == empresa.id,
-                Lancamento.tipo == 'saida',
-                Lancamento.data_prevista == hoje
-            ).all()
-            
-            if entradas or saidas:
+            empresa_id_atual = vinculo.empresa_id
+            if empresa_id_atual in lancamentos_por_empresa:
+                entradas = lancamentos_por_empresa[empresa_id_atual]['entradas']
+                saidas = lancamentos_por_empresa[empresa_id_atual]['saidas']
+
                 empresas_com_lancamentos.append({
-                    'empresa': empresa,
+                    'empresa': vinculo.empresa,
                     'entradas': entradas,
                     'saidas': saidas,
                     'total_entradas': sum(l.valor for l in entradas),
