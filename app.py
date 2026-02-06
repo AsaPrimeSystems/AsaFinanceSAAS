@@ -7444,13 +7444,14 @@ def dre_configurar():
 def relatorio_saldos():
     if 'usuario_id' not in session:
         return redirect(url_for('login'))
-    
+
     usuario = db.session.get(Usuario, session['usuario_id'])
     if usuario.tipo == 'admin':
         return redirect(url_for('admin_dashboard'))
-    
-    # Buscar todos os usuários da mesma empresa
-    empresa_id = obter_empresa_id_sessao(session, usuario)
+
+    try:
+        # Buscar todos os usuários da mesma empresa
+        empresa_id = obter_empresa_id_sessao(session, usuario)
 
     usuarios_empresa = Usuario.query.filter_by(empresa_id=empresa_id, ativo=True).all()
     usuarios_ids = [u.id for u in usuarios_empresa]
@@ -7640,6 +7641,17 @@ def relatorio_saldos():
                          total_despesas_pendentes=total_despesas_pendentes,
                          total_receitas_agendadas=total_receitas_agendadas,
                          total_despesas_agendadas=total_despesas_agendadas,
+                         # Aliases para compatibilidade (template usa entradas/saidas)
+                         total_entradas_realizadas=total_receitas_realizadas,
+                         total_saidas_realizadas=total_despesas_realizadas,
+                         total_entradas_a_vencer=total_receitas_a_vencer,
+                         total_saidas_a_vencer=total_despesas_a_vencer,
+                         total_entradas_vencidas=total_receitas_vencidas,
+                         total_saidas_vencidas=total_despesas_vencidas,
+                         total_entradas_agendadas=total_receitas_agendadas,
+                         total_saidas_agendadas=total_despesas_agendadas,
+                         total_entradas_pendentes=total_receitas_pendentes,
+                         total_saidas_pendentes=total_despesas_pendentes,
                          saldo_atual=saldo_atual,
                          saldo_geral=saldo_atual,
                          saldo_projetado=saldo_projetado,
@@ -7656,6 +7668,42 @@ def relatorio_saldos():
                          sum_saldo_projetado_contas=sum(c.get('saldo_projetado', 0) for c in contas_caixa_detalhadas),
                          data_inicio=data_inicio_str,
                          data_fim=data_fim_str)
+
+    except Exception as e:
+        app.logger.error(f"Erro no relatório de saldos: {str(e)}")
+        flash('Erro ao gerar relatório de saldos', 'error')
+        return render_template('relatorio_saldos.html',
+                             usuario=usuario,
+                             total_entradas=0,
+                             total_saidas=0,
+                             total_receitas_realizadas=0,
+                             total_despesas_realizadas=0,
+                             total_receitas_a_vencer=0,
+                             total_despesas_a_vencer=0,
+                             total_receitas_vencidas=0,
+                             total_despesas_vencidas=0,
+                             total_receitas_pendentes=0,
+                             total_despesas_pendentes=0,
+                             total_receitas_agendadas=0,
+                             total_despesas_agendadas=0,
+                             total_entradas_vencidas=0,
+                             total_saidas_vencidas=0,
+                             saldo_atual=0,
+                             saldo_geral=0,
+                             saldo_projetado=0,
+                             saldo_vencido=0,
+                             categorias_receitas={},
+                             categorias_despesas={},
+                             contas_caixa=[],
+                             contas_caixa_detalhadas=[],
+                             saldo_total_caixa=0,
+                             sum_rec_a_vencer=0,
+                             sum_desp_a_vencer=0,
+                             sum_rec_vencido=0,
+                             sum_desp_vencido=0,
+                             sum_saldo_projetado_contas=0,
+                             data_inicio='',
+                             data_fim='')
 
 @app.route('/relatorios/saldos/exportar/<formato>')
 def exportar_relatorio_saldos(formato):
