@@ -411,21 +411,12 @@ with app.app_context():
 
         for nome_indice, tabela, colunas in indices:
             try:
-                # Verificar se o índice já existe
-                result = db.session.execute(text(f"""
-                    SELECT name FROM sqlite_master
-                    WHERE type='index' AND name='{nome_indice}'
-                """))
-                indice_existe = result.fetchone() is not None
-
-                if not indice_existe:
-                    colunas_str = ", ".join(colunas)
-                    sql = f"CREATE INDEX {nome_indice} ON {tabela}({colunas_str})"
-                    db.session.execute(text(sql))
-                    db.session.commit()
-                    print(f"  ✅ Índice '{nome_indice}' criado em {tabela}({colunas_str})")
-                else:
-                    print(f"  ℹ️  Índice '{nome_indice}' já existe")
+                # Usar CREATE INDEX IF NOT EXISTS (funciona em SQLite e PostgreSQL)
+                colunas_str = ", ".join(colunas)
+                sql = f"CREATE INDEX IF NOT EXISTS {nome_indice} ON {tabela}({colunas_str})"
+                db.session.execute(text(sql))
+                db.session.commit()
+                print(f"  ✅ Índice '{nome_indice}' criado/verificado em {tabela}({colunas_str})")
             except Exception as e:
                 print(f"  ⚠️  Erro ao criar índice '{nome_indice}': {str(e)}")
                 db.session.rollback()
@@ -8400,6 +8391,8 @@ def relatorio_clientes():
                              filtro_status='todos',
                              filtro_ordenacao='nome',
                              filtro_periodo='todos',
+                             filtro_data_inicio='',
+                             filtro_data_fim='',
                              pagina=1,
                              por_pagina=20,
                              total_paginas=0,
