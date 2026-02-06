@@ -8333,8 +8333,8 @@ def relatorio_clientes():
     except Exception as e:
         app.logger.error(f"Erro no relatório de clientes: {str(e)}")
         flash('Erro ao gerar relatório de clientes', 'error')
-        return render_template('relatorio_clientes.html', 
-                             usuario=usuario, 
+        return render_template('relatorio_clientes.html',
+                             usuario=usuario,
                              clientes_dados=[],
                              filtro_status='todos',
                              filtro_ordenacao='nome',
@@ -8342,7 +8342,15 @@ def relatorio_clientes():
                              pagina=1,
                              por_pagina=20,
                              total_paginas=0,
-                             total_clientes=0)
+                             total_clientes=0,
+                             sum_total_vendas=0,
+                             sum_total_vendas_pendentes=0,
+                             sum_saldo_vencido=0,
+                             sum_total_agendado=0,
+                             sum_saldo_aberto=0,
+                             sum_total_geral=0,
+                             sum_num_vendas=0,
+                             sum_ticket_medio=0)
 
 @app.route('/relatorios/clientes/exportar/<formato>')
 def exportar_relatorio_clientes(formato):
