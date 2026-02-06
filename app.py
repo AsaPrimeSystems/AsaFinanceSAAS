@@ -8290,7 +8290,6 @@ def relatorio_clientes():
             clientes_paginados = clientes_dados[inicio:fim]
         
         app.logger.info(f"Paginação: {pagina}/{total_paginas}, {len(clientes_paginados)} clientes")
-        app.logger.info(f"DEBUG: Total clientes_dados={len(clientes_dados)}, clientes_paginados={len(clientes_paginados)}")
 
         # Verificar se é exportação
         if exportar == 'pdf':
@@ -8934,7 +8933,6 @@ def relatorio_fornecedores():
             fornecedores_paginados = fornecedores_dados[inicio:fim]
         
         app.logger.info(f"Paginação: {pagina}/{total_paginas}, {len(fornecedores_paginados)} fornecedores")
-        app.logger.info(f"DEBUG: Total fornecedores_dados={len(fornecedores_dados)}, fornecedores_paginados={len(fornecedores_paginados)}")
 
         app.logger.info("Relatório de fornecedores gerado com sucesso")
 
@@ -9826,20 +9824,16 @@ def validar_cnpj(cnpj):
     Permite CNPJs de teste e qualquer CNPJ válido
     """
     if not cnpj:
-        app.logger.debug("CNPJ vazio")
         return False
-    
+
     # Remove caracteres não numéricos
     cnpj_limpo = ''.join(filter(str.isdigit, cnpj))
-    app.logger.debug(f"CNPJ original: '{cnpj}' -> CNPJ limpo: '{cnpj_limpo}'")
-    
+
     # Verifica se tem 14 dígitos
     if len(cnpj_limpo) != 14:
-        app.logger.debug(f"CNPJ não tem 14 dígitos: {len(cnpj_limpo)} dígitos")
         return False
-    
+
     # Aceita qualquer CNPJ com 14 dígitos (validação flexível)
-    app.logger.debug(f"CNPJ aceito: {cnpj_limpo}")
     return True
 
 def validar_cpf(cpf):
@@ -9849,20 +9843,16 @@ def validar_cpf(cpf):
     Permite CPFs de teste e qualquer CPF válido
     """
     if not cpf:
-        app.logger.debug("CPF vazio")
         return False
-    
+
     # Remove caracteres não numéricos
     cpf_limpo = ''.join(filter(str.isdigit, cpf))
-    app.logger.debug(f"CPF original: '{cpf}' -> CPF limpo: '{cpf_limpo}'")
-    
+
     # Verifica se tem 11 dígitos
     if len(cpf_limpo) != 11:
-        app.logger.debug(f"CPF não tem 11 dígitos: {len(cpf_limpo)} dígitos")
         return False
-    
+
     # Aceita qualquer CPF com 11 dígitos (validação flexível)
-    app.logger.debug(f"CPF aceito: {cpf_limpo}")
     return True
 
 def validar_email(email):
