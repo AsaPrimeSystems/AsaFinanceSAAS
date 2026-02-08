@@ -711,12 +711,30 @@
         const numeroParcelas = document.getElementById('numero_parcelas');
 
         if (tipoPagamento) {
-            tipoPagamento.addEventListener('change', calcularValorParcela);
+            tipoPagamento.addEventListener('change', function () {
+                const isParcelado = this.value === 'parcelado';
+                if (numeroParcelas) {
+                    numeroParcelas.disabled = !isParcelado;
+                    if (!isParcelado) {
+                        numeroParcelas.value = '1';
+                    }
+                }
+                calcularValorParcela();
+            });
         }
 
         if (numeroParcelas) {
             numeroParcelas.addEventListener('input', calcularValorParcela);
             numeroParcelas.addEventListener('change', calcularValorParcela);
+        }
+
+        // Inicializar estado do campo de parcelas baseado no tipo de pagamento
+        if (tipoPagamento && numeroParcelas) {
+            const isParcelado = tipoPagamento.value === 'parcelado';
+            numeroParcelas.disabled = !isParcelado;
+            if (!isParcelado) {
+                numeroParcelas.value = '1';
+            }
         }
 
         // Autocomplete para cliente/fornecedor - usar o mesmo código do novo_lancamento.html

@@ -6724,23 +6724,22 @@ def calcular_estoque_produto(nome_produto, usuario_id):
     nome_produto_base = nomes_produto[0] if nomes_produto else nome_produto
 
     # ATUALIZAÇÃO: Buscar todas as compras para este produto (independente do status realizado)
-    # Busca por nome exato OU por nome que contenha o produto base
+    # Busca por nome exato apenas (não usa fuzzy match para evitar conflitos entre produtos similares)
     compras_todas = Compra.query.filter(
         db.or_(
             Compra.produto == nome_produto,
-            Compra.produto == nome_produto_base,
-            Compra.produto.like(f'%{nome_produto_base}%')
+            Compra.produto == nome_produto_base
         ),
         Compra.empresa_id == empresa_id,
         Compra.tipo_compra == 'mercadoria'
     ).all()
 
     # ATUALIZAÇÃO: Buscar todas as vendas para este produto (independente do status realizado)
+    # Busca por nome exato apenas (não usa fuzzy match para evitar conflitos entre produtos similares)
     vendas_todas = Venda.query.filter(
         db.or_(
             Venda.produto == nome_produto,
-            Venda.produto == nome_produto_base,
-            Venda.produto.like(f'%{nome_produto_base}%')
+            Venda.produto == nome_produto_base
         ),
         Venda.empresa_id == empresa_id,
         Venda.tipo_venda == 'produto'
@@ -8746,6 +8745,209 @@ def relatorio_estoque():
                          data_referencia=data_filtro.strftime('%d/%m/%Y'),
                          usar_data_atual=usar_data_atual,
                          filtros=filtros)
+
+@app.route('/relatorios/estoque/exportar/<formato>')
+def exportar_relatorio_estoque(formato):
+    """Exporta relatório de estoque em Excel"""
+    if 'usuario_id' not in session:
+        return redirect(url_for('login'))
+
+    usuario = db.session.get(Usuario, session['usuario_id'])
+    if usuario.tipo == 'admin':
+        return redirect(url_for('admin_dashboard'))
+
+    # Verificar se a empresa é do tipo comércio
+    empresa = usuario.empresa
+    if empresa.tipo_empresa != 'comercio':
+        flash('Relatório de Estoque disponível apenas para empresas do tipo Comércio.', 'warning')
+        return redirect(url_for('relatorios'))
+
+    # Obter filtro de data
+    data_filtro_str = request.args.get('data_filtro', '')
+    data_filtro = None
+    usar_data_atual = True
+
+    if data_filtro_str:
+        try:
+            data_filtro = datetime.strptime(data_filtro_str, '%d/%m/%Y').date()
+            usar_data_atual = False
+        except ValueError:
+            pass
+
+    hoje = datetime.now().date()
+    if not data_filtro or data_filtro >= hoje:
+        data_filtro = hoje
+        usar_data_atual = True
+
+    # Buscar produtos e calcular estoque (mesmo código do relatório)
+    produtos = Produto.query.filter_by(usuario_id=usuario.id).all()
+    empresa_id = obter_empresa_id_sessao(session, usuario)
+    usuarios_empresa = Usuario.query.filter_by(empresa_id=empresa_id, ativo=True).all()
+    usuarios_ids = [u.id for u in usuarios_empresa]
+
+    estoque_lista = []
+
+    for produto in produtos:
+        compras_produto = Compra.query.filter(
+            Compra.empresa_id == empresa_id,
+            Compra.produto == produto.nome,
+            Compra.tipo_compra == 'mercadoria'
+        )
+        if not usar_data_atual and data_filtro:
+            compras_produto = compras_produto.filter(Compra.data_prevista <= data_filtro)
+        compras_produto = compras_produto.all()
+
+        total_custo_compras = sum((c.preco_custo or c.valor or 0) * (c.quantidade or 1) for c in compras_produto)
+        total_qtd_compras = sum(c.quantidade or 1 for c in compras_produto)
+        preco_medio_compra = total_custo_compras / total_qtd_compras if total_qtd_compras > 0 else (produto.preco_custo or 0)
+
+        if usar_data_atual:
+            estoque_atual = produto.estoque or 0
+        else:
+            quantidade_comprada = sum([c.quantidade or 0 for c in compras_produto])
+            vendas = Venda.query.filter(
+                Venda.empresa_id == empresa_id,
+                Venda.produto == produto.nome,
+                Venda.tipo_venda == 'produto',
+                Venda.data_prevista <= data_filtro
+            ).all()
+            quantidade_vendida = sum([v.quantidade or 0 for v in vendas])
+            estoque_atual = quantidade_comprada - quantidade_vendida
+
+        if produto.ativo or estoque_atual > 0:
+            valor_estoque_venda = estoque_atual * (produto.preco_venda or 0)
+            valor_estoque_custo = estoque_atual * preco_medio_compra
+            margem = ((produto.preco_venda or 0) - preco_medio_compra) / preco_medio_compra * 100 if preco_medio_compra > 0 else 0
+
+            estoque_lista.append({
+                'nome': produto.nome,
+                'descricao': produto.descricao or '',
+                'estoque': estoque_atual,
+                'preco_custo': produto.preco_custo or 0,
+                'preco_medio_compra': preco_medio_compra,
+                'preco_venda': produto.preco_venda or 0,
+                'valor_estoque_custo': valor_estoque_custo,
+                'valor_estoque': valor_estoque_venda,
+                'margem': margem,
+                'qtd_compras': total_qtd_compras,
+            })
+
+    estoque_lista.sort(key=lambda x: x['nome'])
+
+    # Calcular totais
+    total_produtos = len(estoque_lista)
+    total_quantidade = sum([e['estoque'] for e in estoque_lista])
+    total_valor_custo = sum([e['valor_estoque_custo'] for e in estoque_lista])
+    total_valor_venda = sum([e['valor_estoque'] for e in estoque_lista])
+    total_margem = ((total_valor_venda - total_valor_custo) / total_valor_custo * 100) if total_valor_custo > 0 else 0
+
+    # Gerar Excel
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+    from openpyxl.utils import get_column_letter
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Estoque"
+
+    # Cabeçalho
+    ws.merge_cells('A1:J1')
+    ws['A1'] = f"RELATÓRIO DE ESTOQUE - {empresa.nome_fantasia or empresa.razao_social}"
+    ws['A1'].font = Font(size=14, bold=True)
+    ws['A1'].alignment = Alignment(horizontal='center')
+
+    ws.merge_cells('A2:J2')
+    ws['A2'] = f"Data de Referência: {data_filtro.strftime('%d/%m/%Y')} {'(Atual)' if usar_data_atual else '(Histórico)'}"
+    ws['A2'].font = Font(size=10)
+    ws['A2'].alignment = Alignment(horizontal='center')
+
+    # Resumo
+    ws['A4'] = "Total de Produtos:"
+    ws['B4'] = total_produtos
+    ws['D4'] = "Quantidade Total:"
+    ws['E4'] = total_quantidade
+    ws['G4'] = "Valor Total (Custo):"
+    ws['H4'] = total_valor_custo
+    ws['I4'] = "Valor Total (Venda):"
+    ws['J4'] = total_valor_venda
+
+    for cell in ['A4', 'D4', 'G4', 'I4']:
+        ws[cell].font = Font(bold=True)
+
+    # Cabeçalho da tabela
+    headers = ['Produto', 'Descrição', 'Qtd. Estoque', 'Qtd. Compras', 'P. Custo Unit.',
+               'P. Médio Compra', 'P. Venda', 'Margem (%)', 'Vlr. Est. (Custo)', 'Vlr. Est. (Venda)']
+
+    for col, header in enumerate(headers, start=1):
+        cell = ws.cell(row=6, column=col)
+        cell.value = header
+        cell.font = Font(bold=True, color='FFFFFF')
+        cell.fill = PatternFill(start_color='366092', end_color='366092', fill_type='solid')
+        cell.alignment = Alignment(horizontal='center', vertical='center')
+
+    # Dados
+    row = 7
+    for item in estoque_lista:
+        ws.cell(row=row, column=1).value = item['nome']
+        ws.cell(row=row, column=2).value = item['descricao']
+        ws.cell(row=row, column=3).value = item['estoque']
+        ws.cell(row=row, column=4).value = item['qtd_compras']
+        ws.cell(row=row, column=5).value = item['preco_custo']
+        ws.cell(row=row, column=6).value = item['preco_medio_compra']
+        ws.cell(row=row, column=7).value = item['preco_venda']
+        ws.cell(row=row, column=8).value = round(item['margem'], 2)
+        ws.cell(row=row, column=9).value = item['valor_estoque_custo']
+        ws.cell(row=row, column=10).value = item['valor_estoque']
+
+        # Alinhamento
+        for col in [3, 4, 5, 6, 7, 8, 9, 10]:
+            ws.cell(row=row, column=col).alignment = Alignment(horizontal='right')
+
+        # Formato de moeda
+        for col in [5, 6, 7, 9, 10]:
+            ws.cell(row=row, column=col).number_format = 'R$ #,##0.00'
+
+        row += 1
+
+    # Linha de total
+    ws.cell(row=row, column=1).value = "TOTAL GERAL"
+    ws.cell(row=row, column=1).font = Font(bold=True)
+    ws.cell(row=row, column=3).value = total_quantidade
+    ws.cell(row=row, column=8).value = round(total_margem, 2)
+    ws.cell(row=row, column=9).value = total_valor_custo
+    ws.cell(row=row, column=10).value = total_valor_venda
+
+    for col in [1, 3, 8, 9, 10]:
+        ws.cell(row=row, column=col).font = Font(bold=True)
+
+    for col in [9, 10]:
+        ws.cell(row=row, column=col).number_format = 'R$ #,##0.00'
+
+    # Ajustar largura das colunas
+    ws.column_dimensions['A'].width = 30
+    ws.column_dimensions['B'].width = 40
+    ws.column_dimensions['C'].width = 15
+    ws.column_dimensions['D'].width = 15
+    ws.column_dimensions['E'].width = 15
+    ws.column_dimensions['F'].width = 18
+    ws.column_dimensions['G'].width = 15
+    ws.column_dimensions['H'].width = 12
+    ws.column_dimensions['I'].width = 20
+    ws.column_dimensions['J'].width = 20
+
+    # Salvar em BytesIO
+    output = BytesIO()
+    wb.save(output)
+    output.seek(0)
+
+    filename = f"relatorio_estoque_{data_filtro.strftime('%Y%m%d')}.xlsx"
+
+    return send_file(
+        output,
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        as_attachment=True,
+        download_name=filename
+    )
 
 @app.route('/relatorios/fornecedores')
 def relatorio_fornecedores():
@@ -11913,124 +12115,10 @@ def api_exportar_modelo():
         
         # Criar workbook
         wb = Workbook()
-        
-        # Remover planilha padrão
-        wb.remove(wb.active)
-        
-        # ===== ABA 1: INSTRUÇÕES =====
-        ws_instrucoes = wb.create_sheet("📋 INSTRUÇÕES", 0)
-        
-        # Configurar estilos básicos
-        titulo_font = Font(name='Arial', size=16, bold=True, color="FFFFFF")
-        titulo_fill = PatternFill(start_color="2F5597", end_color="2F5597", fill_type="solid")
-        titulo_align = Alignment(horizontal="center", vertical="center")
-        
-        subtitulo_font = Font(name='Arial', size=12, bold=True, color="FFFFFF")
-        subtitulo_fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
-        subtitulo_align = Alignment(horizontal="left", vertical="center")
-        
-        texto_font = Font(name='Arial', size=10)
-        texto_align = Alignment(horizontal="left", vertical="top", wrap_text=True)
-        
-        # Conteúdo das instruções
-        instrucoes_content = [
-            ["📊 MODELO DE IMPORTAÇÃO - LANÇAMENTOS FINANCEIROS", "", "", "", ""],
-            ["", "", "", "", ""],
-            ["📝 COMO USAR ESTA PLANILHA:", "", "", "", ""],
-            ["1. Preencha os dados na aba 'DADOS' conforme as instruções abaixo", "", "", "", ""],
-            ["2. Salve o arquivo e faça o upload no sistema", "", "", "", ""],
-            ["3. Visualize a prévia antes de confirmar a importação", "", "", "", ""],
-            ["4. Confirme a importação para criar os lançamentos", "", "", "", ""],
-            ["", "", "", "", ""],
-            ["🔧 CAMPOS OBRIGATÓRIOS:", "", "", "", ""],
-            ["• Tipo: Tipo do lançamento (entrada ou saida)", "", "", "", ""],
-            ["• Descrição: Descrição detalhada do lançamento", "", "", "", ""],
-            ["• Valor: Valor monetário do lançamento", "", "", "", ""],
-            ["• Categoria: Categoria para classificação", "", "", "", ""],
-            ["• Data Prevista: Data prevista para o lançamento", "", "", "", ""],
-            ["", "", "", "", ""],
-            ["📋 DESCRIÇÃO DETALHADA DOS CAMPOS:", "", "", "", ""],
-            ["", "", "", "", ""],
-            ["CAMPO", "DESCRIÇÃO", "EXEMPLOS", "VALIDAÇÃO", "OBRIGATÓRIO"],
-            ["Tipo", "Tipo do lançamento", "entrada, saida", "entrada, entradas, entrada, entradas, r, saida, saidas, saída, saidas, d", "✅ SIM"],
-            ["Descrição", "Descrição detalhada do lançamento", "Venda de produto X, Pagamento fornecedor Y", "Mínimo 3 caracteres", "✅ SIM"],
-            ["Valor", "Valor monetário do lançamento", "1500.00, 1.500,50, 1000", "Maior que zero", "✅ SIM"],
-            ["Categoria", "Categoria para classificação", "Vendas, Compras, Serviços, Marketing", "Mínimo 2 caracteres", "✅ SIM"],
-            ["Data Prevista", "Data prevista para o lançamento", "15/01/2024, 15-01-2024, 2024-01-15", "Formato de data válido", "✅ SIM"],
-            ["", "", "", "", ""],
-            ["📅 CAMPOS OPCIONAIS:", "", "", "", ""],
-            ["", "", "", "", ""],
-            ["Data Realizada", "Data em que o lançamento foi realizado", "15/01/2024, 15-01-2024, 2024-01-15", "Formato de data válido", "❌ NÃO"],
-            ["Conta Caixa", "Conta caixa para o lançamento", "Caixa Principal, Conta Corrente", "Deve existir no sistema", "❌ NÃO"],
-            ["Tipo Cliente/Fornecedor", "Tipo do relacionamento", "cliente, fornecedor", "cliente ou fornecedor", "❌ NÃO"],
-            ["Cliente/Fornecedor", "Nome do cliente ou fornecedor", "João Silva, Fornecedor ABC", "Deve existir no sistema", "❌ NÃO"],
-            ["Observações", "Observações adicionais", "Qualquer texto adicional", "Texto livre", "❌ NÃO"],
-            ["Tipo Produto/Serviço", "Define se é produto ou serviço", "produto, serviço", "produto ou serviço", "❌ NÃO"],
-            ["Nome Produto/Serviço", "Nome específico do produto ou serviço", "iphone 15, iphone 16", "Texto livre", "❌ NÃO"],
-            ["Parcelado?", "Se o lançamento é parcelado", "sim, não", "sim ou não", "❌ NÃO"],
-            ["Quantidade de Parcelas", "Número de parcelas", "3, 2, 4", "Campo numérico livre", "❌ NÃO"],
-            ["", "", "", "", ""],
-            ["🎯 FUNCIONALIDADES ESPECIAIS:", "", "", "", ""],
-            ["• Se informar Tipo Cliente/Fornecedor = 'cliente': Cria automaticamente uma VENDA", "", "", "", ""],
-            ["• Se informar Tipo Cliente/Fornecedor = 'fornecedor': Cria automaticamente uma COMPRA", "", "", "", ""],
-            ["• CONTROLE DE ESTOQUE:", "", "", "", ""],
-            ["  - Se Tipo Produto/Serviço = 'produto': Atualiza automaticamente o estoque", "", "", "", ""],
-            ["  - Se Tipo Produto/Serviço = 'serviço': NÃO afeta o estoque", "", "", "", ""],
-            ["  - Nome Produto/Serviço: Define o nome específico para controle", "", "", "", ""],
-            ["• CÁLCULO DE VALORES:", "", "", "", ""],
-            ["  - Valor Total = (Quantidade × Valor Unitário) - Desconto", "", "", "", ""],
-            ["  - Valor: Valor da parcela (para lançamentos financeiros)", "", "", "", ""],
-            ["  - Quantidade: Número de unidades do produto/serviço", "", "", "", ""],
-            ["  - Valor Unitário: Preço por unidade", "", "", "", ""],
-            ["  - Desconto: Valor a ser descontado (opcional)", "", "", "", ""],
-            ["• PARCELAMENTO:", "", "", "", ""],
-            ["  - Se Parcelado? = 'sim': Divide o valor em parcelas mensais", "", "", "", ""],
-            ["  - Quantidade de Parcelas: define quantas parcelas serão criadas", "", "", "", ""],
-            ["  - Cada parcela terá valor = Valor Total ÷ Quantidade de Parcelas", "", "", "", ""],
-            ["  - Se Parcelado? = 'não': Lançamento único", "", "", "", ""],
-            ["• STATUS é calculado automaticamente:", "", "", "", ""],
-            ["  - Pendente: Sem data realizada", "", "", "", ""],
-            ["  - Agendado: Data realizada no futuro", "", "", "", ""],
-            ["  - Realizado: Data realizada no passado/presente", "", "", "", ""],
-            ["", "", "", "", ""],
-            ["⚠️ IMPORTANTE:", "", "", "", ""],
-            ["• Use vírgula como separador decimal (ex: 1000,50)", "", "", "", ""],
-            ["• Datas aceitam múltiplos formatos", "", "", "", ""],
-            ["• Clientes/Fornecedores são encontrados automaticamente", "", "", "", ""],
-            ["• A planilha aceita variações de maiúsculas/minúsculas", "", "", "", ""],
-            ["• Linhas vazias são ignoradas automaticamente", "", "", "", ""],
-            ["", "", "", "", ""],
-            ["📞 SUPORTE:", "", "", "", ""],
-            ["Em caso de dúvidas, consulte o manual do sistema ou entre em contato com o suporte técnico.", "", "", "", ""]
-        ]
-        
-        # Adicionar conteúdo das instruções
-        for row, linha in enumerate(instrucoes_content, 1):
-            for col, texto in enumerate(linha, 1):
-                cell = ws_instrucoes.cell(row=row, column=col, value=texto)
-                
-                # Aplicar estilos
-                if row == 1:  # Título principal
-                    cell.font = titulo_font
-                    cell.fill = titulo_fill
-                    cell.alignment = titulo_align
-                elif texto.startswith("📝") or texto.startswith("🔧") or texto.startswith("📋") or texto.startswith("📅") or texto.startswith("🎯") or texto.startswith("⚠️") or texto.startswith("📞"):
-                    cell.font = subtitulo_font
-                    cell.fill = subtitulo_fill
-                    cell.alignment = subtitulo_align
-                else:
-                    cell.font = texto_font
-                    cell.alignment = texto_align
-        
-        # Ajustar largura das colunas
-        ws_instrucoes.column_dimensions['A'].width = 20
-        ws_instrucoes.column_dimensions['B'].width = 50
-        ws_instrucoes.column_dimensions['C'].width = 30
-        ws_instrucoes.column_dimensions['D'].width = 20
-        ws_instrucoes.column_dimensions['E'].width = 15
-        
-        # ===== ABA 2: DADOS =====
-        ws_dados = wb.create_sheet("📊 DADOS")
+
+        # Usar a planilha ativa como aba de dados
+        ws_dados = wb.active
+        ws_dados.title = "DADOS"
         
         # Cabeçalhos baseados no formato da planilha modelo mostrada
         headers = [
@@ -12055,25 +12143,30 @@ def api_exportar_modelo():
             )
             cell.border = thin_border
         
-        # Adicionar dados de exemplo baseados na planilha modelo mostrada
+        # Adicionar dados de exemplo (sem valor na coluna C, será calculado por fórmula)
+        # Formato: [Tipo, Descrição, (Valor - será fórmula), Quantidade, Valor Unitário, Desconto, Categoria, Data Prevista, Data Realizada, Conta Caixa, Tipo Cliente/Fornecedor, Cliente/Fornecedor, Observações, Tipo Produto/Serviço, Nome Produto/Serviço, Parcelado?, Quantidade de Parcelas]
         exemplos = [
-            ['entrada', 'Venda de produto eletrônico', '500.00', '3', '500.00', '0.00', 'Vendas', '13/09/2025', '13/09/2025', 'nubank', 'cliente', 'João Silva', 'Venda realizada com desconto', 'produto', 'iphone 15', 'sim', '3'],
-            ['saida', 'Compra de material de escritório', '100.00', '10', '30.00', '0.00', 'Compras', '14/09/2025', '', 'nubank', 'fornecedor', 'Fornecedor ABC', '', 'produto', 'Material Escritório', 'não', ''],
-            ['entrada', 'Serviço de consultoria', '800.00', '1', '800.00', '0.00', 'Serviços', '15/09/2025', '18/09/2025', 'nubank', 'cliente', 'Maria Santos', '', 'serviço', 'Consultoria', 'não', ''],
-            ['saida', 'Pagamento de aluguel', '1200.00', '1', '1200.00', '0.00', 'Saídas Fixas', '16/09/2025', '', 'nubank', '', '', 'Aluguel do escritório', '', '', 'não', ''],
-            ['entrada', 'Recebimento de comissão', '500.00', '1', '500.00', '0.00', 'Comissões', '17/09/2025', '', 'nubank', 'cliente', 'Pedro Costa', 'Comissão de vendas', '', '', 'não', ''],
-            ['saida', 'Compra de equipamento', '1500.00', '2', '1600.00', '200.00', 'Investimentos', '18/09/2025', '14/09/2025', 'nubank', 'fornecedor', 'Equipamentos XYZ', 'Equipamento parcelado', 'produto', 'iphone 16', 'sim', '2']
+            ['entrada', 'Venda de produto eletrônico', None, '3', '500.00', '0.00', 'Vendas', '13/09/2025', '13/09/2025', 'nubank', 'cliente', 'João Silva', 'Venda realizada com desconto', 'produto', 'iphone 15', 'sim', '3'],
+            ['saida', 'Compra de material de escritório', None, '10', '30.00', '0.00', 'Compras', '14/09/2025', '', 'nubank', 'fornecedor', 'Fornecedor ABC', '', 'produto', 'Material Escritório', 'não', ''],
+            ['entrada', 'Serviço de consultoria', None, '1', '800.00', '0.00', 'Serviços', '15/09/2025', '18/09/2025', 'nubank', 'cliente', 'Maria Santos', '', 'serviço', 'Consultoria', 'não', ''],
+            ['saida', 'Pagamento de aluguel', None, '1', '1200.00', '0.00', 'Saídas Fixas', '16/09/2025', '', 'nubank', '', '', 'Aluguel do escritório', '', '', 'não', ''],
+            ['entrada', 'Recebimento de comissão', None, '1', '500.00', '0.00', 'Comissões', '17/09/2025', '', 'nubank', 'cliente', 'Pedro Costa', 'Comissão de vendas', '', '', 'não', ''],
+            ['saida', 'Compra de equipamento', None, '2', '1600.00', '200.00', 'Investimentos', '18/09/2025', '14/09/2025', 'nubank', 'fornecedor', 'Equipamentos XYZ', 'Equipamento parcelado', 'produto', 'iphone 16', 'sim', '2']
         ]
-        
+
         # Adicionar exemplos com formatação
         for row, exemplo in enumerate(exemplos, 2):
             for col, valor in enumerate(exemplo, 1):
-                cell = ws_dados.cell(row=row, column=col, value=valor)
-                cell.border = thin_border
-                
-                # Formatação especial para valores monetários (como texto)
-                if col == 3:  # Coluna VALOR
+                if col == 3:  # Coluna C (VALOR) - adicionar fórmula ao invés de valor
+                    # Fórmula: =(D{row}*E{row})-F{row}  -> (Quantidade * Valor Unitário) - Desconto
+                    cell = ws_dados.cell(row=row, column=col, value=f'=(D{row}*E{row})-F{row}')
+                    cell.number_format = '#,##0.00'  # Formato numérico
                     cell.alignment = Alignment(horizontal="right")
+                    cell.fill = PatternFill(start_color="F0F0F0", end_color="F0F0F0", fill_type="solid")  # Fundo cinza claro
+                else:
+                    cell = ws_dados.cell(row=row, column=col, value=valor)
+
+                cell.border = thin_border
         
         # Ajustar largura das colunas
         column_widths = [12, 30, 12, 12, 15, 12, 18, 15, 15, 12, 20, 20, 25, 20, 12, 12, 18]
@@ -12082,10 +12175,28 @@ def api_exportar_modelo():
         
         # Congelar primeira linha
         ws_dados.freeze_panes = 'A2'
-        
+
         # Adicionar filtros
         ws_dados.auto_filter.ref = f'A1:{get_column_letter(len(headers))}1000'
-        
+
+        # Proteger planilha permitindo apenas edição de colunas específicas
+        from openpyxl.styles import Protection
+
+        # Primeiro, desbloquear TODAS as células (permitir edição)
+        for row in ws_dados.iter_rows(min_row=1, max_row=1000, min_col=1, max_col=len(headers)):
+            for cell in row:
+                cell.protection = Protection(locked=False)
+
+        # Depois, travar APENAS a coluna C (Valor) a partir da linha 2
+        for row in range(2, 1001):  # Da linha 2 até 1000
+            cell = ws_dados.cell(row=row, column=3)  # Coluna C
+            cell.protection = Protection(locked=True)
+
+        # Ativar proteção na planilha (sem senha para facilitar, mas usuários não poderão editar células travadas)
+        ws_dados.protection.sheet = True
+        ws_dados.protection.password = None
+        ws_dados.protection.enable()
+
         # Criar arquivo em memória
         output = io.BytesIO()
         wb.save(output)
@@ -12097,7 +12208,7 @@ def api_exportar_modelo():
             output,
             mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             as_attachment=True,
-            download_name='modelo_importacao_lancamentos_completo.xlsx'
+            download_name='modelo_importacao_lancamentos.xlsx'
         )
         
     except Exception as e:
@@ -12342,17 +12453,24 @@ def api_preview_importacao():
                 
                 # Processar quantidade
                 quantidade = processar_valor(quantidade_raw) if quantidade_raw else 1
-                if quantidade is None or quantidade <= 0:
+                if quantidade is not None and quantidade <= 0:
+                    erros.append(f"Linha {row_num}: Quantidade inválida ({quantidade_raw}). Convertido para 1.")
                     quantidade = 1  # Padrão mínimo
-                
+                elif quantidade is None:
+                    quantidade = 1
+
                 # Processar valor unitário
                 valor_unitario = processar_valor(valor_unitario_raw) if valor_unitario_raw else None
-                if valor_unitario is None or valor_unitario <= 0:
+                if valor_unitario is not None and valor_unitario <= 0:
+                    erros.append(f"Linha {row_num}: Valor unitário inválido ({valor_unitario_raw}). Ignorado.")
                     valor_unitario = None
-                
+
                 # Processar desconto
                 desconto = processar_valor(desconto_raw) if desconto_raw else 0
-                if desconto is None or desconto < 0:
+                if desconto is not None and desconto < 0:
+                    erros.append(f"Linha {row_num}: Desconto negativo ({desconto_raw}). Convertido para 0.")
+                    desconto = 0
+                elif desconto is None:
                     desconto = 0
                 
                 # Processar valor da parcela (para lançamentos financeiros)
@@ -12382,8 +12500,9 @@ def api_preview_importacao():
                 # Processar datas com múltiplos formatos
                 data_prevista = processar_data(data_prevista_raw)
                 if not data_prevista:
+                    erros.append(f"Linha {row_num}: Data prevista ausente ou inválida ({data_prevista_raw}). Usando data atual.")
                     data_prevista = datetime.now().date()  # Data atual como padrão
-                
+
                 data_realizada = processar_data(dados.get('DATA_REALIZADA')) if dados.get('DATA_REALIZADA') else None
                 
                 # Debug: verificar se a data foi processada corretamente
@@ -12529,7 +12648,33 @@ def api_preview_importacao():
         
         # Contar divergências de Valor Total
         divergencias_valor_total = [p for p in preview_data if p['valor_total_divergente']]
-        
+
+        # Verificar categorias faltantes no plano de contas
+        categorias_importadas = set()
+        for item in preview_data:
+            if item.get('categoria'):
+                categorias_importadas.add(item['categoria'])
+
+        # Buscar categorias existentes por nome ou código
+        empresa_id = obter_empresa_id_sessao(session, usuario)
+        categorias_existentes = PlanoConta.query.filter(
+            PlanoConta.empresa_id == empresa_id,
+            PlanoConta.ativo == True,
+            db.or_(
+                PlanoConta.nome.in_(categorias_importadas),
+                PlanoConta.codigo.in_(categorias_importadas)
+            )
+        ).all()
+
+        nomes_existentes = {c.nome for c in categorias_existentes}
+        codigos_existentes = {c.codigo for c in categorias_existentes}
+
+        # Identificar categorias faltantes
+        categorias_faltantes = []
+        for cat in categorias_importadas:
+            if cat not in nomes_existentes and cat not in codigos_existentes:
+                categorias_faltantes.append(cat)
+
         return jsonify({
             'success': True,
             'preview_data': preview_data,
@@ -12538,6 +12683,8 @@ def api_preview_importacao():
             'total_erros': len(erros),
             'divergencias_valor_total': len(divergencias_valor_total),
             'tem_divergencias': len(divergencias_valor_total) > 0,
+            'categorias_faltantes': sorted(categorias_faltantes),
+            'tem_categorias_faltantes': len(categorias_faltantes) > 0,
             'resumo': {
                 'lancamentos': len(preview_data),
                 'vendas': len([p for p in preview_data if p['criara_venda']]),
@@ -12792,17 +12939,24 @@ def api_importar_dados():
                 
                 # Processar quantidade
                 quantidade = processar_valor(quantidade_raw) if quantidade_raw else 1
-                if quantidade is None or quantidade <= 0:
+                if quantidade is not None and quantidade <= 0:
+                    erros.append(f"Linha {row_num}: Quantidade inválida ({quantidade_raw}). Convertido para 1.")
                     quantidade = 1  # Padrão mínimo
-                
+                elif quantidade is None:
+                    quantidade = 1
+
                 # Processar valor unitário
                 valor_unitario = processar_valor(valor_unitario_raw) if valor_unitario_raw else None
-                if valor_unitario is None or valor_unitario <= 0:
+                if valor_unitario is not None and valor_unitario <= 0:
+                    erros.append(f"Linha {row_num}: Valor unitário inválido ({valor_unitario_raw}). Ignorado.")
                     valor_unitario = None
-                
+
                 # Processar desconto
                 desconto = processar_valor(desconto_raw) if desconto_raw else 0
-                if desconto is None or desconto < 0:
+                if desconto is not None and desconto < 0:
+                    erros.append(f"Linha {row_num}: Desconto negativo ({desconto_raw}). Convertido para 0.")
+                    desconto = 0
+                elif desconto is None:
                     desconto = 0
                 
                 # Processar valor da parcela (para lançamentos financeiros)
@@ -12832,8 +12986,9 @@ def api_importar_dados():
                 # Processar datas com múltiplos formatos
                 data_prevista = processar_data(data_prevista_raw)
                 if not data_prevista:
+                    erros.append(f"Linha {row_num}: Data prevista ausente ou inválida ({data_prevista_raw}). Usando data atual.")
                     data_prevista = datetime.now().date()  # Data atual como padrão
-                
+
                 data_realizada = processar_data(dados.get('DATA_REALIZADA')) if dados.get('DATA_REALIZADA') else None
                 
                 # Debug: verificar se a data foi processada corretamente
@@ -12944,11 +13099,23 @@ def api_importar_dados():
                     # Usar valor_total da operação (incluindo descontos) para calcular valor da parcela
                     valor_total_operacao = valor_total if valor_total is not None else valor
                     valor_parcela = valor_total_operacao / quantidade_parcelas
-                    
+
                     for i in range(quantidade_parcelas):
-                        # Calcular data da parcela (mês a mês)
-                        from datetime import timedelta
-                        data_parcela = data_prevista + timedelta(days=30 * i)
+                        # Calcular data da parcela (mês a mês) - adiciona meses corretamente
+                        if i == 0:
+                            data_parcela = data_prevista
+                        else:
+                            # Adicionar meses considerando variação de dias (28-31)
+                            mes = data_prevista.month + i
+                            ano = data_prevista.year
+                            while mes > 12:
+                                mes -= 12
+                                ano += 1
+                            # Garantir que o dia existe no mês destino
+                            import calendar
+                            ultimo_dia_mes = calendar.monthrange(ano, mes)[1]
+                            dia = min(data_prevista.day, ultimo_dia_mes)
+                            data_parcela = date(ano, mes, dia)
                         
                         # Criar lançamento da parcela
                         novo_lancamento = Lancamento(
@@ -13162,11 +13329,9 @@ def api_importar_dados():
                                 app.logger.info(f"Compra de serviço {compra.id} - não afeta estoque")
                         else:
                             app.logger.error("Falha ao criar compra")
-                
-                # Atualizar saldo da conta caixa se necessário
-                if conta_caixa_id and realizado:
-                    atualizar_saldo_conta_caixa(conta_caixa_id, valor, tipo)
-                
+
+                # Nota: Saldo da conta caixa é calculado dinamicamente, não precisa atualizar aqui
+
                 sucessos += 1
                 
             except Exception as e:
@@ -13541,12 +13706,23 @@ def buscar_ou_criar_categoria_plano_contas(nome_categoria, tipo_lancamento, usua
             return categoria_existe.id
         
         # Se não encontrou, criar automaticamente
+        # Gerar código único para evitar duplicatas
+        codigo_base = f"99.{nome_original[:5].upper()}"
+        codigo = codigo_base
+        contador = 1
+        while PlanoConta.query.filter_by(empresa_id=empresa_id, codigo=codigo, ativo=True).first():
+            codigo = f"{codigo_base}.{contador}"
+            contador += 1
+            if contador > 999:  # Limite de segurança
+                codigo = f"99.IMP{usuario_id}{int(datetime.utcnow().timestamp())}"
+                break
+
         nova_categoria = PlanoConta(
             nome=nome_original,
             tipo=tipo_lancamento,
             natureza='analitica',
             nivel=1,
-            codigo=f"99.{nome_original[:5].upper()}",  # Código temporário para importados
+            codigo=codigo,  # Código único garantido
             descricao=f"Categoria criada automaticamente durante importação - {nome_original}",
             usuario_id=usuario_id,
             empresa_id=empresa_id,

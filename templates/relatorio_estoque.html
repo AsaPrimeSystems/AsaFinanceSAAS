@@ -24,7 +24,7 @@
                     </ul>
                 </div>
                 <form method="GET" action="{{ url_for('relatorio_estoque') }}">
-                    <div class="row">
+                    <div class="row align-items-end">
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label for="data_filtro" class="form-label">Data de Referência</label>
@@ -35,15 +35,12 @@
                         </div>
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label class="form-label">&nbsp;</label>
-                                <div>
-                                    <button type="submit" class="btn btn-primary">
-                                        <i class="fas fa-search me-2"></i>Filtrar
-                                    </button>
-                                    <a href="{{ url_for('relatorio_estoque') }}" class="btn btn-secondary">
-                                        <i class="fas fa-times me-2"></i>Limpar
-                                    </a>
-                                </div>
+                                <button type="submit" class="btn btn-primary me-2">
+                                    <i class="fas fa-search me-2"></i>Filtrar
+                                </button>
+                                <a href="{{ url_for('relatorio_estoque') }}" class="btn btn-secondary">
+                                    <i class="fas fa-times me-2"></i>Limpar
+                                </a>
                             </div>
                         </div>
                     </div>
@@ -67,40 +64,40 @@
 
     <!-- Resumo Geral -->
     <div class="col-md-12 mb-4">
-        <div class="row">
+        <div class="row g-3">
             <div class="col-md-3">
-                <div class="card bg-info text-white">
-                    <div class="card-body text-center">
-                        <i class="fas fa-box fa-2x mb-2"></i>
-                        <h4>Total Produtos</h4>
-                        <h3>{{ total_produtos }}</h3>
+                <div class="card bg-info text-white border-0 shadow-sm">
+                    <div class="card-body text-center py-3">
+                        <i class="fas fa-box fa-lg mb-2"></i>
+                        <h6 class="mb-2">Total Produtos</h6>
+                        <h4 class="mb-0">{{ total_produtos }}</h4>
                     </div>
                 </div>
             </div>
             <div class="col-md-3">
-                <div class="card bg-primary text-white">
-                    <div class="card-body text-center">
-                        <i class="fas fa-cubes fa-2x mb-2"></i>
-                        <h4>Quantidade Total</h4>
-                        <h3>{{ total_quantidade }}</h3>
+                <div class="card text-white border-0 shadow-sm" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                    <div class="card-body text-center py-3">
+                        <i class="fas fa-cubes fa-lg mb-2"></i>
+                        <h6 class="mb-2">Quantidade Total</h6>
+                        <h4 class="mb-0">{{ total_quantidade }}</h4>
                     </div>
                 </div>
             </div>
             <div class="col-md-3">
-                <div class="card bg-warning text-white">
-                    <div class="card-body text-center">
-                        <i class="fas fa-dollar-sign fa-2x mb-2"></i>
-                        <h4>Valor Estoque (Custo Médio)</h4>
-                        <h3>R$ {{ "%.2f"|format(total_valor_custo) }}</h3>
+                <div class="card text-white border-0 shadow-sm" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                    <div class="card-body text-center py-3">
+                        <i class="fas fa-dollar-sign fa-lg mb-2"></i>
+                        <h6 class="mb-2">Valor Estoque (Custo Médio)</h6>
+                        <h4 class="mb-0">R$ {{ "%.2f"|format(total_valor_custo) }}</h4>
                     </div>
                 </div>
             </div>
             <div class="col-md-3">
-                <div class="card bg-success text-white">
-                    <div class="card-body text-center">
-                        <i class="fas fa-chart-line fa-2x mb-2"></i>
-                        <h4>Valor Estoque (Venda)</h4>
-                        <h3>R$ {{ "%.2f"|format(total_valor_venda) }}</h3>
+                <div class="card bg-success text-white border-0 shadow-sm">
+                    <div class="card-body text-center py-3">
+                        <i class="fas fa-chart-line fa-lg mb-2"></i>
+                        <h6 class="mb-2">Valor Estoque (Venda)</h6>
+                        <h4 class="mb-0">R$ {{ "%.2f"|format(total_valor_venda) }}</h4>
                     </div>
                 </div>
             </div>
@@ -115,6 +112,9 @@
                     <i class="fas fa-list me-2"></i>Posição de Estoque Detalhada
                 </h5>
                 <div>
+                    <a href="{{ url_for('exportar_relatorio_estoque', formato='excel') }}?data_filtro={{ filtros.data_filtro or '' }}" class="btn btn-success btn-sm me-2">
+                        <i class="fas fa-file-excel me-2"></i>Exportar Excel
+                    </a>
                     <button onclick="window.print()" class="btn btn-primary btn-sm">
                         <i class="fas fa-print me-2"></i>Imprimir
                     </button>
@@ -203,19 +203,25 @@
                                 </tr>
                                 {% endfor %}
                             </tbody>
-                            <tfoot class="table-dark">
-                                <tr class="fw-bold">
-                                    <td>TOTAL GERAL</td>
-                                    <td class="text-end">{{ total_quantidade }}</td>
-                                    <td class="text-end">-</td>
-                                    <td class="text-end">-</td>
-                                    <td class="text-end">-</td>
-                                    <td class="text-end">-</td>
+                            <tfoot>
+                                <tr class="fw-bold" style="background-color: #f8f9fa; border-top: 2px solid #dee2e6;">
+                                    <td class="text-primary">TOTAL GERAL</td>
+                                    <td class="text-end text-primary">{{ total_quantidade }}</td>
+                                    <td class="text-end text-muted">-</td>
+                                    <td class="text-end text-muted">-</td>
+                                    <td class="text-end text-muted">-</td>
+                                    <td class="text-end text-muted">-</td>
                                     <td class="text-end">
-                                        <span class="badge bg-light text-dark">{{ "%.1f"|format(total_margem) }}%</span>
+                                        {% if total_margem >= 30 %}
+                                            <span class="badge bg-success">{{ "%.1f"|format(total_margem) }}%</span>
+                                        {% elif total_margem >= 10 %}
+                                            <span class="badge bg-info text-white">{{ "%.1f"|format(total_margem) }}%</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">{{ "%.1f"|format(total_margem) }}%</span>
+                                        {% endif %}
                                     </td>
-                                    <td class="text-end">R$ {{ "%.2f"|format(total_valor_custo) }}</td>
-                                    <td class="text-end">R$ {{ "%.2f"|format(total_valor_venda) }}</td>
+                                    <td class="text-end text-warning fw-bold">R$ {{ "%.2f"|format(total_valor_custo) }}</td>
+                                    <td class="text-end text-success fw-bold">R$ {{ "%.2f"|format(total_valor_venda) }}</td>
                                     <td></td>
                                 </tr>
                             </tfoot>

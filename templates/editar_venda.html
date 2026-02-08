@@ -1260,6 +1260,15 @@
     calcularValores();
     toggleConfigParcelas();
 
+    // Inicializar estado do campo de parcelas baseado no tipo de pagamento
+    if (tipoPagamentoSelect && numeroParcelasInput) {
+        const isParcelado = tipoPagamentoSelect.value === 'parcelado';
+        numeroParcelasInput.disabled = !isParcelado;
+        if (!isParcelado) {
+            numeroParcelasInput.value = '1';
+        }
+    }
+
     // Inicializar tooltips globais
     if (window.bootstrap && bootstrap.Tooltip) {
         var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
