@@ -98,7 +98,7 @@
                     </div>
 
                     <div class="col-md-2 d-flex align-items-end">
-                        <button type="submit" class="btn btn-primary me-2">
+                        <button type="submit" class="btn btn-primary me-2" data-no-intercept>
                             <i class="fas fa-search me-2"></i>Filtrar
                         </button>
                         <a href="{{ url_for('relatorio_fornecedores') }}" class="btn btn-secondary">
@@ -110,6 +110,43 @@
         </div>
     </div>
 </div>
+
+<!-- Mensagem quando não houver dados -->
+{% if not fornecedores_dados or fornecedores_dados|length == 0 %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="alert alert-info">
+            <h5><i class="fas fa-info-circle me-2"></i>Nenhum fornecedor encontrado!</h5>
+            <p class="mb-3">Para visualizar o relatório de fornecedores, você precisa:</p>
+            <div class="row">
+                <div class="col-md-4">
+                    <ul class="mb-3">
+                        <li><strong>Cadastrar fornecedores</strong> no sistema</li>
+                        <li><strong>Registrar compras</strong> dos fornecedores</li>
+                        <li>Ter <strong>lançamentos financeiros</strong> vinculados aos fornecedores</li>
+                    </ul>
+                </div>
+                <div class="col-md-8">
+                    <div class="d-flex gap-2 flex-wrap">
+                        <a href="{{ url_for('novo_fornecedor') }}" class="btn btn-primary btn-sm">
+                            <i class="fas fa-plus me-1"></i> Cadastrar Fornecedor
+                        </a>
+                        <a href="{{ url_for('nova_compra') }}" class="btn btn-warning btn-sm">
+                            <i class="fas fa-shopping-bag me-1"></i> Nova Compra
+                        </a>
+                        <a href="{{ url_for('novo_lancamento') }}" class="btn btn-info btn-sm">
+                            <i class="fas fa-money-bill-wave me-1"></i> Novo Lançamento
+                        </a>
+                        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary btn-sm">
+                            <i class="fas fa-home me-1"></i> Ir para Dashboard
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
 
 <div class="row">
     <!-- Resumo Geral -->

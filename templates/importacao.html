@@ -337,7 +337,6 @@ function mostrarPreview(data) {
                             <th>Parcelado?</th>
                             <th>Quantidade de Parcelas</th>
                             <th>Valor Parcela</th>
-                            <th>Ações</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -382,18 +381,25 @@ function mostrarPreview(data) {
                                 </td>
                                 <td>${item.quantidade_parcelas || '-'}</td>
                                 <td>${item.valor_parcela || '-'}</td>
-                                <td>
-                                    ${item.criara_venda ? '<span class="badge bg-info">Venda</span>' : ''}
-                                    ${item.criara_compra ? '<span class="badge bg-warning">Compra</span>' : ''}
-                                </td>
                             </tr>
                         `).join('')}
                     </tbody>
                 </table>
             </div>
+
+            <style>
+            /* Desabilitar coluna sticky na tabela de preview para evitar bug de transparência */
+            #preview-conteudo .table th:last-child,
+            #preview-conteudo .table td:last-child {
+                position: static !important;
+                right: auto !important;
+                background: transparent !important;
+                border-left: none !important;
+            }
+            </style>
         `;
     }
-    
+
     // Botão de confirmação
     if (data.total_linhas > 0) {
         const botaoDesabilitado = data.tem_divergencias ? 'disabled' : '';

@@ -12120,9 +12120,9 @@ def api_exportar_modelo():
         ws_dados = wb.active
         ws_dados.title = "DADOS"
         
-        # Cabeçalhos baseados no formato da planilha modelo mostrada
+        # Cabeçalhos (sem coluna Valor - será calculado automaticamente pelo sistema)
         headers = [
-            'Tipo', 'Descrição', 'Valor', 'Quantidade', 'Valor Unitário', 'Desconto', 'Categoria', 'Data Prevista', 
+            'Tipo', 'Descrição', 'Quantidade', 'Valor Unitário', 'Desconto', 'Categoria', 'Data Prevista',
             'Data Realizada', 'Conta Caixa', 'Tipo Cliente/Fornecedor', 'Cliente/Fornecedor', 'Observações',
             'Tipo Produto/Serviço', 'Nome Produto/Serviço', 'Parcelado?', 'Quantidade de Parcelas'
         ]
@@ -12143,33 +12143,38 @@ def api_exportar_modelo():
             cell.alignment = Alignment(horizontal="center", vertical="center")
             cell.border = thin_border
         
-        # Adicionar dados de exemplo (sem valor na coluna C, será calculado por fórmula)
-        # Formato: [Tipo, Descrição, (Valor - será fórmula), Quantidade, Valor Unitário, Desconto, Categoria, Data Prevista, Data Realizada, Conta Caixa, Tipo Cliente/Fornecedor, Cliente/Fornecedor, Observações, Tipo Produto/Serviço, Nome Produto/Serviço, Parcelado?, Quantidade de Parcelas]
+        # Adicionar dados de exemplo (valor será calculado automaticamente pelo sistema na importação)
+        # Formato: [Tipo, Descrição, Quantidade, Valor Unitário, Desconto, Categoria, Data Prevista, Data Realizada, Conta Caixa, Tipo Cliente/Fornecedor, Cliente/Fornecedor, Observações, Tipo Produto/Serviço, Nome Produto/Serviço, Parcelado?, Quantidade de Parcelas]
         exemplos = [
-            ['entrada', 'Venda de produto eletrônico', None, '3', '500.00', '0.00', 'Vendas', '13/09/2025', '13/09/2025', 'nubank', 'cliente', 'João Silva', 'Venda realizada com desconto', 'produto', 'iphone 15', 'sim', '3'],
-            ['saida', 'Compra de material de escritório', None, '10', '30.00', '0.00', 'Compras', '14/09/2025', '', 'nubank', 'fornecedor', 'Fornecedor ABC', '', 'produto', 'Material Escritório', 'não', ''],
-            ['entrada', 'Serviço de consultoria', None, '1', '800.00', '0.00', 'Serviços', '15/09/2025', '18/09/2025', 'nubank', 'cliente', 'Maria Santos', '', 'serviço', 'Consultoria', 'não', ''],
-            ['saida', 'Pagamento de aluguel', None, '1', '1200.00', '0.00', 'Saídas Fixas', '16/09/2025', '', 'nubank', '', '', 'Aluguel do escritório', '', '', 'não', ''],
-            ['entrada', 'Recebimento de comissão', None, '1', '500.00', '0.00', 'Comissões', '17/09/2025', '', 'nubank', 'cliente', 'Pedro Costa', 'Comissão de vendas', '', '', 'não', ''],
-            ['saida', 'Compra de equipamento', None, '2', '1600.00', '200.00', 'Investimentos', '18/09/2025', '14/09/2025', 'nubank', 'fornecedor', 'Equipamentos XYZ', 'Equipamento parcelado', 'produto', 'iphone 16', 'sim', '2']
+            ['entrada', 'Venda de produto eletrônico', 3, 500.00, 0.00, 'Vendas', '13/09/2025', '13/09/2025', 'nubank', 'cliente', 'João Silva', 'Venda realizada com desconto', 'produto', 'iphone 15', 'sim', 3],
+            ['saida', 'Compra de material de escritório', 10, 30.00, 0.00, 'Compras', '14/09/2025', '', 'nubank', 'fornecedor', 'Fornecedor ABC', '', 'produto', 'Material Escritório', 'não', ''],
+            ['entrada', 'Serviço de consultoria', 1, 800.00, 0.00, 'Serviços', '15/09/2025', '18/09/2025', 'nubank', 'cliente', 'Maria Santos', '', 'serviço', 'Consultoria', 'não', ''],
+            ['saida', 'Pagamento de aluguel', 1, 1200.00, 0.00, 'Saídas Fixas', '16/09/2025', '', 'nubank', '', '', 'Aluguel do escritório', '', '', 'não', ''],
+            ['entrada', 'Recebimento de comissão', 1, 500.00, 0.00, 'Comissões', '17/09/2025', '', 'nubank', 'cliente', 'Pedro Costa', 'Comissão de vendas', '', '', 'não', ''],
+            ['saida', 'Compra de equipamento', 2, 1600.00, 200.00, 'Investimentos', '18/09/2025', '14/09/2025', 'nubank', 'fornecedor', 'Equipamentos XYZ', 'Equipamento parcelado', 'produto', 'iphone 16', 'sim', 2]
         ]
 
         # Adicionar exemplos com formatação
         for row, exemplo in enumerate(exemplos, 2):
             for col, valor in enumerate(exemplo, 1):
-                if col == 3:  # Coluna C (VALOR) - adicionar fórmula ao invés de valor
-                    # Fórmula: =(D{row}*E{row})-F{row}  -> (Quantidade * Valor Unitário) - Desconto
-                    cell = ws_dados.cell(row=row, column=col, value=f'=(D{row}*E{row})-F{row}')
-                    cell.number_format = '#,##0.00'  # Formato numérico
+                cell = ws_dados.cell(row=row, column=col, value=valor)
+
+                # Aplicar formato numérico nas colunas numéricas
+                if col == 3:  # Coluna C - Quantidade
+                    cell.number_format = '0'  # Formato inteiro
                     cell.alignment = Alignment(horizontal="right")
-                    cell.fill = PatternFill(start_color="F0F0F0", end_color="F0F0F0", fill_type="solid")  # Fundo cinza claro
-                else:
-                    cell = ws_dados.cell(row=row, column=col, value=valor)
+                elif col in [4, 5]:  # Colunas D e E - Valor Unitário e Desconto
+                    cell.number_format = '#,##0.00'  # Formato decimal
+                    cell.alignment = Alignment(horizontal="right")
+                elif col == 16:  # Coluna P - Quantidade de Parcelas
+                    if valor != '':
+                        cell.number_format = '0'  # Formato inteiro
+                        cell.alignment = Alignment(horizontal="right")
 
                 cell.border = thin_border
         
-        # Ajustar largura das colunas
-        column_widths = [12, 30, 12, 12, 15, 12, 18, 15, 15, 12, 20, 20, 25, 20, 12, 12, 18]
+        # Ajustar largura das colunas (sem coluna Valor)
+        column_widths = [12, 30, 12, 15, 12, 18, 15, 15, 12, 20, 20, 25, 20, 12, 12, 18]
         for col, width in enumerate(column_widths, 1):
             ws_dados.column_dimensions[get_column_letter(col)].width = width
         
@@ -12177,25 +12182,7 @@ def api_exportar_modelo():
         ws_dados.freeze_panes = 'A2'
 
         # Adicionar filtros
-        ws_dados.auto_filter.ref = f'A1:{get_column_letter(len(headers))}1000'
-
-        # Proteger planilha permitindo apenas edição de colunas específicas
-        from openpyxl.styles import Protection
-
-        # Primeiro, desbloquear TODAS as células (permitir edição)
-        for row in ws_dados.iter_rows(min_row=1, max_row=1000, min_col=1, max_col=len(headers)):
-            for cell in row:
-                cell.protection = Protection(locked=False)
-
-        # Depois, travar APENAS a coluna C (Valor) a partir da linha 2
-        for row in range(2, 1001):  # Da linha 2 até 1000
-            cell = ws_dados.cell(row=row, column=3)  # Coluna C
-            cell.protection = Protection(locked=True)
-
-        # Ativar proteção na planilha (sem senha para facilitar, mas usuários não poderão editar células travadas)
-        ws_dados.protection.sheet = True
-        ws_dados.protection.password = None
-        ws_dados.protection.enable()
+        ws_dados.auto_filter.ref = f'A1:{get_column_letter(len(headers))}50000'
 
         # Criar arquivo em memória
         output = io.BytesIO()
@@ -12367,7 +12354,7 @@ def api_preview_importacao():
         
         # Garantir que headers não está vazio
         if not headers:
-            headers = ['Tipo', 'Descrição', 'Valor', 'Categoria', 'Data Prevista']
+            headers = ['Tipo', 'Descrição', 'Quantidade', 'Valor Unitário', 'Desconto', 'Categoria', 'Data Prevista']
         
         for header in headers:
             # Usar o mapeamento existente ou converter para maiúsculas
@@ -12472,20 +12459,26 @@ def api_preview_importacao():
                     desconto = 0
                 elif desconto is None:
                     desconto = 0
-                
-                # Processar valor da parcela (para lançamentos financeiros)
-                valor = processar_valor(valor_raw)
-                if valor is None or valor <= 0:
-                    valor = 0.01  # Valor padrão mínimo
-                
-                # Calcular valor total da operação (para vendas/compras)
-                # Fórmula: valor_total = (quantidade * valor_unitario) - desconto
-                if valor_unitario is not None:
-                    valor_total = (quantidade * valor_unitario) - desconto
-                    if valor_total < 0:
-                        valor_total = 0  # Não permitir valor negativo
+
+                # CALCULAR VALOR AUTOMATICAMENTE baseado em Quantidade, Valor Unitário e Desconto
+                # Fórmula: valor = (quantidade × valor_unitario) - desconto
+                if valor_unitario is not None and quantidade is not None:
+                    # Calcular automaticamente (prioridade)
+                    valor = (quantidade * valor_unitario) - desconto
+                    if valor < 0:
+                        valor = 0  # Não permitir valor negativo
+                    valor_total = valor  # Para vendas/compras
+                elif valor_raw:
+                    # Fallback: usar valor da coluna VALOR se fornecido (compatibilidade com planilhas antigas)
+                    valor = processar_valor(valor_raw)
+                    if valor is None or valor <= 0:
+                        valor = 0.01  # Valor padrão mínimo
+                    valor_total = None  # Usar valor da parcela se não houver cálculo
                 else:
-                    valor_total = None  # Usar valor da parcela se não houver valor unitário
+                    # Sem dados suficientes para calcular
+                    erros.append(f"Linha {row_num}: Dados insuficientes para calcular valor. Forneça Quantidade e Valor Unitário, ou Valor direto.")
+                    valor = 0.01  # Valor padrão mínimo para não bloquear
+                    valor_total = None
                 
                 # Buscar ou criar categoria no plano de contas automaticamente
                 if categoria_raw:
@@ -12850,7 +12843,7 @@ def api_importar_dados():
         
         # Garantir que headers não está vazio
         if not headers:
-            headers = ['Tipo', 'Descrição', 'Valor', 'Categoria', 'Data Prevista']
+            headers = ['Tipo', 'Descrição', 'Quantidade', 'Valor Unitário', 'Desconto', 'Categoria', 'Data Prevista']
         
         for header in headers:
             # Usar o mapeamento existente ou converter para maiúsculas
@@ -12958,20 +12951,26 @@ def api_importar_dados():
                     desconto = 0
                 elif desconto is None:
                     desconto = 0
-                
-                # Processar valor da parcela (para lançamentos financeiros)
-                valor = processar_valor(valor_raw)
-                if valor is None or valor <= 0:
-                    valor = 0.01  # Valor padrão mínimo
-                
-                # Calcular valor total da operação (para vendas/compras)
-                # Fórmula: valor_total = (quantidade * valor_unitario) - desconto
-                if valor_unitario is not None:
-                    valor_total = (quantidade * valor_unitario) - desconto
-                    if valor_total < 0:
-                        valor_total = 0  # Não permitir valor negativo
+
+                # CALCULAR VALOR AUTOMATICAMENTE baseado em Quantidade, Valor Unitário e Desconto
+                # Fórmula: valor = (quantidade × valor_unitario) - desconto
+                if valor_unitario is not None and quantidade is not None:
+                    # Calcular automaticamente (prioridade)
+                    valor = (quantidade * valor_unitario) - desconto
+                    if valor < 0:
+                        valor = 0  # Não permitir valor negativo
+                    valor_total = valor  # Para vendas/compras
+                elif valor_raw:
+                    # Fallback: usar valor da coluna VALOR se fornecido (compatibilidade com planilhas antigas)
+                    valor = processar_valor(valor_raw)
+                    if valor is None or valor <= 0:
+                        valor = 0.01  # Valor padrão mínimo
+                    valor_total = None  # Usar valor da parcela se não houver cálculo
                 else:
-                    valor_total = None  # Usar valor da parcela se não houver valor unitário
+                    # Sem dados suficientes para calcular
+                    erros.append(f"Linha {row_num}: Dados insuficientes para calcular valor. Forneça Quantidade e Valor Unitário, ou Valor direto.")
+                    valor = 0.01  # Valor padrão mínimo para não bloquear
+                    valor_total = None
                 
                 # Buscar ou criar categoria no plano de contas automaticamente
                 if categoria_raw:

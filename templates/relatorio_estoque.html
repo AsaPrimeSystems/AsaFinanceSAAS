@@ -34,7 +34,7 @@
                             </div>
                         </div>
                         <div class="col-md-6">
-                            <div class="mb-3">
+                            <div class="mb-3 d-flex align-items-center">
                                 <button type="submit" class="btn btn-primary me-2">
                                     <i class="fas fa-search me-2"></i>Filtrar
                                 </button>
@@ -63,27 +63,23 @@
     </div>
 
     <!-- Resumo Geral - Minimalista -->
-    <div class="col-md-12 mb-4">
-        <div class="card border-0 shadow-sm">
-            <div class="card-body py-2">
-                <div class="row text-center">
-                    <div class="col-md-3">
-                        <small class="text-muted d-block">Total Produtos</small>
-                        <h5 class="mb-0 text-info fw-bold">{{ total_produtos }}</h5>
-                    </div>
-                    <div class="col-md-3">
-                        <small class="text-muted d-block">Quantidade Total</small>
-                        <h5 class="mb-0 text-primary fw-bold">{{ total_quantidade }}</h5>
-                    </div>
-                    <div class="col-md-3">
-                        <small class="text-muted d-block">Valor Estoque (Custo)</small>
-                        <h5 class="mb-0 text-warning fw-bold">R$ {{ "%.2f"|format(total_valor_custo) }}</h5>
-                    </div>
-                    <div class="col-md-3">
-                        <small class="text-muted d-block">Valor Estoque (Venda)</small>
-                        <h5 class="mb-0 text-success fw-bold">R$ {{ "%.2f"|format(total_valor_venda) }}</h5>
-                    </div>
-                </div>
+    <div class="col-md-12 mb-3">
+        <div class="row text-center py-2 bg-white rounded shadow-sm">
+            <div class="col-md-3">
+                <small class="text-muted d-block">Total Produtos</small>
+                <h5 class="mb-0 text-info fw-bold">{{ total_produtos }}</h5>
+            </div>
+            <div class="col-md-3">
+                <small class="text-muted d-block">Quantidade Total</small>
+                <h5 class="mb-0 text-primary fw-bold">{{ total_quantidade }}</h5>
+            </div>
+            <div class="col-md-3">
+                <small class="text-muted d-block">Valor Estoque (Custo)</small>
+                <h5 class="mb-0 text-warning fw-bold">R$ {{ "%.2f"|format(total_valor_custo) }}</h5>
+            </div>
+            <div class="col-md-3">
+                <small class="text-muted d-block">Valor Estoque (Venda)</small>
+                <h5 class="mb-0 text-success fw-bold">R$ {{ "%.2f"|format(total_valor_venda) }}</h5>
             </div>
         </div>
     </div>
@@ -175,13 +171,13 @@
                                     </td>
                                     <td class="text-center">
                                         {% if not item.ativo %}
-                                            <span class="badge bg-secondary">Inativo</span>
+                                            <span class="badge bg-secondary text-white">Inativo</span>
                                         {% elif item.estoque <= 0 %}
-                                            <span class="badge bg-danger">Sem Estoque</span>
+                                            <span class="badge bg-danger text-white">Sem Estoque</span>
                                         {% elif item.estoque < 10 %}
-                                            <span class="badge bg-warning text-dark">Estoque Baixo</span>
+                                            <span class="badge bg-warning text-dark fw-bold">Estoque Baixo</span>
                                         {% else %}
-                                            <span class="badge bg-success">Normal</span>
+                                            <span class="badge bg-success text-white">Normal</span>
                                         {% endif %}
                                     </td>
                                 </tr>
