@@ -12127,20 +12127,20 @@ def api_exportar_modelo():
             'Tipo Produto/Serviço', 'Nome Produto/Serviço', 'Parcelado?', 'Quantidade de Parcelas'
         ]
         
+        # Definir estilo de borda (usado em toda a planilha)
+        thin_border = Border(
+            left=Side(style='thin'),
+            right=Side(style='thin'),
+            top=Side(style='thin'),
+            bottom=Side(style='thin')
+        )
+
         # Adicionar cabeçalhos com formatação
         for col, header in enumerate(headers, 1):
             cell = ws_dados.cell(row=1, column=col, value=header)
             cell.font = Font(bold=True, color="FFFFFF", size=11)
             cell.fill = PatternFill(start_color="2F5597", end_color="2F5597", fill_type="solid")
             cell.alignment = Alignment(horizontal="center", vertical="center")
-            
-            # Adicionar bordas
-            thin_border = Border(
-                left=Side(style='thin'),
-                right=Side(style='thin'),
-                top=Side(style='thin'),
-                bottom=Side(style='thin')
-            )
             cell.border = thin_border
         
         # Adicionar dados de exemplo (sem valor na coluna C, será calculado por fórmula)

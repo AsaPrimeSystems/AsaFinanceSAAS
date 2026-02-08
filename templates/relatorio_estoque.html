@@ -62,42 +62,26 @@
         </div>
     </div>
 
-    <!-- Resumo Geral -->
+    <!-- Resumo Geral - Minimalista -->
     <div class="col-md-12 mb-4">
-        <div class="row g-3">
-            <div class="col-md-3">
-                <div class="card bg-info text-white border-0 shadow-sm">
-                    <div class="card-body text-center py-3">
-                        <i class="fas fa-box fa-lg mb-2"></i>
-                        <h6 class="mb-2">Total Produtos</h6>
-                        <h4 class="mb-0">{{ total_produtos }}</h4>
+        <div class="card border-0 shadow-sm">
+            <div class="card-body py-2">
+                <div class="row text-center">
+                    <div class="col-md-3">
+                        <small class="text-muted d-block">Total Produtos</small>
+                        <h5 class="mb-0 text-info fw-bold">{{ total_produtos }}</h5>
                     </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card text-white border-0 shadow-sm" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
-                    <div class="card-body text-center py-3">
-                        <i class="fas fa-cubes fa-lg mb-2"></i>
-                        <h6 class="mb-2">Quantidade Total</h6>
-                        <h4 class="mb-0">{{ total_quantidade }}</h4>
+                    <div class="col-md-3">
+                        <small class="text-muted d-block">Quantidade Total</small>
+                        <h5 class="mb-0 text-primary fw-bold">{{ total_quantidade }}</h5>
                     </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card text-white border-0 shadow-sm" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
-                    <div class="card-body text-center py-3">
-                        <i class="fas fa-dollar-sign fa-lg mb-2"></i>
-                        <h6 class="mb-2">Valor Estoque (Custo Médio)</h6>
-                        <h4 class="mb-0">R$ {{ "%.2f"|format(total_valor_custo) }}</h4>
+                    <div class="col-md-3">
+                        <small class="text-muted d-block">Valor Estoque (Custo)</small>
+                        <h5 class="mb-0 text-warning fw-bold">R$ {{ "%.2f"|format(total_valor_custo) }}</h5>
                     </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card bg-success text-white border-0 shadow-sm">
-                    <div class="card-body text-center py-3">
-                        <i class="fas fa-chart-line fa-lg mb-2"></i>
-                        <h6 class="mb-2">Valor Estoque (Venda)</h6>
-                        <h4 class="mb-0">R$ {{ "%.2f"|format(total_valor_venda) }}</h4>
+                    <div class="col-md-3">
+                        <small class="text-muted d-block">Valor Estoque (Venda)</small>
+                        <h5 class="mb-0 text-success fw-bold">R$ {{ "%.2f"|format(total_valor_venda) }}</h5>
                     </div>
                 </div>
             </div>
