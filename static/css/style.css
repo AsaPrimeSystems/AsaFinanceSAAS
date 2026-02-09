@@ -5343,3 +5343,398 @@ html {
         overflow-x: hidden;
     }
 }
+
+/* ============================================
+   ESTILOS MODERNOS PARA PAINÉIS - DESIGN ATUALIZADO
+   ============================================ */
+
+/* Cabeçalho Azul Escuro dos Painéis */
+.modern-panel-header {
+    background: #2c5282 !important;
+    color: white !important;
+    padding: 16px 24px !important;
+    border-radius: 8px 8px 0 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+}
+
+.modern-panel-title {
+    color: white !important;
+    font-size: 18px !important;
+    font-weight: 600 !important;
+    margin: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+}
+
+.modern-panel-title i {
+    font-size: 20px !important;
+}
+
+.modern-panel-actions {
+    display: flex !important;
+    gap: 10px !important;
+}
+
+.modern-panel-actions .btn {
+    font-size: 14px !important;
+    padding: 8px 16px !important;
+    border-radius: 6px !important;
+    font-weight: 500 !important;
+}
+
+/* Área de Filtros com Fundo Cinza Claro */
+.modern-filters {
+    background: #f7fafc !important;
+    padding: 16px 24px !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 12px !important;
+    align-items: flex-end !important;
+}
+
+.modern-filter-group {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 6px !important;
+}
+
+.modern-filter-label {
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    color: #4a5568 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
+}
+
+.modern-filter-input {
+    padding: 8px 12px !important;
+    border: 1px solid #cbd5e0 !important;
+    border-radius: 6px !important;
+    font-size: 14px !important;
+    background: white !important;
+    transition: all 0.2s ease !important;
+    min-width: 150px !important;
+}
+
+.modern-filter-input:focus {
+    outline: none !important;
+    border-color: #2c5282 !important;
+    box-shadow: 0 0 0 3px rgba(44, 82, 130, 0.1) !important;
+}
+
+/* Seção de Busca */
+.search-section {
+    padding: 16px 24px !important;
+    background: white !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+}
+
+.search-input-group {
+    display: flex !important;
+    gap: 8px !important;
+    max-width: 600px !important;
+}
+
+.search-input {
+    flex: 1 !important;
+    padding: 10px 16px !important;
+    border: 1px solid #cbd5e0 !important;
+    border-radius: 6px !important;
+    font-size: 14px !important;
+    transition: all 0.2s ease !important;
+}
+
+.search-input:focus {
+    outline: none !important;
+    border-color: #2c5282 !important;
+    box-shadow: 0 0 0 3px rgba(44, 82, 130, 0.1) !important;
+}
+
+.search-btn {
+    padding: 10px 20px !important;
+    background: #2c5282 !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 6px !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+}
+
+.search-btn:hover {
+    background: #1e3a5f !important;
+}
+
+/* Controles de Paginação */
+.modern-panel-controls {
+    padding: 12px 24px !important;
+    background: white !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+}
+
+.modern-pagination-info {
+    font-size: 13px !important;
+    color: #718096 !important;
+}
+
+.modern-pagination-controls {
+    display: flex !important;
+    gap: 8px !important;
+    align-items: center !important;
+}
+
+.modern-pagination-btn {
+    padding: 6px 12px !important;
+    background: white !important;
+    border: 1px solid #cbd5e0 !important;
+    border-radius: 4px !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+    color: #4a5568 !important;
+}
+
+.modern-pagination-btn:hover {
+    background: #f7fafc !important;
+    border-color: #2c5282 !important;
+}
+
+.modern-page-selector {
+    padding: 6px 12px !important;
+    font-weight: 600 !important;
+    color: #2c5282 !important;
+}
+
+/* Tabela Moderna */
+.modern-table-container {
+    background: white !important;
+    overflow-x: auto !important;
+}
+
+.modern-table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    font-size: 14px !important;
+}
+
+.modern-table thead {
+    background: #f7fafc !important;
+    border-bottom: 2px solid #e2e8f0 !important;
+}
+
+.modern-table th {
+    padding: 12px 16px !important;
+    text-align: left !important;
+    font-weight: 600 !important;
+    color: #2d3748 !important;
+    font-size: 13px !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
+}
+
+.modern-table tbody tr {
+    border-bottom: 1px solid #e2e8f0 !important;
+    transition: all 0.2s ease !important;
+}
+
+.modern-table tbody tr:hover {
+    background: #f7fafc !important;
+}
+
+.modern-table td {
+    padding: 14px 16px !important;
+    color: #4a5568 !important;
+}
+
+/* Colunas específicas */
+.modern-checkbox-col {
+    width: 40px !important;
+    text-align: center !important;
+}
+
+.modern-date-col {
+    width: 100px !important;
+    white-space: nowrap !important;
+}
+
+.modern-data-col {
+    max-width: 200px !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}
+
+.modern-value-col {
+    width: 120px !important;
+    text-align: right !important;
+    font-weight: 600 !important;
+}
+
+.modern-value-col.positive {
+    color: #48bb78 !important;
+}
+
+.modern-value-col.negative {
+    color: #f56565 !important;
+}
+
+.modern-status-col {
+    width: 120px !important;
+    text-align: center !important;
+}
+
+.modern-actions-col {
+    width: 140px !important;
+    text-align: center !important;
+}
+
+/* Badges de Status */
+.modern-status-badge {
+    padding: 6px 12px !important;
+    border-radius: 12px !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    display: inline-block !important;
+}
+
+.modern-status-badge.completed {
+    background: #c6f6d5 !important;
+    color: #22543d !important;
+}
+
+.modern-status-badge.pending {
+    background: #fef5e7 !important;
+    color: #975a16 !important;
+}
+
+.modern-status-badge.overdue {
+    background: #fed7d7 !important;
+    color: #742a2a !important;
+}
+
+.modern-status-badge.scheduled {
+    background: #bee3f8 !important;
+    color: #2c5282 !important;
+}
+
+/* Botões de Ação */
+.modern-action-btn {
+    padding: 6px 10px !important;
+    border: none !important;
+    border-radius: 4px !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+    margin: 0 2px !important;
+    font-size: 14px !important;
+}
+
+.modern-action-btn.edit {
+    background: #bee3f8 !important;
+    color: #2c5282 !important;
+}
+
+.modern-action-btn.edit:hover {
+    background: #90cdf4 !important;
+}
+
+.modern-action-btn.delete {
+    background: #fed7d7 !important;
+    color: #c53030 !important;
+}
+
+.modern-action-btn.delete:hover {
+    background: #fc8181 !important;
+}
+
+.modern-action-btn.check {
+    background: #c6f6d5 !important;
+    color: #22543d !important;
+}
+
+.modern-action-btn.check:hover {
+    background: #9ae6b4 !important;
+}
+
+.modern-action-btn.times {
+    background: #fef5e7 !important;
+    color: #975a16 !important;
+}
+
+.modern-action-btn.times:hover {
+    background: #fbd38d !important;
+}
+
+/* Rodapé Azul Escuro */
+.modern-panel-footer {
+    background: #2c5282 !important;
+    color: white !important;
+    padding: 20px 24px !important;
+    border-radius: 0 0 8px 8px !important;
+}
+
+.modern-totals {
+    display: flex !important;
+    justify-content: space-around !important;
+    align-items: center !important;
+    flex-wrap: wrap !important;
+    gap: 20px !important;
+}
+
+.modern-total-label {
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
+    opacity: 0.9 !important;
+    display: block !important;
+    margin-bottom: 4px !important;
+}
+
+.modern-total-value {
+    font-size: 20px !important;
+    font-weight: 700 !important;
+    color: white !important;
+}
+
+.modern-total-value.positive {
+    color: #9ae6b4 !important;
+}
+
+.modern-total-value.negative {
+    color: #fc8181 !important;
+}
+
+/* Checkbox Moderno */
+.modern-checkbox {
+    width: 18px !important;
+    height: 18px !important;
+    cursor: pointer !important;
+    border-radius: 4px !important;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    .modern-panel-header {
+        flex-direction: column !important;
+        gap: 12px !important;
+        align-items: flex-start !important;
+    }
+
+    .modern-filters {
+        flex-direction: column !important;
+    }
+
+    .modern-filter-input {
+        width: 100% !important;
+    }
+
+    .modern-totals {
+        flex-direction: column !important;
+        gap: 16px !important;
+    }
+}

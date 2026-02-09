@@ -327,8 +327,7 @@
 
 
     <!-- Rodapé com Totais -->
-    <div class="modern-panel-footer mt-3"
-        style="border-radius: 12px; background: white; box-shadow: 0 -2px 10px rgba(0,0,0,0.05); border-top: 1px solid #eee;">
+    <div class="modern-panel-footer mt-3">
         <div class="modern-totals py-3 px-4">
             <div class="d-flex align-items-center gap-4 w-100 justify-content-between">
                 <div class="d-flex align-items-center gap-2">
@@ -336,9 +335,8 @@
                         <i class="fas fa-arrow-up text-success"></i>
                     </div>
                     <div class="d-flex flex-column">
-                        <span class="modern-total-label" style="font-size: 0.75rem; color: #7f8c8d;">TOTAL
-                            ENTRADAS</span>
-                        <span class="modern-total-value positive" style="font-size: 1.25rem; font-weight: 700;">
+                        <span class="modern-total-label">TOTAL ENTRADAS</span>
+                        <span class="modern-total-value positive">
                             R$ {{ "%.2f"|format(total_entradas) if total_entradas else '0,00' }}
                         </span>
                     </div>
@@ -349,9 +347,8 @@
                         <i class="fas fa-arrow-down text-danger"></i>
                     </div>
                     <div class="d-flex flex-column">
-                        <span class="modern-total-label" style="font-size: 0.75rem; color: #7f8c8d;">TOTAL
-                            SAÍDAS</span>
-                        <span class="modern-total-value negative" style="font-size: 1.25rem; font-weight: 700;">
+                        <span class="modern-total-label">TOTAL SAÍDAS</span>
+                        <span class="modern-total-value negative">
                             R$ {{ "%.2f"|format(total_saidas) if total_saidas else '0,00' }}
                         </span>
                     </div>
@@ -364,10 +361,9 @@
                             class="fas fa-wallet {{ 'text-success' if (total_entradas - total_saidas) >= 0 else 'text-danger' }}"></i>
                     </div>
                     <div class="d-flex flex-column">
-                        <span class="modern-total-label" style="font-size: 0.75rem; color: #7f8c8d;">SALDO FINAL</span>
+                        <span class="modern-total-label">SALDO FINAL</span>
                         <span
-                            class="modern-total-value {{ 'positive' if (total_entradas - total_saidas) >= 0 else 'negative' }}"
-                            style="font-size: 1.5rem; font-weight: 800;">
+                            class="modern-total-value {{ 'positive' if (total_entradas - total_saidas) >= 0 else 'negative' }}">
                             R$ {{ "%.2f"|format(total_entradas - total_saidas) if total_entradas and total_saidas
                             else '0,00' }}
                         </span>

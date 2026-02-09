@@ -124,24 +124,23 @@
                     <td class="modern-value-col positive">
                         R$ {{ "%.2f"|format(venda.valor_final or venda.valor or 0) }}
                     </td>
-                        <td class="modern-status-col">
-                            {% set realizados = venda.financeiro_realizados if venda.financeiro_realizados is defined
-                            else 0 %}
-                            {% set total = venda.financeiro_total if venda.financeiro_total is defined else 1 %}
-                            {% set todas_realizadas = (realizados == total) %}
-                            <span class="modern-status-badge {{ 'completed' if todas_realizadas else 'pending' }}">
-                                {{ realizados }} / {{ total }}
-                            </span>
-                        </td>
-                        <td class="modern-actions-col">
-                            <button class="modern-action-btn edit" onclick="editarVenda({{ venda.id }})" title="Editar">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button class="modern-action-btn delete" onclick="excluirVenda({{ venda.id }})"
-                                title="Excluir">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </td>
+                    <td class="modern-status-col">
+                        {% set realizados = venda.financeiro_realizados if venda.financeiro_realizados is defined
+                        else 0 %}
+                        {% set total = venda.financeiro_total if venda.financeiro_total is defined else 1 %}
+                        {% set todas_realizadas = (realizados == total) %}
+                        <span class="modern-status-badge {{ 'completed' if todas_realizadas else 'pending' }}">
+                            {{ realizados }} / {{ total }}
+                        </span>
+                    </td>
+                    <td class="modern-actions-col">
+                        <button class="modern-action-btn edit" onclick="editarVenda({{ venda.id }})" title="Editar">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="modern-action-btn delete" onclick="excluirVenda({{ venda.id }})" title="Excluir">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
                 </tr>
                 {% endfor %}
                 {% else %}
@@ -156,6 +155,22 @@
         </table>
     </div>
 
+    <!-- Rodapé com Totais -->
+    <div class="modern-panel-footer mt-3">
+        <div class="modern-totals">
+            <div>
+                <span class="modern-total-label">Total de Vendas</span>
+                <span class="modern-total-value">{{ vendas|length if vendas else 0 }}</span>
+            </div>
+            <div>
+                <span class="modern-total-label">Valor Total</span>
+                <span class="modern-total-value positive">
+                    {% set total = vendas|selectattr('valor')|map(attribute='valor')|select|sum %}
+                    R$ {{ "%.2f"|format(total if total else 0) }}
+                </span>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script>

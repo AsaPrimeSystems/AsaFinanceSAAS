@@ -116,11 +116,11 @@
                     </td>
                     <td class="modern-data-col" title="{{ compra.produto or 'Produto/Serviço não informado' }}">
                         {% if compra.produto and ',' in compra.produto %}
-                            <span style="color: #6c757d; font-style: italic;">Produtos Diversos</span>
+                        <span style="color: #6c757d; font-style: italic;">Produtos Diversos</span>
                         {% elif compra.produto %}
-                            {{ compra.produto[:25] + '...' if compra.produto|length > 25 else compra.produto }}
+                        {{ compra.produto[:25] + '...' if compra.produto|length > 25 else compra.produto }}
                         {% else %}
-                            N/A
+                        N/A
                         {% endif %}
                     </td>
                     <td class="modern-data-col">
@@ -161,6 +161,22 @@
         </table>
     </div>
 
+    <!-- Rodapé com Totais -->
+    <div class="modern-panel-footer mt-3">
+        <div class="modern-totals">
+            <div>
+                <span class="modern-total-label">Total de Compras</span>
+                <span class="modern-total-value">{{ compras|length if compras else 0 }}</span>
+            </div>
+            <div>
+                <span class="modern-total-label">Valor Total</span>
+                <span class="modern-total-value negative">
+                    {% set total = compras|selectattr('valor')|map(attribute='valor')|select|sum %}
+                    R$ {{ "%.2f"|format(total if total else 0) }}
+                </span>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script>
