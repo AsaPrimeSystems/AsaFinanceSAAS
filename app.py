@@ -8325,13 +8325,33 @@ def relatorio_clientes():
                         valor_busca = float(filtro_busca.replace(',', '.'))
                     except Exception:
                         valor_busca = None
-                    from sqlalchemy import func
-                    lancamentos_query = lancamentos_query.outerjoin(Cliente, Lancamento.cliente_id == Cliente.id).outerjoin(Fornecedor, Lancamento.fornecedor_id == Fornecedor.id).filter(
-                        or_(func.lower(Lancamento.descricao).like(termo),
-                            func.lower(Cliente.nome).like(termo),
-                            func.lower(Fornecedor.nome).like(termo),
-                            (Lancamento.valor == valor_busca) if valor_busca is not None else False)
-                    )
+
+                    # Usar aliases para evitar conflito com JOINs anteriores
+                    try:
+                        from sqlalchemy import func
+                        from sqlalchemy.orm import aliased
+
+                        cliente_busca = aliased(Cliente)
+                        fornecedor_busca = aliased(Fornecedor)
+
+                        lancamentos_query = lancamentos_query.outerjoin(
+                            cliente_busca, Lancamento.cliente_id == cliente_busca.id
+                        ).outerjoin(
+                            fornecedor_busca, Lancamento.fornecedor_id == fornecedor_busca.id
+                        ).filter(
+                            or_(
+                                func.lower(Lancamento.descricao).like(termo),
+                                func.lower(cliente_busca.nome).like(termo),
+                                func.lower(fornecedor_busca.nome).like(termo),
+                                (Lancamento.valor == valor_busca) if valor_busca is not None else False
+                            )
+                        )
+                    except Exception as e:
+                        app.logger.error(f"Erro ao aplicar filtro de busca: {str(e)}")
+                        # Em caso de erro, aplicar filtro simples apenas na descrição
+                        lancamentos_query = lancamentos_query.filter(
+                            func.lower(Lancamento.descricao).like(termo)
+                        )
 
                 # Aplicar filtro de status avançado
                 hoje_status = datetime.now().date()
@@ -9331,7 +9351,9 @@ def relatorio_fornecedores():
                              sum_ticket_medio=sum_ticket_medio_f)
     
     except Exception as e:
+        import traceback
         app.logger.error(f"Erro no relatório de fornecedores: {str(e)}")
+        app.logger.error(traceback.format_exc())
         flash('Erro ao gerar relatório de fornecedores. Verifique os logs para mais detalhes.', 'error')
         return redirect(url_for('relatorios'))
 

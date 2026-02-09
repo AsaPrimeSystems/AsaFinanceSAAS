@@ -42,8 +42,8 @@
     </div>
 </div>
 
-<!-- Mensagem quando não houver dados -->
-{% if total_entradas == 0 and total_saidas == 0 and total_entradas_pendentes == 0 and total_saidas_pendentes == 0 %}
+<!-- Mensagem quando não houver dados E não houver filtros aplicados -->
+{% if total_entradas == 0 and total_saidas == 0 and total_entradas_pendentes == 0 and total_saidas_pendentes == 0 and not data_inicio and not data_fim %}
 <div class="row mb-4">
     <div class="col-md-12">
         <div class="alert alert-info">
@@ -74,6 +74,18 @@
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Mensagem quando filtro aplicado mas sem dados -->
+{% if total_entradas == 0 and total_saidas == 0 and total_entradas_pendentes == 0 and total_saidas_pendentes == 0 and (data_inicio or data_fim) %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="alert alert-warning">
+            <h5><i class="fas fa-info-circle me-2"></i>Nenhuma transação encontrada no período selecionado</h5>
+            <p class="mb-0">O relatório abaixo mostra valores zerados. Tente ajustar o filtro de período ou <a href="{{ url_for('relatorio_saldos') }}" class="alert-link">limpar os filtros</a>.</p>
         </div>
     </div>
 </div>
