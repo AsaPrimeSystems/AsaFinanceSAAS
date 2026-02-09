@@ -8233,16 +8233,26 @@ def relatorio_clientes():
         
         if not clientes:
             flash('Nenhum cliente encontrado', 'warning')
-            return render_template('relatorio_clientes.html', 
-                                 usuario=usuario, 
+            return render_template('relatorio_clientes.html',
+                                 usuario=usuario,
                                  clientes_dados=[],
                                  filtro_status=filtro_status,
                                  filtro_ordenacao=filtro_ordenacao,
                                  filtro_periodo=filtro_periodo,
+                                 filtro_data_inicio=filtro_data_inicio,
+                                 filtro_data_fim=filtro_data_fim,
                                  pagina=pagina,
                                  por_pagina=por_pagina,
                                  total_paginas=0,
-                                 total_clientes=0)
+                                 total_clientes=0,
+                                 sum_total_vendas=0,
+                                 sum_total_vendas_pendentes=0,
+                                 sum_saldo_vencido=0,
+                                 sum_total_agendado=0,
+                                 sum_saldo_aberto=0,
+                                 sum_total_geral=0,
+                                 sum_num_vendas=0,
+                                 sum_ticket_medio=0)
         
         # Lista para armazenar dados dos clientes
         clientes_dados = []
@@ -9141,16 +9151,26 @@ def relatorio_fornecedores():
         
         if not fornecedores:
             flash('Nenhum fornecedor encontrado', 'warning')
-            return render_template('relatorio_fornecedores.html', 
-                                 usuario=usuario, 
+            return render_template('relatorio_fornecedores.html',
+                                 usuario=usuario,
                                  fornecedores_dados=[],
                                  filtro_status=filtro_status,
                                  filtro_ordenacao=filtro_ordenacao,
                                  filtro_periodo=filtro_periodo,
+                                 filtro_data_inicio=filtro_data_inicio,
+                                 filtro_data_fim=filtro_data_fim,
                                  pagina=pagina,
                                  por_pagina=por_pagina,
                                  total_paginas=0,
-                                 total_fornecedores=0)
+                                 total_fornecedores=0,
+                                 sum_total_compras=0,
+                                 sum_total_compras_pendentes=0,
+                                 sum_saldo_vencido=0,
+                                 sum_total_agendado=0,
+                                 sum_saldo_aberto=0,
+                                 sum_total_geral=0,
+                                 sum_num_compras=0,
+                                 sum_ticket_medio=0)
         
         # Lista para armazenar dados dos fornecedores
         fornecedores_dados = []
