@@ -40,7 +40,8 @@
       "Bash(git push:*)",
       "Bash(open:*)",
       "Bash(git reset:*)",
-      "Bash(cd:*)"
+      "Bash(cd:*)",
+      "Bash(textutil:*)"
     ],
     "deny": [],
     "ask": []

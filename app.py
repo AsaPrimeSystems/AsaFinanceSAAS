@@ -1001,15 +1001,83 @@ def obter_modelos():
         'PermissaoSubUsuario': PermissaoSubUsuario
     }
 
+# Função auxiliar para validação consistente de sessão
+def validar_sessao_ativa():
+    """
+    Valida se há uma sessão ativa (usuário ou sub-usuário).
+    Retorna (valido, usuario_ou_sub_usuario, tipo_usuario)
+    """
+    from flask import session, redirect, url_for
+
+    # Verificar se há usuario_id ou sub_usuario_id na sessão
+    if 'usuario_id' in session:
+        usuario = db.session.get(Usuario, session['usuario_id'])
+        if usuario and usuario.ativo:
+            return True, usuario, 'usuario'
+        else:
+            session.clear()
+            return False, None, None
+
+    elif 'sub_usuario_id' in session:
+        sub_usuario = db.session.get(SubUsuarioContador, session['sub_usuario_id'])
+        if sub_usuario and sub_usuario.ativo:
+            return True, sub_usuario, 'sub_usuario'
+        else:
+            session.clear()
+            return False, None, None
+
+    return False, None, None
+
 # Função auxiliar para obter empresa_id correta da sessão
 def obter_empresa_id_sessao(session, usuario):
     """
     Retorna a empresa_id correta baseada na sessão.
-    Se acesso_contador estiver ativo, retorna a empresa vinculada.
+    Se acesso_contador estiver ativo, valida o vínculo e retorna a empresa vinculada.
     Caso contrário, retorna a empresa do usuário.
     """
     if session.get('acesso_contador') and session.get('empresa_id'):
-        return session.get('empresa_id')
+        # SEGURANÇA: Validar que o vínculo ainda está autorizado
+        empresa_vinculada_id = session.get('empresa_id')
+
+        # Determinar contador_id baseado no tipo de usuário
+        if session.get('usuario_tipo') == 'sub_contador':
+            contador_id = session.get('contador_id')
+        else:
+            contador_id = session.get('empresa_id_original')
+
+        if contador_id:
+            # Verificar se o vínculo existe e está autorizado
+            vinculo = VinculoContador.query.filter_by(
+                contador_id=contador_id,
+                empresa_id=empresa_vinculada_id,
+                status='autorizado'
+            ).first()
+
+            if vinculo:
+                # Vínculo válido - para sub-usuários, verificar permissão adicional
+                if session.get('usuario_tipo') == 'sub_contador':
+                    sub_usuario_id = session.get('sub_usuario_id')
+                    permissao = PermissaoSubUsuario.query.filter_by(
+                        sub_usuario_id=sub_usuario_id,
+                        empresa_id=empresa_vinculada_id
+                    ).first()
+
+                    if not permissao:
+                        # Sub-usuário sem permissão - limpar sessão
+                        session.pop('acesso_contador', None)
+                        session.pop('empresa_id', None)
+                        return usuario.empresa_id if usuario and usuario.empresa_id else None
+
+                return empresa_vinculada_id
+            else:
+                # Vínculo não autorizado ou removido - limpar sessão
+                session.pop('acesso_contador', None)
+                session.pop('empresa_id', None)
+                return usuario.empresa_id if usuario and usuario.empresa_id else None
+
+        # Se não tiver contador_id, retornar empresa_id do usuário
+        return usuario.empresa_id if usuario and usuario.empresa_id else None
+
     return usuario.empresa_id if usuario and usuario.empresa_id else None
 
 # Funções auxiliares para parcelamento
@@ -5567,11 +5635,11 @@ def nova_venda():
                 produto = ', '.join(nomes_itens)
             else:
                 produto = itens_validos[0]['nome']
-            
-            # Usar primeiro item para valor e quantidade (compatibilidade)
+
+            # Calcular totais corretos para multi-item
             primeiro_item = itens_validos[0]
-            valor = primeiro_item['preco']  # Preço unitário do primeiro item
-            quantidade = primeiro_item['qtd']  # Quantidade do primeiro item
+            valor = valor_total_carrinho  # Valor total do carrinho (soma de todos os itens)
+            quantidade = sum(item['qtd'] for item in itens_validos)  # Quantidade total de todos os itens
             
             # Determinar tipo_venda baseado nos itens do carrinho
             tipos_itens = [item['tipo'] for item in itens_validos]
@@ -6548,49 +6616,37 @@ def perfil():
 #         db.session.commit()
 #         return True, f'Produto "{compra.produto}" criado no estoque com {compra.quantidade} unidades.'
 
-def atualizar_estoque_venda(venda, usuario_id):
-    """Atualiza o estoque quando uma venda é registrada (independente do status)"""
-    if venda.tipo_venda != 'produto':
-        return True, None
-    
-    # Verificar se o produto existe no estoque
-    produto_estoque = Produto.query.filter_by(
-        nome=venda.produto, 
-        usuario_id=usuario_id
-    ).first()
-    
-    if produto_estoque:
-        # Calcular estoque real baseado em todas as compras e vendas realizadas
-        estoque_real = calcular_estoque_produto(venda.produto, usuario_id)
-        
-        if estoque_real >= 0:
-            produto_estoque.estoque = estoque_real
-            db.session.commit()
-            return True, f'Estoque do produto "{venda.produto}" atualizado. Quantidade vendida: {venda.quantidade}. Restante: {estoque_real}'
-        else:
-            return False, f'Estoque insuficiente para o produto "{venda.produto}". Estoque atual: {produto_estoque.estoque}, Quantidade solicitada: {venda.quantidade}'
-    else:
-        # Removida notificação de produto não encontrado no estoque
-        return False, f'Produto "{venda.produto}" não encontrado no estoque!'
-
-# Função para calcular preço médio ponderado
+# Função para normalizar nome de produto preservando informações
 def normalizar_nome_produto(nome_produto):
     """
-    Normaliza o nome de um produto removendo duplicações
+    Normaliza o nome de um produto removendo APENAS duplicações consecutivas.
+    Preserva todos os itens únicos.
     Ex: "macbook, macbook" -> "macbook"
+    Ex: "mouse, teclado" -> "mouse, teclado" (preserva ambos)
     """
     if not nome_produto:
         return nome_produto
-    
+
     # Remover espaços extras
     nome = nome_produto.strip()
-    
-    # Se contém vírgula, pegar apenas a primeira parte
+
+    # Se contém vírgula, processar lista de itens
     if ',' in nome:
-        partes = [p.strip() for p in nome.split(',')]
-        # Usar a primeira parte única
-        nome = partes[0]
-    
+        partes = [p.strip().lower() for p in nome.split(',') if p.strip()]
+
+        # Remover duplicatas mantendo ordem, usando case-insensitive
+        partes_unicas = []
+        vistos = set()
+        for parte in partes:
+            if parte not in vistos:
+                # Adicionar com capitalização original
+                idx = [p.strip().lower() for p in nome.split(',')].index(parte)
+                partes_unicas.append(nome.split(',')[idx].strip())
+                vistos.add(parte)
+
+        # Retornar todos os itens únicos separados por vírgula
+        return ', '.join(partes_unicas)
+
     return nome
 
 def consolidar_produtos_duplicados(usuario_id):
@@ -6622,12 +6678,22 @@ def consolidar_produtos_duplicados(usuario_id):
         
         # Consolidar produtos duplicados
         consolidados = 0
+        consolidacoes_detalhes = []  # Para auditoria
+
         for nome_normalizado, produtos_grupo in produtos_normalizados.items():
             if len(produtos_grupo) > 1:
                 # Manter o primeiro produto e consolidar os outros
                 produto_principal = produtos_grupo[0]
-                
+                produtos_consolidados = []
+
                 for produto_duplicado in produtos_grupo[1:]:
+                    # Registrar para auditoria
+                    produtos_consolidados.append({
+                        'id': produto_duplicado.id,
+                        'nome': produto_duplicado.nome,
+                        'estoque_anterior': produto_duplicado.estoque
+                    })
+
                     # Atualizar todas as vendas e compras para usar o produto principal
                     Venda.query.filter_by(produto=produto_duplicado.nome).update(
                         {'produto': produto_principal.nome},
@@ -6637,15 +6703,48 @@ def consolidar_produtos_duplicados(usuario_id):
                         {'produto': produto_principal.nome},
                         synchronize_session=False
                     )
-                    
+
                     # Deletar o produto duplicado
                     db.session.delete(produto_duplicado)
                     consolidados += 1
                     app.logger.info(f"Produto duplicado '{produto_duplicado.nome}' consolidado para '{produto_principal.nome}'")
-                
+
                 # Recalcular estoque do produto principal
+                estoque_anterior = produto_principal.estoque
                 estoque_real = calcular_estoque_produto(produto_principal.nome, usuario_id)
                 produto_principal.estoque = estoque_real
+
+                # Registrar consolidação para auditoria
+                consolidacoes_detalhes.append({
+                    'produto_principal': {
+                        'id': produto_principal.id,
+                        'nome': produto_principal.nome,
+                        'estoque_anterior': estoque_anterior,
+                        'estoque_novo': estoque_real
+                    },
+                    'produtos_consolidados': produtos_consolidados
+                })
+
+        # Criar registro de auditoria no EventLog
+        if consolidados > 0:
+            import json
+            import hashlib
+
+            detalhes_json = json.dumps(consolidacoes_detalhes, ensure_ascii=False)
+            hash_evento = hashlib.sha256(
+                f"consolidacao_produtos_{usuario_id}_{datetime.now().isoformat()}".encode()
+            ).hexdigest()
+
+            evento = EventLog(
+                tipo_evento='consolidacao_produtos',
+                descricao=f'Consolidação de {consolidados} produto(s) duplicado(s)',
+                detalhes=detalhes_json,
+                usuario_id=usuario_id,
+                empresa_id=empresa_id,
+                hash_evento=hash_evento
+            )
+            db.session.add(evento)
+            app.logger.info(f"✅ Auditoria registrada: Consolidação de {consolidados} produtos")
         
         db.session.commit()
         app.logger.info(f"Consolidação concluída: {consolidados} produtos duplicados removidos")
@@ -16985,17 +17084,17 @@ def admin_excluir_conta(conta_id):
             
             # 2. Limpar Lançamentos, Vendas e Compras
             Lancamento.query.filter_by(empresa_id=conta_id).delete(synchronize_session=False)
-            Venda.query.filter(Venda.empresa_id == empresa_id).delete(synchronize_session=False)
-            Compra.query.filter(Compra.empresa_id == empresa_id).delete(synchronize_session=False)
-            
+            Venda.query.filter(Venda.empresa_id == conta_id).delete(synchronize_session=False)
+            Compra.query.filter(Compra.empresa_id == conta_id).delete(synchronize_session=False)
+
             # 3. Limpar Cadastros (Cliente, Fornecedor, Produto, Servico)
-            Cliente.query.filter(Cliente.empresa_id == empresa_id).delete(synchronize_session=False)
-            Fornecedor.query.filter(Fornecedor.empresa_id == empresa_id).delete(synchronize_session=False)
+            Cliente.query.filter(Cliente.empresa_id == conta_id).delete(synchronize_session=False)
+            Fornecedor.query.filter(Fornecedor.empresa_id == conta_id).delete(synchronize_session=False)
             Produto.query.filter(Produto.usuario_id.in_(usuarios_ids)).delete(synchronize_session=False)
             Servico.query.filter(Servico.usuario_id.in_(usuarios_ids)).delete(synchronize_session=False)
-            
+
             # 4. Limpar Infraestrutura e Logs
-            PlanoConta.query.filter(PlanoConta.empresa_id == empresa_id).delete(synchronize_session=False)
+            PlanoConta.query.filter(PlanoConta.empresa_id == conta_id).delete(synchronize_session=False)
             ContaCaixa.query.filter(ContaCaixa.usuario_id.in_(usuarios_ids)).delete(synchronize_session=False)
             Importacao.query.filter(Importacao.usuario_id.in_(usuarios_ids)).delete(synchronize_session=False)
             Permissao.query.filter(Permissao.usuario_id.in_(usuarios_ids)).delete(synchronize_session=False)
