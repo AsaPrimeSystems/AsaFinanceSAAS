@@ -7545,225 +7545,228 @@ def relatorio_saldos():
         usuarios_empresa = Usuario.query.filter_by(empresa_id=empresa_id, ativo=True).all()
         usuarios_ids = [u.id for u in usuarios_empresa]
 
-        # Obter filtros de data do request
-        data_inicio_str = request.args.get('data_inicio', '')
-        data_fim_str = request.args.get('data_fim', '')
-
-        # Converter strings de data para objetos datetime
-        data_inicio = None
-        data_fim = None
-
-        if data_inicio_str:
-            try:
-                data_inicio = datetime.strptime(data_inicio_str, '%d/%m/%Y').date()
-            except ValueError:
-                flash('Data de início inválida. Use o formato DD/MM/AAAA.', 'error')
-                data_inicio_str = ''
-
-        if data_fim_str:
-            try:
-                data_fim = datetime.strptime(data_fim_str, '%d/%m/%Y').date()
-            except ValueError:
-                flash('Data de fim inválida. Use o formato DD/MM/AAAA.', 'error')
-                data_fim_str = ''
-
-        # Construir query base
-        query = Lancamento.query.filter(Lancamento.empresa_id == empresa_id)
-
-        # Aplicar filtros de data se fornecidos
-        # Filtrar por data_prevista (data de vencimento/agendamento)
-        if data_inicio:
-            query = query.filter(Lancamento.data_prevista >= data_inicio)
-        if data_fim:
-            query = query.filter(Lancamento.data_prevista <= data_fim)
-
-        # Carregar lançamentos
-        lancamentos = query.all()
-
-        # Datas de referência
+        # Obter filtro de data de referência do request
+        data_referencia_str = request.args.get('data_referencia', '')
         hoje = datetime.now().date()
 
-        # Calcular totais por status conforme requisitos
-        # REALIZADAS: tem data_realizada <= hoje OU (realizado=True E sem data_realizada)
-        total_receitas_realizadas = sum([l.valor for l in lancamentos if l.tipo == 'entrada' and (
-            (l.data_realizada and l.data_realizada <= hoje) or
-            (l.realizado and not l.data_realizada)
-        )])
-        total_despesas_realizadas = sum([l.valor for l in lancamentos if l.tipo == 'saida' and (
-            (l.data_realizada and l.data_realizada <= hoje) or
-            (l.realizado and not l.data_realizada)
-        )])
+        # Converter string de data para objeto date
+        data_referencia = hoje
+        if data_referencia_str:
+            try:
+                data_referencia = datetime.strptime(data_referencia_str, '%d/%m/%Y').date()
+            except ValueError:
+                flash('Data de referência inválida. Usando data de hoje.', 'error')
+                data_referencia = hoje
+                data_referencia_str = data_referencia.strftime('%d/%m/%Y')
+        else:
+            data_referencia_str = hoje.strftime('%d/%m/%Y')
 
-        # A VENCER: não realizado E data_prevista > hoje (futuro)
-        total_receitas_a_vencer = sum([l.valor for l in lancamentos if l.tipo == 'entrada' and
-            not l.realizado and l.data_prevista and l.data_prevista > hoje])
-        total_despesas_a_vencer = sum([l.valor for l in lancamentos if l.tipo == 'saida' and
-            not l.realizado and l.data_prevista and l.data_prevista > hoje])
+        # Buscar todos os lançamentos da empresa ATÉ a data de referência (inclusive não realizados)
+        lancamentos_ate_data = Lancamento.query.filter(
+            Lancamento.empresa_id == empresa_id,
+            Lancamento.data_prevista <= data_referencia
+        ).all()
 
-        # VENCIDAS: não realizado E data_prevista < hoje (passado)
-        total_receitas_vencidas = sum([l.valor for l in lancamentos if l.tipo == 'entrada' and
-            not l.realizado and l.data_prevista and l.data_prevista < hoje])
-        total_despesas_vencidas = sum([l.valor for l in lancamentos if l.tipo == 'saida' and
-            not l.realizado and l.data_prevista and l.data_prevista < hoje])
+        # Calcular totais globais até a data
+        total_receitas_realizadas = sum([l.valor for l in lancamentos_ate_data if l.tipo == 'entrada' and l.realizado])
+        total_despesas_realizadas = sum([l.valor for l in lancamentos_ate_data if l.tipo == 'saida' and l.realizado])
+        
+        total_receitas_vencidas = sum([l.valor for l in lancamentos_ate_data if l.tipo == 'entrada' and not l.realizado and l.data_prevista < hoje])
+        total_despesas_vencidas = sum([l.valor for l in lancamentos_ate_data if l.tipo == 'saida' and not l.realizado and l.data_prevista < hoje])
 
-        # AGENDADAS: não realizado E data_prevista = hoje (hoje mesmo) OU sem data_prevista
-        total_receitas_agendadas = sum([l.valor for l in lancamentos if l.tipo == 'entrada' and
-            not l.realizado and ((l.data_prevista and l.data_prevista == hoje) or not l.data_prevista)])
-        total_despesas_agendadas = sum([l.valor for l in lancamentos if l.tipo == 'saida' and
-            not l.realizado and ((l.data_prevista and l.data_prevista == hoje) or not l.data_prevista)])
+        total_receitas_agendadas = sum([l.valor for l in lancamentos_ate_data if l.tipo == 'entrada' and not l.realizado and l.data_prevista == hoje])
+        total_despesas_agendadas = sum([l.valor for l in lancamentos_ate_data if l.tipo == 'saida' and not l.realizado and l.data_prevista == hoje])
+        
+        total_receitas_a_vencer = sum([l.valor for l in lancamentos_ate_data if l.tipo == 'entrada' and not l.realizado and l.data_prevista > hoje])
+        total_despesas_a_vencer = sum([l.valor for l in lancamentos_ate_data if l.tipo == 'saida' and not l.realizado and l.data_prevista > hoje])
 
-        # PENDENTES (total não realizado = a_vencer + vencidas + agendadas)
-        total_receitas_pendentes = total_receitas_a_vencer + total_receitas_vencidas + total_receitas_agendadas
-        total_despesas_pendentes = total_despesas_a_vencer + total_despesas_vencidas + total_despesas_agendadas
+        # Totais consolidados
+        saldo_realizado = total_receitas_realizadas - total_despesas_realizadas
+        total_receitas_pendentes = total_receitas_vencidas + total_receitas_agendadas + total_receitas_a_vencer
+        total_despesas_pendentes = total_despesas_vencidas + total_despesas_agendadas + total_despesas_a_vencer
+        saldo_projetado = saldo_realizado + total_receitas_pendentes - total_despesas_pendentes
+        saldo_vencido = total_receitas_vencidas - total_despesas_vencidas
 
-        # Saldo atual considera apenas realizadas
-        total_entradas = total_receitas_realizadas
-        total_saidas = total_despesas_realizadas
-        saldo_atual = total_entradas - total_saidas
-    
-        # Buscar todas as categorias da empresa (para garantir que todas apareçam e considerar hierarquia)
-        contas_plano = PlanoConta.query.filter(
-            PlanoConta.empresa_id == empresa_id,
-            PlanoConta.ativo == True
-        ).order_by(PlanoConta.codigo).all()
-    
-        # Mapeamento para acesso rápido
+        # 1. SALDOS POR CONTA DO PLANO DE CONTAS
+        contas_plano = PlanoConta.query.filter_by(empresa_id=empresa_id, ativo=True).order_by(PlanoConta.codigo).all()
         p_contas_map = {c.id: c for c in contas_plano}
-        p_contas_nome_map = {c.nome: c for c in contas_plano if c.natureza == 'analitica'} # Fallback para lançamentos sem ID
-
-        # Agrupar por categoria com segmentação completa
+        
         categorias_receitas = {}
         categorias_despesas = {}
 
-        # Inicializar dicts para todas as contas analíticas (opcional, mas bom para mostrar contas zeradas)
+        # Inicializar todas as contas analíticas
         for c in contas_plano:
             if c.natureza == 'analitica':
-                dest = categorias_receitas if c.tipo == 'entrada' else categorias_despesas
-                # Usar nome com código para exibição
                 nome_exibicao = f"{c.codigo} - {c.nome}" if c.codigo else c.nome
-                dest[nome_exibicao] = {
-                    'realizado': 0,
-                    'a_vencer': 0,
-                    'vencido': 0,
-                    'agendado': 0,
-                    'codigo': c.codigo,
-                    'id': c.id
+                item = {
+                    'realizado': 0.0,
+                    'a_vencer': 0.0,
+                    'vencido': 0.0,
+                    'agendado': 0.0,
+                    'total': 0.0,
+                    'codigo': c.codigo
                 }
+                if c.tipo == 'entrada':
+                    categorias_receitas[nome_exibicao] = item
+                else:
+                    categorias_despesas[nome_exibicao] = item
 
-        for lancamento in lancamentos:
-            pc = None
-            if lancamento.plano_conta_id:
-                pc = p_contas_map.get(lancamento.plano_conta_id)
-        
-            # Fallback para o nome (legado)
-            if not pc and lancamento.categoria:
-                pc = p_contas_nome_map.get(lancamento.categoria)
-            
-            if pc:
-                dest = categorias_receitas if pc.tipo == 'entrada' else categorias_despesas
+        # Distribuir valores dos lançamentos
+        for l in lancamentos_ate_data:
+            if l.plano_conta_id and l.plano_conta_id in p_contas_map:
+                pc = p_contas_map[l.plano_conta_id]
                 nome_exibicao = f"{pc.codigo} - {pc.nome}" if pc.codigo else pc.nome
-            
+                dest = categorias_receitas if pc.tipo == 'entrada' else categorias_despesas
+                
                 if nome_exibicao not in dest:
-                     dest[nome_exibicao] = {'realizado': 0, 'a_vencer': 0, 'vencido': 0, 'agendado': 0, 'codigo': pc.codigo, 'id': pc.id}
-            
-                # REALIZADAS
-                if (lancamento.data_realizada and lancamento.data_realizada <= hoje) or (lancamento.realizado and not lancamento.data_realizada):
-                    dest[nome_exibicao]['realizado'] += lancamento.valor
-                # A VENCER
-                elif not lancamento.realizado and lancamento.data_prevista and lancamento.data_prevista > hoje:
-                    dest[nome_exibicao]['a_vencer'] += lancamento.valor
-                # VENCIDAS
-                elif not lancamento.realizado and lancamento.data_prevista and lancamento.data_prevista < hoje:
-                    dest[nome_exibicao]['vencido'] += lancamento.valor
-                # AGENDADAS
-                elif not lancamento.realizado and ((lancamento.data_prevista and lancamento.data_prevista == hoje) or not lancamento.data_prevista):
-                    dest[nome_exibicao]['agendado'] += lancamento.valor
+                    # Conta existe mas não foi inicializada (ex: sintética), criar entrada
+                    dest[nome_exibicao] = {
+                        'realizado': 0.0,
+                        'a_vencer': 0.0,
+                        'vencido': 0.0,
+                        'agendado': 0.0,
+                        'total': 0.0,
+                        'codigo': pc.codigo or ''
+                    }
+                
+                if l.realizado:
+                    dest[nome_exibicao]['realizado'] += l.valor
+                elif l.data_prevista < hoje:
+                    dest[nome_exibicao]['vencido'] += l.valor
+                elif l.data_prevista == hoje:
+                    dest[nome_exibicao]['agendado'] += l.valor
+                else:
+                    dest[nome_exibicao]['a_vencer'] += l.valor
+                    
+                dest[nome_exibicao]['total'] = (dest[nome_exibicao]['realizado'] + 
+                                               dest[nome_exibicao]['vencido'] + 
+                                               dest[nome_exibicao]['agendado'] + 
+                                               dest[nome_exibicao]['a_vencer'])
+            else:
+                # Lançamento sem plano de contas - agrupar como "Sem Categoria"
+                cat_nome = "Sem Categoria"
+                dest = categorias_receitas if l.tipo == 'entrada' else categorias_despesas
+                
+                if cat_nome not in dest:
+                    dest[cat_nome] = {
+                        'realizado': 0.0,
+                        'a_vencer': 0.0,
+                        'vencido': 0.0,
+                        'agendado': 0.0,
+                        'total': 0.0,
+                        'codigo': '99.SEM'
+                    }
+                
+                if l.realizado:
+                    dest[cat_nome]['realizado'] += l.valor
+                elif l.data_prevista < hoje:
+                    dest[cat_nome]['vencido'] += l.valor
+                elif l.data_prevista == hoje:
+                    dest[cat_nome]['agendado'] += l.valor
+                else:
+                    dest[cat_nome]['a_vencer'] += l.valor
+                    
+                dest[cat_nome]['total'] = (dest[cat_nome]['realizado'] + 
+                                          dest[cat_nome]['vencido'] + 
+                                          dest[cat_nome]['agendado'] + 
+                                          dest[cat_nome]['a_vencer'])
 
-        # Carregar contas caixa com detalhamento por status
+        # 2. SALDOS DAS CONTAS CAIXA
         contas_caixa = ContaCaixa.query.filter(ContaCaixa.usuario_id.in_(usuarios_ids), ContaCaixa.ativo==True).all()
-        saldo_total_caixa = sum([c.calcular_saldo_atual() for c in contas_caixa])
 
-        # Detalhamento por conta caixa: entradas/saidas realizadas, pendentes, vencidas por conta
         contas_caixa_detalhadas = []
         for conta in contas_caixa:
-            lancs_conta = [l for l in lancamentos if l.conta_caixa_id == conta.id]
-            rec_realizado = sum(l.valor for l in lancs_conta if l.tipo == 'entrada' and ((l.data_realizada and l.data_realizada <= hoje) or (l.realizado and not l.data_realizada)))
-            desp_realizado = sum(l.valor for l in lancs_conta if l.tipo == 'saida' and ((l.data_realizada and l.data_realizada <= hoje) or (l.realizado and not l.data_realizada)))
-            rec_a_vencer = sum(l.valor for l in lancs_conta if l.tipo == 'entrada' and not l.realizado and l.data_prevista and l.data_prevista > hoje)
-            desp_a_vencer = sum(l.valor for l in lancs_conta if l.tipo == 'saida' and not l.realizado and l.data_prevista and l.data_prevista > hoje)
-            rec_vencido = sum(l.valor for l in lancs_conta if l.tipo == 'entrada' and not l.realizado and l.data_prevista and l.data_prevista < hoje)
-            desp_vencido = sum(l.valor for l in lancs_conta if l.tipo == 'saida' and not l.realizado and l.data_prevista and l.data_prevista < hoje)
-            rec_agendado = sum(l.valor for l in lancs_conta if l.tipo == 'entrada' and not l.realizado and ((l.data_prevista and l.data_prevista == hoje) or not l.data_prevista))
-            desp_agendado = sum(l.valor for l in lancs_conta if l.tipo == 'saida' and not l.realizado and ((l.data_prevista and l.data_prevista == hoje) or not l.data_prevista))
-            saldo_calc = conta.calcular_saldo_atual()
-            saldo_projetado = saldo_calc + rec_a_vencer + rec_vencido + rec_agendado - desp_a_vencer - desp_vencido - desp_agendado
+            lancs_conta = [l for l in lancamentos_ate_data if l.conta_caixa_id == conta.id]
+            
+            # Para o saldo atual da conta (realizado acumulado), precisamos considerar TODOS os lançamentos realizados
+            # até hoje, não apenas os do filtro. Mas o usuário quer ATÉ a data.
+            # Então calculamos o saldo acumulado realizado até a data_referencia.
+            # Se houver um saldo inicial na conta, deve ser considerado.
+            
+            saldo_inicial = getattr(conta, 'saldo_inicial', 0) or 0
+            
+            # Saldo realizado até a data de referência
+            rec_realizado = sum(l.valor for l in lancs_conta if l.tipo == 'entrada' and l.realizado)
+            desp_realizado = sum(l.valor for l in lancs_conta if l.tipo == 'saida' and l.realizado)
+            saldo_atual_conta = saldo_inicial + rec_realizado - desp_realizado
+            
+            # Pendentes até a data de referência
+            rec_pendente = sum(l.valor for l in lancs_conta if l.tipo == 'entrada' and not l.realizado)
+            desp_pendente = sum(l.valor for l in lancs_conta if l.tipo == 'saida' and not l.realizado)
+            
+            saldo_projetado_conta = saldo_atual_conta + rec_pendente - desp_pendente
+            
             contas_caixa_detalhadas.append({
                 'conta': conta,
-                'saldo_atual': saldo_calc,
-                'rec_realizado': rec_realizado,
-                'desp_realizado': desp_realizado,
-                'rec_a_vencer': rec_a_vencer,
-                'desp_a_vencer': desp_a_vencer,
-                'rec_vencido': rec_vencido,
-                'desp_vencido': desp_vencido,
-                'rec_agendado': rec_agendado,
-                'desp_agendado': desp_agendado,
-                'saldo_projetado': saldo_projetado,
+                'saldo_atual': saldo_atual_conta,
+                'rec_pendente': rec_pendente,
+                'desp_pendente': desp_pendente,
+                'saldo_projetado': saldo_projetado_conta,
+                # Campos para compatibilidade com template atual
+                'rec_a_vencer': sum(l.valor for l in lancs_conta if l.tipo == 'entrada' and not l.realizado and l.data_prevista > hoje),
+                'desp_a_vencer': sum(l.valor for l in lancs_conta if l.tipo == 'saida' and not l.realizado and l.data_prevista > hoje),
+                'rec_vencido': sum(l.valor for l in lancs_conta if l.tipo == 'entrada' and not l.realizado and l.data_prevista < hoje),
+                'desp_vencido': sum(l.valor for l in lancs_conta if l.tipo == 'saida' and not l.realizado and l.data_prevista < hoje),
+                'rec_agendado': sum(l.valor for l in lancs_conta if l.tipo == 'entrada' and not l.realizado and l.data_prevista == hoje),
+                'desp_agendado': sum(l.valor for l in lancs_conta if l.tipo == 'saida' and not l.realizado and l.data_prevista == hoje),
             })
 
-        # Saldo projetado geral (realizado + todos pendentes)
-        saldo_projetado = saldo_atual + total_receitas_pendentes - total_despesas_pendentes
-        # Saldo vencido líquido
-        saldo_vencido = total_receitas_vencidas - total_despesas_vencidas
+        saldo_total_caixa = sum(c['saldo_atual'] for c in contas_caixa_detalhadas)
+
+        print(f"=== SALDOS DEBUG === data_ref={data_referencia_str}, lancamentos={len(lancamentos_ate_data)}, entradas={total_receitas_realizadas}, saidas={total_despesas_realizadas}, contas_caixa={len(contas_caixa_detalhadas)}, cat_rec={len(categorias_receitas)}, cat_desp={len(categorias_despesas)}")
+        print(f"=== CATEGORIAS RECEITAS === {dict(list(categorias_receitas.items())[:3])}")
+        print(f"=== CATEGORIAS DESPESAS === {dict(list(categorias_despesas.items())[:3])}")
+        for cc in contas_caixa_detalhadas[:2]:
+            print(f"=== CONTA CAIXA === nome={cc['conta'].nome}, saldo={cc['saldo_atual']}, projetado={cc['saldo_projetado']}")
 
         return render_template('relatorio_saldos.html',
                              usuario=usuario,
-                             total_entradas=total_entradas,
-                             total_saidas=total_saidas,
-                             total_receitas_realizadas=total_receitas_realizadas,
-                             total_despesas_realizadas=total_despesas_realizadas,
-                             total_receitas_a_vencer=total_receitas_a_vencer,
-                             total_despesas_a_vencer=total_despesas_a_vencer,
-                             total_receitas_vencidas=total_receitas_vencidas,
-                             total_despesas_vencidas=total_despesas_vencidas,
-                             total_receitas_pendentes=total_receitas_pendentes,
-                             total_despesas_pendentes=total_despesas_pendentes,
-                             total_receitas_agendadas=total_receitas_agendadas,
-                             total_despesas_agendadas=total_despesas_agendadas,
-                             # Aliases para compatibilidade (template usa entradas/saidas)
+                             data_referencia=data_referencia_str,
+                             total_entradas=total_receitas_realizadas,
+                             total_saidas=total_despesas_realizadas,
                              total_entradas_realizadas=total_receitas_realizadas,
                              total_saidas_realizadas=total_despesas_realizadas,
-                             total_entradas_a_vencer=total_receitas_a_vencer,
-                             total_saidas_a_vencer=total_despesas_a_vencer,
-                             total_entradas_vencidas=total_receitas_vencidas,
-                             total_saidas_vencidas=total_despesas_vencidas,
-                             total_entradas_agendadas=total_receitas_agendadas,
-                             total_saidas_agendadas=total_despesas_agendadas,
+                             total_receitas_realizadas=total_receitas_realizadas,
+                             total_despesas_realizadas=total_despesas_realizadas,
                              total_entradas_pendentes=total_receitas_pendentes,
                              total_saidas_pendentes=total_despesas_pendentes,
-                             saldo_atual=saldo_atual,
-                             saldo_geral=saldo_atual,
-                             saldo_projetado=saldo_projetado,
+                             total_receitas_pendentes=total_receitas_pendentes,
+                             total_despesas_pendentes=total_despesas_pendentes,
+                             total_entradas_vencidas=total_receitas_vencidas,
+                             total_saidas_vencidas=total_despesas_vencidas,
+                             total_receitas_vencidas=total_receitas_vencidas,
+                             total_despesas_vencidas=total_despesas_vencidas,
+                             total_entradas_agendadas=total_receitas_agendadas,
+                             total_saidas_agendadas=total_despesas_agendadas,
+                             total_receitas_agendadas=total_receitas_agendadas,
+                             total_despesas_agendadas=total_despesas_agendadas,
+                             total_entradas_a_vencer=total_receitas_a_vencer,
+                             total_saidas_a_vencer=total_despesas_a_vencer,
+                             total_receitas_a_vencer=total_receitas_a_vencer,
+                             total_despesas_a_vencer=total_despesas_a_vencer,
+                             saldo_geral=saldo_realizado,
+                             saldo_atual=saldo_realizado,
                              saldo_vencido=saldo_vencido,
+                             saldo_projetado=saldo_projetado,
                              categorias_receitas=categorias_receitas,
                              categorias_despesas=categorias_despesas,
                              categorias_entradas=categorias_receitas,
                              categorias_saidas=categorias_despesas,
-                             contas_caixa=contas_caixa,
                              contas_caixa_detalhadas=contas_caixa_detalhadas,
                              saldo_total_caixa=saldo_total_caixa,
-                             sum_rec_a_vencer=sum(c.get('rec_a_vencer', 0) for c in contas_caixa_detalhadas),
-                             sum_desp_a_vencer=sum(c.get('desp_a_vencer', 0) for c in contas_caixa_detalhadas),
-                             sum_rec_vencido=sum(c.get('rec_vencido', 0) for c in contas_caixa_detalhadas),
-                             sum_desp_vencido=sum(c.get('desp_vencido', 0) for c in contas_caixa_detalhadas),
-                             sum_saldo_projetado_contas=sum(c.get('saldo_projetado', 0) for c in contas_caixa_detalhadas),
-                             data_inicio=data_inicio_str,
-                             data_fim=data_fim_str)
+                             sum_rec_a_vencer=sum(c['rec_a_vencer'] for c in contas_caixa_detalhadas),
+                             sum_desp_a_vencer=sum(c['desp_a_vencer'] for c in contas_caixa_detalhadas),
+                             sum_rec_vencido=sum(c['rec_vencido'] for c in contas_caixa_detalhadas),
+                             sum_desp_vencido=sum(c['desp_vencido'] for c in contas_caixa_detalhadas),
+                             sum_saldo_projetado_contas=sum(c['saldo_projetado'] for c in contas_caixa_detalhadas))
 
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         app.logger.error(f"Erro no relatório de saldos: {str(e)}")
         flash('Erro ao gerar relatório de saldos', 'error')
         return render_template('relatorio_saldos.html',
+                             data_referencia='',
                              usuario=usuario,
                              total_entradas=0,
                              total_saidas=0,
@@ -7803,9 +7806,7 @@ def relatorio_saldos():
                              sum_desp_a_vencer=0,
                              sum_rec_vencido=0,
                              sum_desp_vencido=0,
-                             sum_saldo_projetado_contas=0,
-                             data_inicio='',
-                             data_fim='')
+                             sum_saldo_projetado_contas=0)
 
 @app.route('/relatorios/saldos/exportar/<formato>')
 def exportar_relatorio_saldos(formato):
@@ -8190,8 +8191,10 @@ def relatorio_clientes():
         filtro_data_fim = request.args.get('data_fim', '').strip()
         # Novos filtros avançados
         filtro_categoria = request.args.get('categoria', '').strip()
-        filtro_status_avancado = request.args.get('status_avancado', '').strip()  # realizado, pendente, agendado, vencido
+        filtro_status_avancado = request.args.get('status_avancado', 'todos')
         filtro_busca = request.args.get('busca', '').strip()
+        
+        # Obter todos os usuários da empresa vinculada
             
         exportar = request.args.get('exportar', '')
         pagina = request.args.get('pagina', 1, type=int)
@@ -8328,41 +8331,14 @@ def relatorio_clientes():
                 if filtro_categoria:
                     lancamentos_query = lancamentos_query.filter(Lancamento.categoria == filtro_categoria)
 
-                # Aplicar busca por texto/valor (descrição contém texto ou valor exato)
+                # Se houver busca, filtrar estritamente por nome ou documento
                 if filtro_busca:
-                    termo = f"%{filtro_busca.lower()}%"
-                    try:
-                        valor_busca = float(filtro_busca.replace(',', '.'))
-                    except Exception:
-                        valor_busca = None
-
-                    # Usar aliases para evitar conflito com JOINs anteriores
-                    try:
-                        from sqlalchemy import func
-                        from sqlalchemy.orm import aliased
-
-                        cliente_busca = aliased(Cliente)
-                        fornecedor_busca = aliased(Fornecedor)
-
-                        lancamentos_query = lancamentos_query.outerjoin(
-                            cliente_busca, Lancamento.cliente_id == cliente_busca.id
-                        ).outerjoin(
-                            fornecedor_busca, Lancamento.fornecedor_id == fornecedor_busca.id
-                        ).filter(
-                            or_(
-                                func.lower(Lancamento.descricao).like(termo),
-                                func.lower(cliente_busca.nome).like(termo),
-                                func.lower(fornecedor_busca.nome).like(termo),
-                                (Lancamento.valor == valor_busca) if valor_busca is not None else False
-                            )
-                        )
-                    except Exception as e:
-                        app.logger.error(f"Erro ao aplicar filtro de busca: {str(e)}")
-                        # Em caso de erro, aplicar filtro simples apenas na descrição
-                        lancamentos_query = lancamentos_query.filter(
-                            func.lower(Lancamento.descricao).like(termo)
-                        )
-
+                     termo_l = filtro_busca.lower()
+                     combina_nome = (cliente.nome and termo_l in cliente.nome.lower()) or \
+                                    (cliente.cpf_cnpj and termo_l in cliente.cpf_cnpj.lower())
+                     if not combina_nome:
+                         continue
+                
                 # Aplicar filtro de status avançado
                 hoje_status = datetime.now().date()
                 if filtro_status_avancado == 'realizado':
@@ -8377,6 +8353,7 @@ def relatorio_clientes():
                     lancamentos_query = lancamentos_query.filter(Lancamento.realizado == False, Lancamento.data_prevista < hoje_status)
                 
                 lancamentos_cliente = lancamentos_query.all()
+                app.logger.info(f"CLIENTE_FILTER: {cliente.nome} - lancamentos: {len(lancamentos_cliente)} - busca: {filtro_busca}")
                 
                 app.logger.info(f"Lançamentos financeiros encontrados para cliente {cliente.id}: {len(lancamentos_cliente)}")
                 
@@ -8404,8 +8381,6 @@ def relatorio_clientes():
                 num_vendas = len([l for l in lancamentos_receita if l.realizado])
                 # Número de transações pendentes
                 num_vendas_pendentes = len([l for l in lancamentos_receita if not l.realizado])
-                # Total geral = realizadas + a vencer + vencidas + agendado
-                total_geral = total_vendas + total_a_vencer + saldo_vencido + total_agendado
                 # Saldo em aberto = a vencer + vencido + agendado
                 saldo_aberto = total_a_vencer + saldo_vencido + total_agendado
 
@@ -9115,6 +9090,7 @@ def relatorio_fornecedores():
         pagina = request.args.get('pagina', 1, type=int)
         # por_pagina=0 significa "mostrar todos"
         por_pagina = request.args.get('por_pagina', 0, type=int)
+        filtro_busca = request.args.get('busca', '').strip()
         
         # Validar parâmetros
         if pagina < 1:
@@ -9243,6 +9219,15 @@ def relatorio_fornecedores():
                     )
                 
                 lancamentos_fornecedor = lancamentos_query.all()
+                app.logger.info(f"FORNECEDOR_FILTER: {fornecedor.nome} - lancamentos: {len(lancamentos_fornecedor)} - busca: {filtro_busca}")
+
+                # Se houver busca, filtrar estritamente por nome ou documento
+                if filtro_busca:
+                     termo_l = filtro_busca.lower()
+                     combina_nome = (fornecedor.nome and termo_l in fornecedor.nome.lower()) or \
+                                    (fornecedor.cpf_cnpj and termo_l in fornecedor.cpf_cnpj.lower())
+                     if not combina_nome:
+                         continue
                 
                 app.logger.info(f"Lançamentos financeiros encontrados para fornecedor {fornecedor.id}: {len(lancamentos_fornecedor)}")
                 
