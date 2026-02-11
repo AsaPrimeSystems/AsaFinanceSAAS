@@ -6137,8 +6137,33 @@ def nova_compra():
         try:
             # Validação robusta dos dados de entrada
             fornecedor_id = request.form.get('fornecedor_id')
+            fornecedor_nome = request.form.get('fornecedor_nome', '').strip()
+
+            # Se fornecedor_id não foi preenchido mas há um nome digitado, tentar buscar ou criar
+            if not fornecedor_id and fornecedor_nome:
+                # Buscar fornecedor existente pelo nome
+                fornecedor_existente = Fornecedor.query.filter(
+                    Fornecedor.empresa_id == empresa_id,
+                    Fornecedor.nome.ilike(f'%{fornecedor_nome}%')
+                ).first()
+
+                if fornecedor_existente:
+                    fornecedor_id = fornecedor_existente.id
+                else:
+                    # Criar novo fornecedor automaticamente
+                    novo_fornecedor = Fornecedor(
+                        empresa_id=empresa_id,
+                        nome=fornecedor_nome,
+                        usuario_id=usuario.id
+                    )
+                    db.session.add(novo_fornecedor)
+                    db.session.flush()  # Para obter o ID
+                    fornecedor_id = novo_fornecedor.id
+                    app.logger.info(f"Fornecedor '{fornecedor_nome}' criado automaticamente (ID: {fornecedor_id})")
+
+            # Validar se fornecedor foi selecionado ou criado
             if not fornecedor_id:
-                flash('Fornecedor é obrigatório.', 'error')
+                flash('Fornecedor é obrigatório. Digite o nome do fornecedor.', 'error')
                 return redirect(url_for('nova_compra'))
             
             # NOVO: Processar itens do carrinho
@@ -8023,6 +8048,23 @@ def relatorio_lancamentos():
         # Buscar lançamentos que têm compra vinculada com fornecedor específico
         query = query.join(Compra, Lancamento.compra_id == Compra.id).join(Fornecedor, Compra.fornecedor_id == Fornecedor.id).filter(Fornecedor.nome.ilike(f'%{fornecedor_filtro}%'))
 
+    # Filtro por busca geral (descrição ou valor)
+    busca = request.args.get('busca', '').strip()
+    if busca:
+        termo = f"%{busca}%"
+        try:
+            valor_busca = float(busca.replace(',', '.'))
+            query = query.filter(or_(
+                Lancamento.descricao.ilike(termo),
+                Lancamento.valor == valor_busca,
+                Lancamento.produto_servico.ilike(termo)
+            ))
+        except ValueError:
+            query = query.filter(or_(
+                Lancamento.descricao.ilike(termo),
+                Lancamento.produto_servico.ilike(termo)
+            ))
+
     # Aplicar filtro de descrição (conforme requisitos)
     if descricao_filtro:
         query = query.filter(Lancamento.descricao.ilike(f'%{descricao_filtro}%'))
@@ -8214,8 +8256,6 @@ def relatorio_clientes():
         usuarios_empresa = Usuario.query.filter_by(empresa_id=empresa_id, ativo=True).all()
         usuarios_ids = [u.id for u in usuarios_empresa]
         
-        app.logger.info(f"Usuários da empresa: {len(usuarios_ids)}")
-        
         if not usuarios_ids:
             flash('Nenhum usuário ativo encontrado na empresa', 'warning')
             return render_template('relatorio_clientes.html', 
@@ -8231,8 +8271,6 @@ def relatorio_clientes():
         
         # Buscar clientes da empresa (filtro direto por empresa_id)
         clientes = Cliente.query.filter(Cliente.empresa_id == empresa_id).all()
-        
-        app.logger.info(f"Clientes encontrados: {len(clientes)}")
         
         if not clientes:
             flash('Nenhum cliente encontrado', 'warning')
@@ -8307,7 +8345,7 @@ def relatorio_clientes():
         # Calcular dados de cada cliente
         for cliente in clientes:
             try:
-                app.logger.info(f"Processando cliente {cliente.id}: {cliente.nome}")
+                # app.logger.info(f"Processando cliente {cliente.id}: {cliente.nome}")
                 
                 # Buscar lançamentos financeiros do cliente considerando também vínculos por venda
                 # Inclui registros com Lancamento.cliente_id diretamente ou via Venda.cliente_id
@@ -8384,6 +8422,8 @@ def relatorio_clientes():
                 # Saldo em aberto = a vencer + vencido + agendado
                 saldo_aberto = total_a_vencer + saldo_vencido + total_agendado
 
+                # Total geral (realizadas + pendentes)
+                total_geral = total_vendas + saldo_aberto
 
                 # Aplicar filtro de status
                 if filtro_status == 'com_saldo' and saldo_aberto <= 0:
@@ -8409,8 +8449,6 @@ def relatorio_clientes():
                     'ticket_medio': ticket_medio
                 }
                 clientes_dados.append(cliente_data)
-                
-                app.logger.info(f"Cliente {cliente.id} processado com sucesso")
                 
             except Exception as e:
                 app.logger.error(f"Erro ao processar cliente {cliente.id}: {str(e)}")
@@ -9147,6 +9185,8 @@ def relatorio_fornecedores():
                                  sum_total_geral=0,
                                  sum_num_compras=0,
                                  sum_ticket_medio=0)
+        
+        app.logger.info(f"Fornecedores encontrados para processar: {len(fornecedores)}")
         
         # Lista para armazenar dados dos fornecedores
         fornecedores_dados = []
@@ -14898,6 +14938,7 @@ def criar_lancamento_financeiro_automatico(venda_ou_compra, tipo, usuario_id):
             empresa_id=empresa_id_correta,  # Usar empresa_id correta da sessão
             venda_id=venda_id,
             compra_id=compra_id,
+            cliente_id=venda_ou_compra.cliente_id if tipo == 'venda' else None,
             fornecedor_id=venda_ou_compra.fornecedor_id if tipo == 'compra' else None,
             usuario_criacao_id=usuario_id  # Registrar quem criou
         )

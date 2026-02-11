@@ -20,8 +20,8 @@
                         <label for="tipo" class="form-label">Tipo</label>
                         <select class="form-select" id="tipo" name="tipo">
                             <option value="">Todos</option>
-                            <option value="entrada" {{ 'selected' if filtros.tipo == 'entrada' else '' }}>Entrada</option>
-                            <option value="saida" {{ 'selected' if filtros.tipo == 'saida' else '' }}>Saída</option>
+                            <option value="entrada" {{ 'selected' if filtros.tipo=='entrada' else '' }}>Entrada</option>
+                            <option value="saida" {{ 'selected' if filtros.tipo=='saida' else '' }}>Saída</option>
                         </select>
                     </div>
                     <div class="col-md-3 mb-3">
@@ -29,53 +29,60 @@
                         <select class="form-select" id="categoria" name="categoria">
                             <option value="">Todas</option>
                             {% for categoria in categorias %}
-                                <option value="{{ categoria }}" {{ 'selected' if filtros.categoria == categoria else '' }}>
-                                    {{ categoria }}
-                                </option>
+                            <option value="{{ categoria }}" {{ 'selected' if filtros.categoria==categoria else '' }}>
+                                {{ categoria }}
+                            </option>
                             {% endfor %}
                         </select>
                     </div>
                     <div class="col-md-2 mb-3">
                         <label for="data_inicio" class="form-label">Data Início</label>
-                        <input type="text" class="form-control" id="data_inicio" name="data_inicio" 
-                               value="{{ filtros.data_inicio }}" placeholder="__/__/____" 
-                               pattern="\d{2}/\d{2}/\d{4}" title="Formato: DD/MM/AAAA">
+                        <input type="text" class="form-control" id="data_inicio" name="data_inicio"
+                            value="{{ filtros.data_inicio }}" placeholder="__/__/____" pattern="\d{2}/\d{2}/\d{4}"
+                            title="Formato: DD/MM/AAAA">
                     </div>
                     <div class="col-md-2 mb-3">
                         <label for="data_fim" class="form-label">Data Fim</label>
-                        <input type="text" class="form-control" id="data_fim" name="data_fim" 
-                               value="{{ filtros.data_fim }}" placeholder="__/__/____" 
-                               pattern="\d{2}/\d{2}/\d{4}" title="Formato: DD/MM/AAAA">
+                        <input type="text" class="form-control" id="data_fim" name="data_fim"
+                            value="{{ filtros.data_fim }}" placeholder="__/__/____" pattern="\d{2}/\d{2}/\d{4}"
+                            title="Formato: DD/MM/AAAA">
                     </div>
                     <div class="col-md-2 mb-3">
                         <label for="status" class="form-label">Status</label>
                         <select class="form-select" id="status" name="status">
                             <option value="">Todos</option>
-                            <option value="realizado" {{ 'selected' if filtros.status == 'realizado' else '' }}>Realizado</option>
-                            <option value="pendente" {{ 'selected' if filtros.status == 'pendente' else '' }}>Pendente</option>
+                            <option value="realizado" {{ 'selected' if filtros.status=='realizado' else '' }}>Realizado
+                            </option>
+                            <option value="pendente" {{ 'selected' if filtros.status=='pendente' else '' }}>Pendente
+                            </option>
                         </select>
                     </div>
                     <div class="col-md-3 mb-3">
                         <label for="cliente" class="form-label">Cliente</label>
-                        <input type="text" class="form-control" id="cliente" name="cliente" 
-                               value="{{ filtros.cliente or '' }}" placeholder="Digite o nome do cliente..."
-                               autocomplete="off">
+                        <input type="text" class="form-control" id="cliente" name="cliente"
+                            value="{{ filtros.cliente or '' }}" placeholder="Digite o nome do cliente..."
+                            autocomplete="off">
                         <div id="cliente-suggestions" class="suggestions-dropdown"></div>
                     </div>
                     <div class="col-md-3 mb-3">
                         <label for="fornecedor" class="form-label">Fornecedor</label>
-                        <input type="text" class="form-control" id="fornecedor" name="fornecedor" 
-                               value="{{ filtros.fornecedor or '' }}" placeholder="Digite o nome do fornecedor..."
-                               autocomplete="off">
+                        <input type="text" class="form-control" id="fornecedor" name="fornecedor"
+                            value="{{ filtros.fornecedor or '' }}" placeholder="Digite o nome do fornecedor..."
+                            autocomplete="off">
                         <div id="fornecedor-suggestions" class="suggestions-dropdown"></div>
                     </div>
-                    <div class="col-md-1 mb-3">
-                        <label class="form-label">&nbsp;</label>
-                        <div>
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-search"></i>
-                            </button>
-                        </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="busca" class="form-label">Busca</label>
+                        <input type="text" class="form-control" id="busca" name="busca"
+                            value="{{ request.args.get('busca', '') }}" placeholder="Descrição, valor ou produto...">
+                    </div>
+                    <div class="col-md-2 mb-3 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary me-2">
+                            <i class="fas fa-filter me-1"></i> Filtrar
+                        </button>
+                        <a href="{{ url_for('relatorio_lancamentos') }}" class="btn btn-secondary">
+                            <i class="fas fa-times me-1"></i> Limpar
+                        </a>
                     </div>
                 </form>
             </div>
@@ -97,7 +104,8 @@
                 <div class="card bg-success text-white">
                     <div class="card-body text-center">
                         <h6>Total Entradas</h6>
-                        <h4>R$ {{ "%.2f"|format(lancamentos|selectattr('tipo', 'equalto', 'entrada')|sum(attribute='valor')) }}</h4>
+                        <h4>R$ {{ "%.2f"|format(lancamentos|selectattr('tipo', 'equalto',
+                            'entrada')|sum(attribute='valor')) }}</h4>
                     </div>
                 </div>
             </div>
@@ -105,7 +113,8 @@
                 <div class="card bg-danger text-white">
                     <div class="card-body text-center">
                         <h6>Total Saídas</h6>
-                        <h4>R$ {{ "%.2f"|format(lancamentos|selectattr('tipo', 'equalto', 'saida')|sum(attribute='valor')) }}</h4>
+                        <h4>R$ {{ "%.2f"|format(lancamentos|selectattr('tipo', 'equalto',
+                            'saida')|sum(attribute='valor')) }}</h4>
                     </div>
                 </div>
             </div>
@@ -138,68 +147,69 @@
             </div>
             <div class="card-body">
                 {% if lancamentos %}
-                    <div class="table-scroll-container">
-                        <table class="table table-striped" id="tabelaLancamentos">
-                            <thead>
-                                <tr>
-                                    <th>Data</th>
-                                    <th>Descrição</th>
-                                    <th>Categoria</th>
-                                    <th>Tipo</th>
-                                    <th>Cliente/Fornecedor</th>
-                                    <th class="text-end">Valor</th>
-                                    <th>Status</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for lancamento in lancamentos %}
-                                <tr>
-                                    <td>{{ lancamento.data_prevista.strftime('%d/%m/%Y') }}</td>
-                                    <td>{{ lancamento.descricao }}</td>
-                                    <td>{{ lancamento.categoria }}</td>
-                                    <td>
-                                        <span class="badge bg-{{ 'success' if lancamento.tipo == 'entrada' else 'danger' }}">
-                                            {{ lancamento.tipo|title }}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        {% if lancamento.cliente_id %}
-                                            <span class="badge bg-primary">
-                                                <i class="fas fa-user me-1"></i>{{ lancamento.cliente.nome }}
-                                            </span>
-                                        {% elif lancamento.fornecedor_id %}
-                                            <span class="badge bg-info">
-                                                <i class="fas fa-truck me-1"></i>{{ lancamento.fornecedor.nome }}
-                                            </span>
-                                        {% else %}
-                                            <span class="text-muted">-</span>
-                                        {% endif %}
-                                    </td>
-                                    <td class="text-end text-{{ 'success' if lancamento.tipo == 'entrada' else 'danger' }}">
-                                        R$ {{ "%.2f"|format(lancamento.valor) }}
-                                    </td>
-                                    <td>
-                                        {% if lancamento.realizado %}
-                                            <span class="badge bg-success">
-                                                <i class="fas fa-check"></i> Realizado
-                                            </span>
-                                        {% else %}
-                                            <span class="badge bg-warning">
-                                                <i class="fas fa-clock"></i> Pendente
-                                            </span>
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
+                <div class="table-scroll-container">
+                    <table class="table table-striped" id="tabelaLancamentos">
+                        <thead>
+                            <tr>
+                                <th>Data</th>
+                                <th>Descrição</th>
+                                <th>Categoria</th>
+                                <th>Tipo</th>
+                                <th>Cliente/Fornecedor</th>
+                                <th class="text-end">Valor</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for lancamento in lancamentos %}
+                            <tr>
+                                <td>{{ lancamento.data_prevista.strftime('%d/%m/%Y') }}</td>
+                                <td>{{ lancamento.descricao }}</td>
+                                <td>{{ lancamento.categoria }}</td>
+                                <td>
+                                    <span
+                                        class="badge bg-{{ 'success' if lancamento.tipo == 'entrada' else 'danger' }}">
+                                        {{ lancamento.tipo|title }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if lancamento.cliente_id %}
+                                    <span class="badge bg-primary">
+                                        <i class="fas fa-user me-1"></i>{{ lancamento.cliente.nome }}
+                                    </span>
+                                    {% elif lancamento.fornecedor_id %}
+                                    <span class="badge bg-info">
+                                        <i class="fas fa-truck me-1"></i>{{ lancamento.fornecedor.nome }}
+                                    </span>
+                                    {% else %}
+                                    <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end text-{{ 'success' if lancamento.tipo == 'entrada' else 'danger' }}">
+                                    R$ {{ "%.2f"|format(lancamento.valor) }}
+                                </td>
+                                <td>
+                                    {% if lancamento.realizado %}
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-check"></i> Realizado
+                                    </span>
+                                    {% else %}
+                                    <span class="badge bg-warning">
+                                        <i class="fas fa-clock"></i> Pendente
+                                    </span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
                 {% else %}
-                    <div class="text-center py-4">
-                        <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
-                        <h5 class="text-muted">Nenhum lançamento encontrado</h5>
-                        <p class="text-muted">Tente ajustar os filtros para ver mais resultados.</p>
-                    </div>
+                <div class="text-center py-4">
+                    <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">Nenhum lançamento encontrado</h5>
+                    <p class="text-muted">Tente ajustar os filtros para ver mais resultados.</p>
+                </div>
                 {% endif %}
             </div>
         </div>
@@ -212,10 +222,12 @@
                 <i class="fas fa-arrow-left me-2"></i>Voltar aos Relatórios
             </a>
             <div>
-                <a href="{{ url_for('exportar_relatorio_lancamentos', formato='excel') }}?tipo={{ filtros.tipo }}&categoria={{ filtros.categoria }}&status={{ filtros.status }}&data_inicio={{ filtros.data_inicio }}&data_fim={{ filtros.data_fim }}" class="btn btn-success">
+                <a href="{{ url_for('exportar_relatorio_lancamentos', formato='excel') }}?tipo={{ filtros.tipo }}&categoria={{ filtros.categoria }}&status={{ filtros.status }}&data_inicio={{ filtros.data_inicio }}&data_fim={{ filtros.data_fim }}"
+                    class="btn btn-success">
                     <i class="fas fa-file-excel me-2"></i>Exportar Excel
                 </a>
-                <a href="{{ url_for('exportar_relatorio_lancamentos', formato='pdf') }}?tipo={{ filtros.tipo }}&categoria={{ filtros.categoria }}&status={{ filtros.status }}&data_inicio={{ filtros.data_inicio }}&data_fim={{ filtros.data_fim }}" class="btn btn-danger">
+                <a href="{{ url_for('exportar_relatorio_lancamentos', formato='pdf') }}?tipo={{ filtros.tipo }}&categoria={{ filtros.categoria }}&status={{ filtros.status }}&data_inicio={{ filtros.data_inicio }}&data_fim={{ filtros.data_fim }}"
+                    class="btn btn-danger">
                     <i class="fas fa-file-pdf me-2"></i>Exportar PDF
                 </a>
                 <a href="{{ url_for('lancamentos') }}" class="btn btn-info">
@@ -227,281 +239,285 @@
 </div>
 
 <script>
-function exportarCSV() {
-    const table = document.getElementById('tabelaLancamentos');
-    const rows = table.querySelectorAll('tbody tr');
-    
-    let csv = 'Data,Descrição,Categoria,Tipo,Valor,Status\n';
-    
-    rows.forEach(row => {
-        const cells = row.querySelectorAll('td');
-        const rowData = [];
-        
-        cells.forEach((cell, index) => {
-            let text = cell.textContent.trim();
-            if (index === 3) { // Tipo
-                text = text.replace('Entrada', 'Entrada').replace('Saída', 'Saída');
-            } else if (index === 4) { // Valor
-                text = text.replace('R$ ', '');
-            } else if (index === 5) { // Status
-                text = text.includes('Realizado') ? 'Realizado' : 'Pendente';
-            }
-            rowData.push(`"${text}"`);
-        });
-        
-        csv += rowData.join(',') + '\n';
-    });
-    
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', 'relatorio_lancamentos.csv');
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-}
+    function exportarCSV() {
+        const table = document.getElementById('tabelaLancamentos');
+        const rows = table.querySelectorAll('tbody tr');
 
-// Máscara para campos de data e autocomplete
-document.addEventListener('DOMContentLoaded', function() {
-    const dataInicio = document.getElementById('data_inicio');
-    const dataFim = document.getElementById('data_fim');
-    const clienteInput = document.getElementById('cliente');
-    const fornecedorInput = document.getElementById('fornecedor');
-    
-    function aplicarMascaraData(input) {
-        input.addEventListener('input', function(e) {
-            let value = e.target.value.replace(/\D/g, '');
-            if (value.length >= 2) {
-                value = value.substring(0, 2) + '/' + value.substring(2);
-            }
-            if (value.length >= 5) {
-                value = value.substring(0, 5) + '/' + value.substring(5, 9);
-            }
-            e.target.value = value;
+        let csv = 'Data,Descrição,Categoria,Tipo,Valor,Status\n';
+
+        rows.forEach(row => {
+            const cells = row.querySelectorAll('td');
+            const rowData = [];
+
+            cells.forEach((cell, index) => {
+                let text = cell.textContent.trim();
+                if (index === 3) { // Tipo
+                    text = text.replace('Entrada', 'Entrada').replace('Saída', 'Saída');
+                } else if (index === 4) { // Valor
+                    text = text.replace('R$ ', '');
+                } else if (index === 5) { // Status
+                    text = text.includes('Realizado') ? 'Realizado' : 'Pendente';
+                }
+                rowData.push(`"${text}"`);
+            });
+
+            csv += rowData.join(',') + '\n';
         });
+
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', 'relatorio_lancamentos.csv');
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     }
-    
-    function setupAutocomplete(input, suggestionsId, apiEndpoint) {
-        const suggestionsDiv = document.getElementById(suggestionsId);
-        let timeout;
-        
-        input.addEventListener('input', function(e) {
-            const query = e.target.value.trim();
-            
-            clearTimeout(timeout);
-            
-            if (query.length < 2) {
-                suggestionsDiv.style.display = 'none';
-                return;
-            }
-            
-            timeout = setTimeout(() => {
-                fetch(`${apiEndpoint}?q=${encodeURIComponent(query)}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.error) {
-                            console.error('Erro ao buscar:', data.error);
-                            return;
-                        }
-                        
-                        const items = data.clientes || data.fornecedores || [];
-                        
-                        if (items.length === 0) {
-                            suggestionsDiv.style.display = 'none';
-                            return;
-                        }
-                        
-                        suggestionsDiv.innerHTML = items.map(item => 
-                            `<div class="suggestion-item" data-value="${item.nome}">${item.nome}</div>`
-                        ).join('');
-                        
-                        suggestionsDiv.style.display = 'block';
-                        
-                        // Adicionar eventos de clique
-                        suggestionsDiv.querySelectorAll('.suggestion-item').forEach(item => {
-                            item.addEventListener('click', function() {
-                                input.value = this.dataset.value;
+
+    // Máscara para campos de data e autocomplete
+    document.addEventListener('DOMContentLoaded', function () {
+        const dataInicio = document.getElementById('data_inicio');
+        const dataFim = document.getElementById('data_fim');
+        const clienteInput = document.getElementById('cliente');
+        const fornecedorInput = document.getElementById('fornecedor');
+
+        function aplicarMascaraData(input) {
+            input.addEventListener('input', function (e) {
+                let value = e.target.value.replace(/\D/g, '');
+                if (value.length >= 2) {
+                    value = value.substring(0, 2) + '/' + value.substring(2);
+                }
+                if (value.length >= 5) {
+                    value = value.substring(0, 5) + '/' + value.substring(5, 9);
+                }
+                e.target.value = value;
+            });
+        }
+
+        function setupAutocomplete(input, suggestionsId, apiEndpoint) {
+            const suggestionsDiv = document.getElementById(suggestionsId);
+            let timeout;
+
+            input.addEventListener('input', function (e) {
+                const query = e.target.value.trim();
+
+                clearTimeout(timeout);
+
+                if (query.length < 2) {
+                    suggestionsDiv.style.display = 'none';
+                    return;
+                }
+
+                timeout = setTimeout(() => {
+                    fetch(`${apiEndpoint}?q=${encodeURIComponent(query)}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.error) {
+                                console.error('Erro ao buscar:', data.error);
+                                return;
+                            }
+
+                            const items = data.clientes || data.fornecedores || [];
+
+                            if (items.length === 0) {
                                 suggestionsDiv.style.display = 'none';
+                                return;
+                            }
+
+                            suggestionsDiv.innerHTML = items.map(item =>
+                                `<div class="suggestion-item" data-value="${item.nome}">${item.nome}</div>`
+                            ).join('');
+
+                            suggestionsDiv.style.display = 'block';
+
+                            // Adicionar eventos de clique
+                            suggestionsDiv.querySelectorAll('.suggestion-item').forEach(item => {
+                                item.addEventListener('click', function () {
+                                    input.value = this.dataset.value;
+                                    suggestionsDiv.style.display = 'none';
+                                });
                             });
+                        })
+                        .catch(error => {
+                            console.error('Erro na requisição:', error);
+                            suggestionsDiv.style.display = 'none';
                         });
-                    })
-                    .catch(error => {
-                        console.error('Erro na requisição:', error);
-                        suggestionsDiv.style.display = 'none';
-                    });
-            }, 300);
-        });
-        
-        // Esconder sugestões ao clicar fora
-        document.addEventListener('click', function(e) {
-            if (!input.contains(e.target) && !suggestionsDiv.contains(e.target)) {
-                suggestionsDiv.style.display = 'none';
-            }
-        });
-        
-        // Esconder sugestões ao pressionar Escape
-        input.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') {
-                suggestionsDiv.style.display = 'none';
-            }
-        });
-    }
-    
-    aplicarMascaraData(dataInicio);
-    aplicarMascaraData(dataFim);
-    
-    if (clienteInput) {
-        setupAutocomplete(clienteInput, 'cliente-suggestions', '/api/clientes/buscar');
-    }
-    
-    if (fornecedorInput) {
-        setupAutocomplete(fornecedorInput, 'fornecedor-suggestions', '/api/fornecedores/buscar');
-    }
-});
+                }, 300);
+            });
+
+            // Esconder sugestões ao clicar fora
+            document.addEventListener('click', function (e) {
+                if (!input.contains(e.target) && !suggestionsDiv.contains(e.target)) {
+                    suggestionsDiv.style.display = 'none';
+                }
+            });
+
+            // Esconder sugestões ao pressionar Escape
+            input.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape') {
+                    suggestionsDiv.style.display = 'none';
+                }
+            });
+        }
+
+        aplicarMascaraData(dataInicio);
+        aplicarMascaraData(dataFim);
+
+        if (clienteInput) {
+            setupAutocomplete(clienteInput, 'cliente-suggestions', '/api/clientes/buscar');
+        }
+
+        if (fornecedorInput) {
+            setupAutocomplete(fornecedorInput, 'fornecedor-suggestions', '/api/fornecedores/buscar');
+        }
+    });
 </script>
 
 <style>
-/* Barra de rolagem para tabela - apenas vertical, sempre visível */
-.table-scroll-container {
-    max-height: 600px;
-    overflow-y: scroll !important;
-    overflow-x: hidden !important;
-    border: 1px solid #dee2e6;
-    border-radius: 0.375rem;
-}
-
-/* Scrollbar personalizada - sempre visível */
-.table-scroll-container::-webkit-scrollbar {
-    width: 12px;
-    background: #f8f9fa;
-}
-
-.table-scroll-container::-webkit-scrollbar-track {
-    background: #f8f9fa;
-    border-radius: 6px;
-}
-
-.table-scroll-container::-webkit-scrollbar-thumb {
-    background: #6c757d;
-    border-radius: 6px;
-    border: 2px solid #f8f9fa;
-}
-
-.table-scroll-container::-webkit-scrollbar-thumb:hover {
-    background: #495057;
-}
-
-/* Scrollbar personalizada - corrigida para evitar tremor */
-.table-scroll-container::-webkit-scrollbar {
-    width: 8px;
-    background: transparent;
-}
-
-.table-scroll-container::-webkit-scrollbar-track {
-    background: #f8f9fa;
-    border-radius: 4px;
-    border: 1px solid #e9ecef;
-}
-
-.table-scroll-container::-webkit-scrollbar-thumb {
-    background: #6c757d;
-    border-radius: 4px;
-    border: 1px solid #f8f9fa;
-    transition: background-color 0.2s ease;
-}
-
-.table-scroll-container::-webkit-scrollbar-thumb:hover {
-    background: #495057;
-}
-
-.table-scroll-container::-webkit-scrollbar-thumb:active {
-    background: #343a40;
-}
-
-/* Garantir que não há conflitos de layout */
-.table-scroll-container {
-    position: relative;
-    overflow-y: scroll !important;
-    overflow-x: hidden !important;
-}
-
-/* Responsividade */
-@media (max-width: 768px) {
+    /* Barra de rolagem para tabela - apenas vertical, sempre visível */
     .table-scroll-container {
-        max-height: 400px;
+        max-height: 600px;
+        overflow-y: scroll !important;
+        overflow-x: hidden !important;
+        border: 1px solid #dee2e6;
+        border-radius: 0.375rem;
     }
-}
 
-@media print {
-    .btn, .navbar, .sidebar {
-        display: none !important;
+    /* Scrollbar personalizada - sempre visível */
+    .table-scroll-container::-webkit-scrollbar {
+        width: 12px;
+        background: #f8f9fa;
     }
-    .card {
-        border: 1px solid #000 !important;
+
+    .table-scroll-container::-webkit-scrollbar-track {
+        background: #f8f9fa;
+        border-radius: 6px;
     }
-}
 
-/* Estilos para autocomplete */
-.suggestions-dropdown {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
-    background: white;
-    border: 1px solid #dee2e6;
-    border-top: none;
-    border-radius: 0 0 0.375rem 0.375rem;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    z-index: 1000;
-    max-height: 200px;
-    overflow-y: auto;
-    display: none;
-}
+    .table-scroll-container::-webkit-scrollbar-thumb {
+        background: #6c757d;
+        border-radius: 6px;
+        border: 2px solid #f8f9fa;
+    }
 
-.suggestion-item {
-    padding: 10px 15px;
-    cursor: pointer;
-    border-bottom: 1px solid #f1f3f4;
-    transition: background-color 0.2s ease;
-}
+    .table-scroll-container::-webkit-scrollbar-thumb:hover {
+        background: #495057;
+    }
 
-.suggestion-item:hover {
-    background-color: #f8f9fa;
-}
+    /* Scrollbar personalizada - corrigida para evitar tremor */
+    .table-scroll-container::-webkit-scrollbar {
+        width: 8px;
+        background: transparent;
+    }
 
-.suggestion-item:last-child {
-    border-bottom: none;
-}
+    .table-scroll-container::-webkit-scrollbar-track {
+        background: #f8f9fa;
+        border-radius: 4px;
+        border: 1px solid #e9ecef;
+    }
 
-/* Container relativo para posicionamento do dropdown */
-.col-md-3 {
-    position: relative;
-}
+    .table-scroll-container::-webkit-scrollbar-thumb {
+        background: #6c757d;
+        border-radius: 4px;
+        border: 1px solid #f8f9fa;
+        transition: background-color 0.2s ease;
+    }
 
-/* Estilos para coluna de Status */
-table#tabelaLancamentos thead th:last-child,
-table#tabelaLancamentos tbody td:last-child {
-    background-color: #f0f4f8 !important;
-}
+    .table-scroll-container::-webkit-scrollbar-thumb:hover {
+        background: #495057;
+    }
 
-table#tabelaLancamentos tbody tr:hover td:last-child {
-    background-color: #e0e8f0 !important;
-}
+    .table-scroll-container::-webkit-scrollbar-thumb:active {
+        background: #343a40;
+    }
 
-table#tabelaLancamentos tbody tr:nth-child(even) td:last-child {
-    background-color: #e8eff5 !important;
-}
+    /* Garantir que não há conflitos de layout */
+    .table-scroll-container {
+        position: relative;
+        overflow-y: scroll !important;
+        overflow-x: hidden !important;
+    }
 
-table#tabelaLancamentos tbody tr:nth-child(odd) td:last-child {
-    background-color: #f8fafc !important;
-}
+    /* Responsividade */
+    @media (max-width: 768px) {
+        .table-scroll-container {
+            max-height: 400px;
+        }
+    }
 
-/* Coluna de Valor também destacada */
-table#tabelaLancamentos thead th:nth-child(6),
-table#tabelaLancamentos tbody td:nth-child(6) {
-    background-color: #f8fafc !important;
-}
+    @media print {
+
+        .btn,
+        .navbar,
+        .sidebar {
+            display: none !important;
+        }
+
+        .card {
+            border: 1px solid #000 !important;
+        }
+    }
+
+    /* Estilos para autocomplete */
+    .suggestions-dropdown {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: white;
+        border: 1px solid #dee2e6;
+        border-top: none;
+        border-radius: 0 0 0.375rem 0.375rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        z-index: 1000;
+        max-height: 200px;
+        overflow-y: auto;
+        display: none;
+    }
+
+    .suggestion-item {
+        padding: 10px 15px;
+        cursor: pointer;
+        border-bottom: 1px solid #f1f3f4;
+        transition: background-color 0.2s ease;
+    }
+
+    .suggestion-item:hover {
+        background-color: #f8f9fa;
+    }
+
+    .suggestion-item:last-child {
+        border-bottom: none;
+    }
+
+    /* Container relativo para posicionamento do dropdown */
+    .col-md-3 {
+        position: relative;
+    }
+
+    /* Estilos para coluna de Status */
+    table#tabelaLancamentos thead th:last-child,
+    table#tabelaLancamentos tbody td:last-child {
+        background-color: #f0f4f8 !important;
+    }
+
+    table#tabelaLancamentos tbody tr:hover td:last-child {
+        background-color: #e0e8f0 !important;
+    }
+
+    table#tabelaLancamentos tbody tr:nth-child(even) td:last-child {
+        background-color: #e8eff5 !important;
+    }
+
+    table#tabelaLancamentos tbody tr:nth-child(odd) td:last-child {
+        background-color: #f8fafc !important;
+    }
+
+    /* Coluna de Valor também destacada */
+    table#tabelaLancamentos thead th:nth-child(6),
+    table#tabelaLancamentos tbody td:nth-child(6) {
+        background-color: #f8fafc !important;
+    }
 </style>
-{% endblock %} 
+{% endblock %}
