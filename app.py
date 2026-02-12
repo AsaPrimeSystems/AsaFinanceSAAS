@@ -2129,24 +2129,61 @@ def dashboard():
 def admin_dashboard():
     if 'usuario_id' not in session:
         return redirect(url_for('login'))
-    
+
     usuario = Usuario.query.options(db.joinedload(Usuario.empresa)).get(session['usuario_id'])
     if usuario.tipo != 'admin':
         return redirect(url_for('dashboard'))
-    
+
     # Estatísticas para o admin
     total_usuarios = Usuario.query.filter(Usuario.tipo != 'admin').count()
     usuarios_ativos = Usuario.query.filter(Usuario.tipo != 'admin', Usuario.ativo == True).count()
     usuarios_pausados = Usuario.query.filter(Usuario.tipo != 'admin', Usuario.pausado == True).count()
-    
+
     usuarios = Usuario.query.options(db.joinedload(Usuario.empresa)).filter(Usuario.tipo != 'admin').order_by(Usuario.data_criacao.desc()).all()
-    
+
+    # Dados para gráficos
+    # 1. Distribuição por tipo de conta
+    empresas = Empresa.query.filter(Empresa.tipo_conta != 'admin').all()
+    contas_por_tipo = {
+        'empresa': sum(1 for e in empresas if e.tipo_conta == 'empresa'),
+        'pessoa_fisica': sum(1 for e in empresas if e.tipo_conta == 'pessoa_fisica'),
+        'contador_bpo': sum(1 for e in empresas if e.tipo_conta == 'contador_bpo')
+    }
+
+    # 2. Distribuição por dias de assinatura
+    dias_distribuicao = {
+        'excelente': sum(1 for e in empresas if e.dias_assinatura and e.dias_assinatura > 90),
+        'bom': sum(1 for e in empresas if e.dias_assinatura and 30 <= e.dias_assinatura <= 90),
+        'alerta': sum(1 for e in empresas if e.dias_assinatura and 7 <= e.dias_assinatura < 30),
+        'critico': sum(1 for e in empresas if e.dias_assinatura and 1 <= e.dias_assinatura < 7),
+        'expirado': sum(1 for e in empresas if e.dias_assinatura is not None and e.dias_assinatura == 0)
+    }
+
+    # 3. Crescimento de contas nos últimos 12 meses
+    from datetime import datetime, timedelta
+    hoje = datetime.now()
+    meses_crescimento = []
+    contas_crescimento = []
+    for i in range(11, -1, -1):  # Últimos 12 meses
+        mes_ref = hoje - timedelta(days=30*i)
+        mes_nome = mes_ref.strftime('%b/%y')
+        total_ate_mes = Empresa.query.filter(
+            Empresa.tipo_conta != 'admin',
+            Empresa.data_criacao <= mes_ref
+        ).count()
+        meses_crescimento.append(mes_nome)
+        contas_crescimento.append(total_ate_mes)
+
     return render_template('admin_dashboard.html',
                          usuario=usuario,
                          total_usuarios=total_usuarios,
                          usuarios_ativos=usuarios_ativos,
                          usuarios_pausados=usuarios_pausados,
-                         usuarios=usuarios)
+                         usuarios=usuarios,
+                         contas_por_tipo=contas_por_tipo,
+                         dias_distribuicao=dias_distribuicao,
+                         meses_crescimento=meses_crescimento,
+                         contas_crescimento=contas_crescimento)
 
 @app.route('/admin/usuarios')
 def admin_usuarios():
@@ -11225,7 +11262,7 @@ def editar_compra(compra_id):
                          lancamentos_vinculados_ids=lancamentos_vinculados_ids)
 
 def exportar_relatorio_clientes_pdf(clientes_dados):
-    """Exporta relatório de clientes em PDF"""
+    """Exporta relatório completo de clientes em PDF com todos os detalhes da tela"""
     try:
         from reportlab.lib.pagesizes import letter, A4, landscape
         from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
@@ -11234,64 +11271,69 @@ def exportar_relatorio_clientes_pdf(clientes_dados):
         from reportlab.lib import colors
         from io import BytesIO
         from flask import send_file
-        
+
         # Criar buffer para o PDF
         buffer = BytesIO()
-        doc = SimpleDocTemplate(buffer, pagesize=landscape(A4))
+        doc = SimpleDocTemplate(buffer, pagesize=landscape(A4), topMargin=30, bottomMargin=30)
         elements = []
-        
+
         # Estilos
         styles = getSampleStyleSheet()
-        title_style = ParagraphStyle(
-            'CustomTitle',
-            parent=styles['Heading1'],
-            fontSize=16,
-            spaceAfter=30,
-            alignment=1
-        )
-        
+        title_style = ParagraphStyle('CustomTitle', parent=styles['Heading1'], fontSize=18, spaceAfter=20, alignment=1, textColor=colors.HexColor('#2c3e50'))
+        subtitle_style = ParagraphStyle('SubTitle', parent=styles['Normal'], fontSize=10, spaceAfter=15, alignment=1, textColor=colors.grey)
+
         # Título
-        elements.append(Paragraph("Relatório de Clientes", title_style))
+        elements.append(Paragraph("Relatório Completo de Clientes", title_style))
+        elements.append(Paragraph(f"Gerado em: {datetime.now().strftime('%d/%m/%Y às %H:%M')}", subtitle_style))
+        elements.append(Spacer(1, 15))
+
+        # Calcular totais para o resumo
+        total_clientes = len(clientes_dados)
+        sum_realizado = sum(c.get('total_vendas', 0) for c in clientes_dados)
+        sum_a_vencer = sum(c.get('total_vendas_pendentes', 0) for c in clientes_dados)
+        sum_vencido = sum(c.get('saldo_vencido', 0) for c in clientes_dados)
+        sum_agendado = sum(c.get('total_agendado', 0) for c in clientes_dados)
+        sum_saldo_aberto = sum(c.get('saldo_aberto', 0) for c in clientes_dados)
+        sum_total_geral = sum(c.get('total_geral', 0) for c in clientes_dados)
+        sum_transacoes = sum(c.get('num_vendas', 0) for c in clientes_dados)
+
+        # Tabela de resumo
+        resumo_data = [['RESUMO GERAL', '', '', '', '', ''], ['Total Clientes', 'Realizado', 'A Vencer', 'Vencido', 'Agendado', 'Saldo Aberto'], [str(total_clientes), f"R$ {sum_realizado:.2f}", f"R$ {sum_a_vencer:.2f}", f"R$ {sum_vencido:.2f}", f"R$ {sum_agendado:.2f}", f"R$ {sum_saldo_aberto:.2f}"]]
+        resumo_table = Table(resumo_data, colWidths=[100, 100, 100, 100, 100, 100])
+        resumo_table.setStyle(TableStyle([('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#3498db')), ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke), ('ALIGN', (0, 0), (-1, -1), 'CENTER'), ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'), ('FONTSIZE', (0, 0), (-1, 0), 12), ('BACKGROUND', (0, 1), (-1, 1), colors.HexColor('#ecf0f1')), ('FONTNAME', (0, 1), (-1, 1), 'Helvetica-Bold'), ('FONTSIZE', (0, 1), (-1, 1), 9), ('BACKGROUND', (0, 2), (-1, 2), colors.white), ('FONTSIZE', (0, 2), (-1, 2), 10), ('GRID', (0, 0), (-1, -1), 1, colors.grey), ('SPAN', (0, 0), (-1, 0))]))
+        elements.append(resumo_table)
         elements.append(Spacer(1, 20))
-        
-        # Dados da tabela
-        data = [['Cliente', 'Contato', 'CPF/CNPJ', 'Vendas Realizadas', 'Vendas Pendentes', 'Saldo em Aberto']]
-        
+
+        # Dados da tabela principal - TODAS as colunas como na tela
+        data = [['Cliente', 'Email', 'Telefone', 'CPF/CNPJ', 'Realizado', 'A Vencer', 'Vencido', 'Agendado', 'Saldo Aberto', 'Total Geral', 'Trans.', 'Ticket Médio', 'Status']]
+
         for cliente_data in clientes_dados:
             cliente = cliente_data['cliente']
-            data.append([
-                cliente.nome,
-                cliente.telefone or '-',
-                cliente.cpf_cnpj or '-',
-                f"R$ {cliente_data['total_vendas']:.2f}",
-                f"R$ {cliente_data['total_vendas_pendentes']:.2f}",
-                f"R$ {cliente_data['saldo_aberto']:.2f}"
-            ])
-        
-        # Criar tabela
-        table = Table(data)
-        table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 12),
-            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-            ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-            ('GRID', (0, 0), (-1, -1), 1, colors.black)
-        ]))
-        
+            # Determinar status
+            if cliente_data.get('saldo_vencido', 0) > 0:
+                status = 'Vencido'
+            elif cliente_data.get('saldo_aberto', 0) > 0:
+                status = 'Em Aberto'
+            else:
+                status = 'Em Dia'
+
+            data.append([(cliente.nome[:20] + '...') if cliente.nome and len(cliente.nome) > 20 else (cliente.nome or '-'), (cliente.email[:25] + '...') if cliente.email and len(cliente.email) > 25 else (cliente.email or '-'), cliente.telefone or '-', cliente.cpf_cnpj or '-', f"R$ {cliente_data.get('total_vendas', 0):.2f}", f"R$ {cliente_data.get('total_vendas_pendentes', 0):.2f}", f"R$ {cliente_data.get('saldo_vencido', 0):.2f}", f"R$ {cliente_data.get('total_agendado', 0):.2f}", f"R$ {cliente_data.get('saldo_aberto', 0):.2f}", f"R$ {cliente_data.get('total_geral', 0):.2f}", str(cliente_data.get('num_vendas', 0)), f"R$ {cliente_data.get('ticket_medio', 0):.2f}", status])
+
+        # Adicionar linha de totais
+        ticket_medio_geral = sum_total_geral / sum_transacoes if sum_transacoes > 0 else 0
+        data.append(['TOTAL GERAL', '', '', '', f"R$ {sum_realizado:.2f}", f"R$ {sum_a_vencer:.2f}", f"R$ {sum_vencido:.2f}", f"R$ {sum_agendado:.2f}", f"R$ {sum_saldo_aberto:.2f}", f"R$ {sum_total_geral:.2f}", str(sum_transacoes), f"R$ {ticket_medio_geral:.2f}", ''])
+
+        # Criar tabela com larguras ajustadas
+        col_widths = [60, 70, 55, 60, 50, 50, 50, 50, 55, 55, 35, 55, 45]
+        table = Table(data, colWidths=col_widths)
+        table.setStyle(TableStyle([('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2c3e50')), ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke), ('ALIGN', (0, 0), (-1, -1), 'CENTER'), ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'), ('FONTSIZE', (0, 0), (-1, 0), 7), ('BOTTOMPADDING', (0, 0), (-1, 0), 8), ('BACKGROUND', (0, 1), (-1, -2), colors.HexColor('#f8f9fa')), ('FONTSIZE', (0, 1), (-1, -2), 7), ('GRID', (0, 0), (-1, -1), 0.5, colors.grey), ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#34495e')), ('TEXTCOLOR', (0, -1), (-1, -1), colors.whitesmoke), ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'), ('FONTSIZE', (0, -1), (-1, -1), 8)]))
+
         elements.append(table)
         doc.build(elements)
-        
+
         buffer.seek(0)
-        return send_file(
-            buffer,
-            as_attachment=True,
-            download_name=f'relatorio_clientes_{datetime.now().strftime("%Y%m%d_%H%M%S")}.pdf',
-            mimetype='application/pdf'
-        )
-        
+        return send_file(buffer, as_attachment=True, download_name=f'relatorio_clientes_completo_{datetime.now().strftime("%Y%m%d_%H%M%S")}.pdf', mimetype='application/pdf')
+
     except ImportError:
         flash('Biblioteca reportlab não instalada. Instale com: pip install reportlab', 'error')
         return redirect(url_for('relatorio_clientes'))
@@ -11301,46 +11343,109 @@ def exportar_relatorio_clientes_pdf(clientes_dados):
         return redirect(url_for('relatorio_clientes'))
 
 def exportar_relatorio_clientes_excel(clientes_dados):
-    """Exporta relatório de clientes em Excel"""
+    """Exporta relatório completo de clientes em Excel com todos os detalhes da tela"""
     try:
         import pandas as pd
         from io import BytesIO
         from flask import send_file
-        
-        # Preparar dados
+
+        # Preparar dados com TODAS as colunas
         dados = []
         for cliente_data in clientes_dados:
             cliente = cliente_data['cliente']
+
+            # Determinar status
+            if cliente_data.get('saldo_vencido', 0) > 0:
+                status = 'Vencido'
+            elif cliente_data.get('saldo_aberto', 0) > 0:
+                status = 'Em Aberto'
+            else:
+                status = 'Em Dia'
+
             dados.append({
-                'Cliente': cliente.nome,
+                'Cliente': cliente.nome or '',
                 'Email': cliente.email or '',
                 'Telefone': cliente.telefone or '',
                 'CPF/CNPJ': cliente.cpf_cnpj or '',
                 'Endereço': cliente.endereco or '',
-                'Vendas Realizadas': cliente_data['total_vendas'],
-                'Vendas Pendentes': cliente_data['total_vendas_pendentes'],
-                'Saldo em Aberto': cliente_data['saldo_aberto'],
-                'Total Geral': cliente_data['total_geral'],
-                'Nº Transações': cliente_data['num_vendas'],
-                'Ticket Médio': cliente_data['ticket_medio']
+                'Realizado': cliente_data.get('total_vendas', 0),
+                'A Vencer': cliente_data.get('total_vendas_pendentes', 0),
+                'Vencido': cliente_data.get('saldo_vencido', 0),
+                'Agendado': cliente_data.get('total_agendado', 0),
+                'Saldo em Aberto': cliente_data.get('saldo_aberto', 0),
+                'Total Geral': cliente_data.get('total_geral', 0),
+                'Nº Transações': cliente_data.get('num_vendas', 0),
+                'Ticket Médio': cliente_data.get('ticket_medio', 0),
+                'Status': status
             })
-        
+
         # Criar DataFrame
         df = pd.DataFrame(dados)
-        
+
+        # Calcular totais
+        total_clientes = len(clientes_dados)
+        sum_realizado = sum(c.get('total_vendas', 0) for c in clientes_dados)
+        sum_a_vencer = sum(c.get('total_vendas_pendentes', 0) for c in clientes_dados)
+        sum_vencido = sum(c.get('saldo_vencido', 0) for c in clientes_dados)
+        sum_agendado = sum(c.get('total_agendado', 0) for c in clientes_dados)
+        sum_saldo_aberto = sum(c.get('saldo_aberto', 0) for c in clientes_dados)
+        sum_total_geral = sum(c.get('total_geral', 0) for c in clientes_dados)
+        sum_transacoes = sum(c.get('num_vendas', 0) for c in clientes_dados)
+        ticket_medio_geral = sum_total_geral / sum_transacoes if sum_transacoes > 0 else 0
+
+        # Adicionar linha de totais
+        totais = pd.DataFrame([{
+            'Cliente': 'TOTAL GERAL',
+            'Email': '',
+            'Telefone': '',
+            'CPF/CNPJ': '',
+            'Endereço': '',
+            'Realizado': sum_realizado,
+            'A Vencer': sum_a_vencer,
+            'Vencido': sum_vencido,
+            'Agendado': sum_agendado,
+            'Saldo em Aberto': sum_saldo_aberto,
+            'Total Geral': sum_total_geral,
+            'Nº Transações': sum_transacoes,
+            'Ticket Médio': ticket_medio_geral,
+            'Status': ''
+        }])
+
+        df = pd.concat([df, totais], ignore_index=True)
+
         # Criar buffer para o Excel
         buffer = BytesIO()
         with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
-            df.to_excel(writer, sheet_name='Relatório de Clientes', index=False)
-        
+            # Escrever resumo
+            resumo_df = pd.DataFrame([{
+                'Total Clientes': total_clientes,
+                'Realizado': sum_realizado,
+                'A Vencer': sum_a_vencer,
+                'Vencido': sum_vencido,
+                'Agendado': sum_agendado,
+                'Saldo Aberto': sum_saldo_aberto
+            }])
+            resumo_df.to_excel(writer, sheet_name='Relatório de Clientes', startrow=0, index=False)
+
+            # Escrever dados principais
+            df.to_excel(writer, sheet_name='Relatório de Clientes', startrow=3, index=False)
+
+            # Formatar
+            workbook = writer.book
+            worksheet = writer.sheets['Relatório de Clientes']
+
+            # Ajustar larguras de colunas
+            worksheet.column_dimensions['A'].width = 30
+            worksheet.column_dimensions['B'].width = 30
+            worksheet.column_dimensions['C'].width = 15
+            worksheet.column_dimensions['D'].width = 18
+            worksheet.column_dimensions['E'].width = 35
+            for col in ['F', 'G', 'H', 'I', 'J', 'K', 'L', 'M']:
+                worksheet.column_dimensions[col].width = 15
+
         buffer.seek(0)
-        return send_file(
-            buffer,
-            as_attachment=True,
-            download_name=f'relatorio_clientes_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx',
-            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-        )
-        
+        return send_file(buffer, as_attachment=True, download_name=f'relatorio_clientes_completo_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx', mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+
     except ImportError:
         flash('Biblioteca pandas não instalada. Instale com: pip install pandas openpyxl', 'error')
         return redirect(url_for('relatorio_clientes'))
@@ -11350,7 +11455,7 @@ def exportar_relatorio_clientes_excel(clientes_dados):
         return redirect(url_for('relatorio_clientes'))
 
 def exportar_relatorio_fornecedores_pdf(fornecedores_dados):
-    """Exporta relatório de fornecedores em PDF"""
+    """Exporta relatório completo de fornecedores em PDF com todos os detalhes da tela"""
     try:
         from reportlab.lib.pagesizes import letter, A4, landscape
         from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
@@ -11359,64 +11464,69 @@ def exportar_relatorio_fornecedores_pdf(fornecedores_dados):
         from reportlab.lib import colors
         from io import BytesIO
         from flask import send_file
-        
+
         # Criar buffer para o PDF
         buffer = BytesIO()
-        doc = SimpleDocTemplate(buffer, pagesize=landscape(A4))
+        doc = SimpleDocTemplate(buffer, pagesize=landscape(A4), topMargin=30, bottomMargin=30)
         elements = []
-        
+
         # Estilos
         styles = getSampleStyleSheet()
-        title_style = ParagraphStyle(
-            'CustomTitle',
-            parent=styles['Heading1'],
-            fontSize=16,
-            spaceAfter=30,
-            alignment=1
-        )
-        
+        title_style = ParagraphStyle('CustomTitle', parent=styles['Heading1'], fontSize=18, spaceAfter=20, alignment=1, textColor=colors.HexColor('#2c3e50'))
+        subtitle_style = ParagraphStyle('SubTitle', parent=styles['Normal'], fontSize=10, spaceAfter=15, alignment=1, textColor=colors.grey)
+
         # Título
-        elements.append(Paragraph("Relatório de Fornecedores", title_style))
+        elements.append(Paragraph("Relatório Completo de Fornecedores", title_style))
+        elements.append(Paragraph(f"Gerado em: {datetime.now().strftime('%d/%m/%Y às %H:%M')}", subtitle_style))
+        elements.append(Spacer(1, 15))
+
+        # Calcular totais para o resumo
+        total_fornecedores = len(fornecedores_dados)
+        sum_realizado = sum(f.get('total_compras', 0) for f in fornecedores_dados)
+        sum_a_vencer = sum(f.get('total_compras_pendentes', 0) for f in fornecedores_dados)
+        sum_vencido = sum(f.get('saldo_vencido', 0) for f in fornecedores_dados)
+        sum_agendado = sum(f.get('total_agendado', 0) for f in fornecedores_dados)
+        sum_saldo_aberto = sum(f.get('saldo_aberto', 0) for f in fornecedores_dados)
+        sum_total_geral = sum(f.get('total_geral', 0) for f in fornecedores_dados)
+        sum_transacoes = sum(f.get('num_compras', 0) for f in fornecedores_dados)
+
+        # Tabela de resumo
+        resumo_data = [['RESUMO GERAL', '', '', '', '', ''], ['Total Fornecedores', 'Realizado', 'A Vencer', 'Vencido', 'Agendado', 'Saldo Aberto'], [str(total_fornecedores), f"R$ {sum_realizado:.2f}", f"R$ {sum_a_vencer:.2f}", f"R$ {sum_vencido:.2f}", f"R$ {sum_agendado:.2f}", f"R$ {sum_saldo_aberto:.2f}"]]
+        resumo_table = Table(resumo_data, colWidths=[100, 100, 100, 100, 100, 100])
+        resumo_table.setStyle(TableStyle([('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#e74c3c')), ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke), ('ALIGN', (0, 0), (-1, -1), 'CENTER'), ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'), ('FONTSIZE', (0, 0), (-1, 0), 12), ('BACKGROUND', (0, 1), (-1, 1), colors.HexColor('#ecf0f1')), ('FONTNAME', (0, 1), (-1, 1), 'Helvetica-Bold'), ('FONTSIZE', (0, 1), (-1, 1), 9), ('BACKGROUND', (0, 2), (-1, 2), colors.white), ('FONTSIZE', (0, 2), (-1, 2), 10), ('GRID', (0, 0), (-1, -1), 1, colors.grey), ('SPAN', (0, 0), (-1, 0))]))
+        elements.append(resumo_table)
         elements.append(Spacer(1, 20))
-        
-        # Dados da tabela
-        data = [['Fornecedor', 'Contato', 'CPF/CNPJ', 'Compras Realizadas', 'Compras Pendentes', 'Saldo em Aberto']]
-        
+
+        # Dados da tabela principal - TODAS as colunas como na tela
+        data = [['Fornecedor', 'Email', 'Telefone', 'CPF/CNPJ', 'Realizado', 'A Vencer', 'Vencido', 'Agendado', 'Saldo Aberto', 'Total Geral', 'Trans.', 'Ticket Médio', 'Status']]
+
         for fornecedor_data in fornecedores_dados:
             fornecedor = fornecedor_data['fornecedor']
-            data.append([
-                fornecedor.nome,
-                fornecedor.telefone or '-',
-                fornecedor.cpf_cnpj or '-',
-                f"R$ {fornecedor_data['total_compras']:.2f}",
-                f"R$ {fornecedor_data['total_compras_pendentes']:.2f}",
-                f"R$ {fornecedor_data['saldo_aberto']:.2f}"
-            ])
-        
-        # Criar tabela
-        table = Table(data)
-        table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 12),
-            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-            ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-            ('GRID', (0, 0), (-1, -1), 1, colors.black)
-        ]))
-        
+            # Determinar status
+            if fornecedor_data.get('saldo_vencido', 0) > 0:
+                status = 'Vencido'
+            elif fornecedor_data.get('saldo_aberto', 0) > 0:
+                status = 'Em Aberto'
+            else:
+                status = 'Em Dia'
+
+            data.append([(fornecedor.nome[:20] + '...') if fornecedor.nome and len(fornecedor.nome) > 20 else (fornecedor.nome or '-'), (fornecedor.email[:25] + '...') if fornecedor.email and len(fornecedor.email) > 25 else (fornecedor.email or '-'), fornecedor.telefone or '-', fornecedor.cpf_cnpj or '-', f"R$ {fornecedor_data.get('total_compras', 0):.2f}", f"R$ {fornecedor_data.get('total_compras_pendentes', 0):.2f}", f"R$ {fornecedor_data.get('saldo_vencido', 0):.2f}", f"R$ {fornecedor_data.get('total_agendado', 0):.2f}", f"R$ {fornecedor_data.get('saldo_aberto', 0):.2f}", f"R$ {fornecedor_data.get('total_geral', 0):.2f}", str(fornecedor_data.get('num_compras', 0)), f"R$ {fornecedor_data.get('ticket_medio', 0):.2f}", status])
+
+        # Adicionar linha de totais
+        ticket_medio_geral = sum_total_geral / sum_transacoes if sum_transacoes > 0 else 0
+        data.append(['TOTAL GERAL', '', '', '', f"R$ {sum_realizado:.2f}", f"R$ {sum_a_vencer:.2f}", f"R$ {sum_vencido:.2f}", f"R$ {sum_agendado:.2f}", f"R$ {sum_saldo_aberto:.2f}", f"R$ {sum_total_geral:.2f}", str(sum_transacoes), f"R$ {ticket_medio_geral:.2f}", ''])
+
+        # Criar tabela com larguras ajustadas
+        col_widths = [60, 70, 55, 60, 50, 50, 50, 50, 55, 55, 35, 55, 45]
+        table = Table(data, colWidths=col_widths)
+        table.setStyle(TableStyle([('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2c3e50')), ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke), ('ALIGN', (0, 0), (-1, -1), 'CENTER'), ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'), ('FONTSIZE', (0, 0), (-1, 0), 7), ('BOTTOMPADDING', (0, 0), (-1, 0), 8), ('BACKGROUND', (0, 1), (-1, -2), colors.HexColor('#f8f9fa')), ('FONTSIZE', (0, 1), (-1, -2), 7), ('GRID', (0, 0), (-1, -1), 0.5, colors.grey), ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#34495e')), ('TEXTCOLOR', (0, -1), (-1, -1), colors.whitesmoke), ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'), ('FONTSIZE', (0, -1), (-1, -1), 8)]))
+
         elements.append(table)
         doc.build(elements)
-        
+
         buffer.seek(0)
-        return send_file(
-            buffer,
-            as_attachment=True,
-            download_name=f'relatorio_fornecedores_{datetime.now().strftime("%Y%m%d_%H%M%S")}.pdf',
-            mimetype='application/pdf'
-        )
-        
+        return send_file(buffer, as_attachment=True, download_name=f'relatorio_fornecedores_completo_{datetime.now().strftime("%Y%m%d_%H%M%S")}.pdf', mimetype='application/pdf')
+
     except ImportError:
         flash('Biblioteca reportlab não instalada. Instale com: pip install reportlab', 'error')
         return redirect(url_for('relatorio_fornecedores'))
@@ -11426,46 +11536,109 @@ def exportar_relatorio_fornecedores_pdf(fornecedores_dados):
         return redirect(url_for('relatorio_fornecedores'))
 
 def exportar_relatorio_fornecedores_excel(fornecedores_dados):
-    """Exporta relatório de fornecedores em Excel"""
+    """Exporta relatório completo de fornecedores em Excel com todos os detalhes da tela"""
     try:
         import pandas as pd
         from io import BytesIO
         from flask import send_file
-        
-        # Preparar dados
+
+        # Preparar dados com TODAS as colunas
         dados = []
         for fornecedor_data in fornecedores_dados:
             fornecedor = fornecedor_data['fornecedor']
+
+            # Determinar status
+            if fornecedor_data.get('saldo_vencido', 0) > 0:
+                status = 'Vencido'
+            elif fornecedor_data.get('saldo_aberto', 0) > 0:
+                status = 'Em Aberto'
+            else:
+                status = 'Em Dia'
+
             dados.append({
-                'Fornecedor': fornecedor.nome,
+                'Fornecedor': fornecedor.nome or '',
                 'Email': fornecedor.email or '',
                 'Telefone': fornecedor.telefone or '',
                 'CPF/CNPJ': fornecedor.cpf_cnpj or '',
                 'Endereço': fornecedor.endereco or '',
-                'Compras Realizadas': fornecedor_data['total_compras'],
-                'Compras Pendentes': fornecedor_data['total_compras_pendentes'],
-                'Saldo em Aberto': fornecedor_data['saldo_aberto'],
-                'Total Geral': fornecedor_data['total_geral'],
-                'Nº Transações': fornecedor_data['num_compras'],
-                'Ticket Médio': fornecedor_data['ticket_medio']
+                'Realizado': fornecedor_data.get('total_compras', 0),
+                'A Vencer': fornecedor_data.get('total_compras_pendentes', 0),
+                'Vencido': fornecedor_data.get('saldo_vencido', 0),
+                'Agendado': fornecedor_data.get('total_agendado', 0),
+                'Saldo em Aberto': fornecedor_data.get('saldo_aberto', 0),
+                'Total Geral': fornecedor_data.get('total_geral', 0),
+                'Nº Transações': fornecedor_data.get('num_compras', 0),
+                'Ticket Médio': fornecedor_data.get('ticket_medio', 0),
+                'Status': status
             })
         
         # Criar DataFrame
         df = pd.DataFrame(dados)
-        
+
+        # Calcular totais
+        total_fornecedores = len(fornecedores_dados)
+        sum_realizado = sum(f.get('total_compras', 0) for f in fornecedores_dados)
+        sum_a_vencer = sum(f.get('total_compras_pendentes', 0) for f in fornecedores_dados)
+        sum_vencido = sum(f.get('saldo_vencido', 0) for f in fornecedores_dados)
+        sum_agendado = sum(f.get('total_agendado', 0) for f in fornecedores_dados)
+        sum_saldo_aberto = sum(f.get('saldo_aberto', 0) for f in fornecedores_dados)
+        sum_total_geral = sum(f.get('total_geral', 0) for f in fornecedores_dados)
+        sum_transacoes = sum(f.get('num_compras', 0) for f in fornecedores_dados)
+        ticket_medio_geral = sum_total_geral / sum_transacoes if sum_transacoes > 0 else 0
+
+        # Adicionar linha de totais
+        totais = pd.DataFrame([{
+            'Fornecedor': 'TOTAL GERAL',
+            'Email': '',
+            'Telefone': '',
+            'CPF/CNPJ': '',
+            'Endereço': '',
+            'Realizado': sum_realizado,
+            'A Vencer': sum_a_vencer,
+            'Vencido': sum_vencido,
+            'Agendado': sum_agendado,
+            'Saldo em Aberto': sum_saldo_aberto,
+            'Total Geral': sum_total_geral,
+            'Nº Transações': sum_transacoes,
+            'Ticket Médio': ticket_medio_geral,
+            'Status': ''
+        }])
+
+        df = pd.concat([df, totais], ignore_index=True)
+
         # Criar buffer para o Excel
         buffer = BytesIO()
         with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
-            df.to_excel(writer, sheet_name='Relatório de Fornecedores', index=False)
-        
+            # Escrever resumo
+            resumo_df = pd.DataFrame([{
+                'Total Fornecedores': total_fornecedores,
+                'Realizado': sum_realizado,
+                'A Vencer': sum_a_vencer,
+                'Vencido': sum_vencido,
+                'Agendado': sum_agendado,
+                'Saldo Aberto': sum_saldo_aberto
+            }])
+            resumo_df.to_excel(writer, sheet_name='Relatório de Fornecedores', startrow=0, index=False)
+
+            # Escrever dados principais
+            df.to_excel(writer, sheet_name='Relatório de Fornecedores', startrow=3, index=False)
+
+            # Formatar
+            workbook = writer.book
+            worksheet = writer.sheets['Relatório de Fornecedores']
+
+            # Ajustar larguras de colunas
+            worksheet.column_dimensions['A'].width = 30
+            worksheet.column_dimensions['B'].width = 30
+            worksheet.column_dimensions['C'].width = 15
+            worksheet.column_dimensions['D'].width = 18
+            worksheet.column_dimensions['E'].width = 35
+            for col in ['F', 'G', 'H', 'I', 'J', 'K', 'L', 'M']:
+                worksheet.column_dimensions[col].width = 15
+
         buffer.seek(0)
-        return send_file(
-            buffer,
-            as_attachment=True,
-            download_name=f'relatorio_fornecedores_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx',
-            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-        )
-        
+        return send_file(buffer, as_attachment=True, download_name=f'relatorio_fornecedores_completo_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx', mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+
     except ImportError:
         flash('Biblioteca pandas não instalada. Instale com: pip install pandas openpyxl', 'error')
         return redirect(url_for('relatorio_fornecedores'))

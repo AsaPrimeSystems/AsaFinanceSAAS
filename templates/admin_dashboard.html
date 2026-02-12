@@ -71,6 +71,45 @@
     </div>
 </div>
 
+<!-- Gráficos Administrativos -->
+<div class="row mt-4">
+    <!-- Gráfico de Pizza: Tipos de Conta -->
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Distribuição por Tipo</h6>
+            </div>
+            <div class="card-body">
+                <canvas id="tipoContaChart" height="250"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráfico de Barras: Dias de Assinatura -->
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Status de Assinatura</h6>
+            </div>
+            <div class="card-body">
+                <canvas id="diasAssinaturaChart" height="250"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráfico de Linha: Crescimento -->
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="fas fa-chart-line me-2"></i>Crescimento (12 meses)</h6>
+            </div>
+            <div class="card-body">
+                <canvas id="crescimentoChart" height="250"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="row mt-4">
     <div class="col-md-12">
         <div class="card">
@@ -191,4 +230,161 @@
         </div>
     </div>
 </div>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<script>
+// Dados do backend
+const contasPorTipo = {{ contas_por_tipo|tojson }};
+const diasDistribuicao = {{ dias_distribuicao|tojson }};
+const mesesCrescimento = {{ meses_crescimento|tojson }};
+const contasCrescimento = {{ contas_crescimento|tojson }};
+
+// Gráfico 1: Pizza - Distribuição por Tipo de Conta
+const ctxTipo = document.getElementById('tipoContaChart').getContext('2d');
+new Chart(ctxTipo, {
+    type: 'pie',
+    data: {
+        labels: ['Empresas (PJ)', 'Pessoas Físicas', 'Contadores/BPO'],
+        datasets: [{
+            data: [
+                contasPorTipo.empresa,
+                contasPorTipo.pessoa_fisica,
+                contasPorTipo.contador_bpo
+            ],
+            backgroundColor: [
+                '#0d6efd', // azul - empresas
+                '#198754', // verde - PF
+                '#17a2b8'  // ciano - contadores
+            ],
+            borderWidth: 2,
+            borderColor: '#fff'
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'bottom',
+                labels: {
+                    padding: 10,
+                    font: { size: 11 }
+                }
+            },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                        const percent = ((context.parsed / total) * 100).toFixed(1);
+                        return context.label + ': ' + context.parsed + ' (' + percent + '%)';
+                    }
+                }
+            }
+        }
+    }
+});
+
+// Gráfico 2: Barras Horizontais - Distribuição por Dias de Assinatura
+const ctxDias = document.getElementById('diasAssinaturaChart').getContext('2d');
+new Chart(ctxDias, {
+    type: 'bar',
+    data: {
+        labels: ['Excelente\n(>90 dias)', 'Bom\n(30-90)', 'Alerta\n(7-30)', 'Crítico\n(1-6)', 'Expirado\n(0)'],
+        datasets: [{
+            label: 'Contas',
+            data: [
+                diasDistribuicao.excelente,
+                diasDistribuicao.bom,
+                diasDistribuicao.alerta,
+                diasDistribuicao.critico,
+                diasDistribuicao.expirado
+            ],
+            backgroundColor: [
+                '#28a745', // verde
+                '#ffc107', // amarelo
+                '#fd7e14', // laranja
+                '#dc3545', // vermelho
+                '#6c757d'  // cinza
+            ],
+            borderWidth: 1,
+            borderColor: '#fff'
+        }]
+    },
+    options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { display: false },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        return context.parsed.x + ' conta(s)';
+                    }
+                }
+            }
+        },
+        scales: {
+            x: {
+                beginAtZero: true,
+                ticks: { stepSize: 1 }
+            },
+            y: {
+                ticks: { font: { size: 10 } }
+            }
+        }
+    }
+});
+
+// Gráfico 3: Linha - Crescimento de Contas
+const ctxCrescimento = document.getElementById('crescimentoChart').getContext('2d');
+new Chart(ctxCrescimento, {
+    type: 'line',
+    data: {
+        labels: mesesCrescimento,
+        datasets: [{
+            label: 'Total de Contas',
+            data: contasCrescimento,
+            borderColor: '#0d6efd',
+            backgroundColor: 'rgba(13, 110, 253, 0.1)',
+            borderWidth: 2,
+            fill: true,
+            tension: 0.4,
+            pointRadius: 3,
+            pointBackgroundColor: '#0d6efd',
+            pointBorderColor: '#fff',
+            pointBorderWidth: 2
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { display: false },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        return 'Total: ' + context.parsed.y + ' conta(s)';
+                    }
+                }
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: { stepSize: 1 }
+            },
+            x: {
+                ticks: {
+                    font: { size: 9 },
+                    maxRotation: 45,
+                    minRotation: 45
+                }
+            }
+        }
+    }
+});
+</script>
 {% endblock %} 

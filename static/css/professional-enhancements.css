@@ -582,19 +582,73 @@
     font-weight: 500;
 }
 
-/* Alertas para assinatura próxima do vencimento */
+/* Alertas para assinatura próxima do vencimento - 5 níveis */
+
+/* Nível 1: Excelente (>90 dias) - Verde */
+.subscription-badge.excellent {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    border-color: #48d597;
+}
+
+/* Nível 2: Bom (30-90 dias) - Amarelo */
+.subscription-badge.good {
+    background: linear-gradient(135deg, #ffc107 0%, #ffca2c 100%);
+    border-color: #ffd54f;
+}
+
+/* Nível 3: Alerta (7-30 dias) - Laranja */
+.subscription-badge.alert {
+    background: linear-gradient(135deg, #fd7e14 0%, #ff922b 100%);
+    border-color: #ffa94d;
+    animation: pulse-orange 2s ease-in-out infinite;
+}
+
+/* Nível 4: Crítico (1-6 dias) - Vermelho */
+.subscription-badge.critical {
+    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+    border-color: #ef5350;
+    animation: pulse-red 2s ease-in-out infinite;
+}
+
+/* Nível 5: Expirado (0 dias) - Cinza escuro */
+.subscription-badge.expired {
+    background: linear-gradient(135deg, #495057 0%, #343a40 100%);
+    border-color: #6c757d;
+}
+
+/* Compatibilidade com nomes antigos */
 .subscription-badge.warning {
     background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
     border-color: #ffb74d;
-    animation: pulse 2s ease-in-out infinite;
+    animation: pulse-orange 2s ease-in-out infinite;
 }
 
 .subscription-badge.danger {
     background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
     border-color: #ef5350;
-    animation: pulse 2s ease-in-out infinite;
+    animation: pulse-red 2s ease-in-out infinite;
 }
 
+/* Animações de pulse para alertas */
+@keyframes pulse-orange {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(253, 126, 20, 0.7);
+    }
+    50% {
+        box-shadow: 0 0 0 8px rgba(253, 126, 20, 0);
+    }
+}
+
+@keyframes pulse-red {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7);
+    }
+    50% {
+        box-shadow: 0 0 0 8px rgba(220, 53, 69, 0);
+    }
+}
+
+/* Compatibilidade com animação antiga */
 @keyframes pulse {
     0%, 100% {
         box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.7);

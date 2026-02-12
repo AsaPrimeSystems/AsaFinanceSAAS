@@ -140,22 +140,31 @@
                             </td>
                             <td>
                                 {% if conta.tipo_conta in ['empresa', 'pessoa_fisica', 'contador_bpo'] %}
-                                    {% if conta.dias_assinatura > 30 %}
+                                    {% if conta.dias_assinatura > 90 %}
                                     <span class="badge bg-success fs-6">
                                         <i class="fas fa-calendar-check me-1"></i>{{ conta.dias_assinatura }} dias
                                     </span>
-                                    {% elif conta.dias_assinatura > 7 %}
-                                    <span class="badge bg-warning fs-6">
+                                    <small class="text-success d-block">Excelente</small>
+                                    {% elif conta.dias_assinatura >= 30 %}
+                                    <span class="badge bg-warning text-dark fs-6">
+                                        <i class="fas fa-calendar-day me-1"></i>{{ conta.dias_assinatura }} dias
+                                    </span>
+                                    <small class="text-warning d-block">Bom</small>
+                                    {% elif conta.dias_assinatura >= 7 %}
+                                    <span class="badge text-white fs-6" style="background-color: #fd7e14;">
                                         <i class="fas fa-calendar-minus me-1"></i>{{ conta.dias_assinatura }} dias
                                     </span>
+                                    <small class="d-block" style="color: #fd7e14;">Alerta</small>
                                     {% elif conta.dias_assinatura > 0 %}
                                     <span class="badge bg-danger fs-6">
                                         <i class="fas fa-calendar-times me-1"></i>{{ conta.dias_assinatura }} dias
                                     </span>
+                                    <small class="text-danger d-block">Crítico</small>
                                     {% else %}
                                     <span class="badge bg-dark fs-6">
                                         <i class="fas fa-ban me-1"></i>Expirado
                                     </span>
+                                    <small class="text-muted d-block">Bloqueado</small>
                                     {% endif %}
                                     <br>
                                     <small class="text-muted">

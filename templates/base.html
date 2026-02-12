@@ -156,7 +156,13 @@
                     {% if session.get('tipo_conta') and session.get('tipo_conta') != 'admin' and
                     session.get('dias_assinatura') is not none %}
                     <div class="company-subscription">
-                        <div class="subscription-badge">
+                        <div class="subscription-badge
+                            {% if session.get('dias_assinatura', 0) > 90 %}excellent
+                            {% elif session.get('dias_assinatura', 0) >= 30 %}good
+                            {% elif session.get('dias_assinatura', 0) >= 7 %}alert
+                            {% elif session.get('dias_assinatura', 0) > 0 %}critical
+                            {% else %}expired
+                            {% endif %}">
                             <div class="subscription-plan">
                                 <i class="fas fa-star"></i>
                                 <span class="plan-name">Plano {{ (session.get('plano_nome') or 'Básico').split()[0]

@@ -92,10 +92,12 @@
                                     <span class="badge bg-danger">Inativo</span>
                                     {% endif %}
                                     {% if empresa.dias_assinatura is not none %}
-                                        {% if empresa.dias_assinatura > 30 %}
+                                        {% if empresa.dias_assinatura > 90 %}
                                         <span class="badge bg-success">{{ empresa.dias_assinatura }} dias</span>
-                                        {% elif empresa.dias_assinatura > 7 %}
+                                        {% elif empresa.dias_assinatura >= 30 %}
                                         <span class="badge bg-warning text-dark">{{ empresa.dias_assinatura }} dias</span>
+                                        {% elif empresa.dias_assinatura >= 7 %}
+                                        <span class="badge text-white" style="background-color: #fd7e14;">{{ empresa.dias_assinatura }} dias</span>
                                         {% elif empresa.dias_assinatura > 0 %}
                                         <span class="badge bg-danger">{{ empresa.dias_assinatura }} dias</span>
                                         {% else %}
