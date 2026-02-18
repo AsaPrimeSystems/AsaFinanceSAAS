@@ -154,7 +154,8 @@ with app.app_context():
         from sqlalchemy import text
         if not verificar_coluna_existe('empresa', 'data_inicio_assinatura'):
             print("Adicionando coluna 'data_inicio_assinatura' na tabela empresa...")
-            db.session.execute(text("ALTER TABLE empresa ADD COLUMN data_inicio_assinatura DATETIME"))
+            col_type = "TIMESTAMP" if db.engine.dialect.name == 'postgresql' else "DATETIME"
+            db.session.execute(text(f"ALTER TABLE empresa ADD COLUMN data_inicio_assinatura {col_type}"))
             db.session.commit()
             print("Coluna 'data_inicio_assinatura' adicionada!")
             
@@ -217,7 +218,8 @@ with app.app_context():
 
         if not verificar_coluna_existe('lancamento', 'data_ultima_edicao'):
             print("Adicionando coluna 'data_ultima_edicao' na tabela lancamento...")
-            db.session.execute(text("ALTER TABLE lancamento ADD COLUMN data_ultima_edicao DATETIME"))
+            col_type = "TIMESTAMP" if db.engine.dialect.name == 'postgresql' else "DATETIME"
+            db.session.execute(text(f"ALTER TABLE lancamento ADD COLUMN data_ultima_edicao {col_type}"))
             colunas_adicionadas.append('data_ultima_edicao')
 
         if colunas_adicionadas:
@@ -246,12 +248,13 @@ with app.app_context():
         from sqlalchemy import text
         if not verificar_coluna_existe('usuario', 'ultimo_acesso'):
             print("Adicionando coluna 'ultimo_acesso' na tabela usuario...")
-            db.session.execute(text("ALTER TABLE usuario ADD COLUMN ultimo_acesso DATETIME"))
+            col_type = "TIMESTAMP" if db.engine.dialect.name == 'postgresql' else "DATETIME"
+            db.session.execute(text(f"ALTER TABLE usuario ADD COLUMN ultimo_acesso {col_type}"))
             db.session.commit()
             print("Coluna 'ultimo_acesso' adicionada na tabela usuario!")
         else:
             print("Coluna 'ultimo_acesso' já existe na tabela usuario!")
-            
+
     except Exception as e:
         print(f"⚠️ Aviso: Não foi possível verificar/adicionar coluna 'ultimo_acesso': {str(e)}")
         db.session.rollback()
