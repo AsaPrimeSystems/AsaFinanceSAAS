@@ -425,12 +425,29 @@
             <div class="row mb-5">
                 <div class="col-lg-8 offset-lg-2">
                     <h5 class="text-center mb-4">Pessoa Física e Pessoa Jurídica</h5>
+
+                    <!-- Toggle de Período -->
+                    <div class="d-flex justify-content-center mb-4">
+                        <div class="btn-group" role="group" aria-label="Período de Cobrança">
+                            <input type="radio" class="btn-check" name="btnradio" id="btnMensal" autocomplete="off"
+                                checked onchange="atualizarPrecos('mensal')">
+                            <label class="btn btn-outline-primary" for="btnMensal">Mensal</label>
+
+                            <input type="radio" class="btn-check" name="btnradio" id="btnTrimestral" autocomplete="off"
+                                onchange="atualizarPrecos('trimestral')">
+                            <label class="btn btn-outline-primary" for="btnTrimestral">Trimestral</label>
+
+                            <input type="radio" class="btn-check" name="btnradio" id="btnAnual" autocomplete="off"
+                                onchange="atualizarPrecos('anual')">
+                            <label class="btn btn-outline-primary" for="btnAnual">Anual</label>
+                        </div>
+                    </div>
                     <div class="row g-4">
                         <!-- Plano Básico -->
                         <div class="col-md-4">
                             <div class="preco-card">
                                 <h5>Básico</h5>
-                                <div class="preco-valor">R$ 49,90</div>
+                                <div class="preco-valor" id="preco-basico">R$ 49,90</div>
                                 <div class="preco-periodo">por mês</div>
                                 <ul>
                                     <li><i class="fas fa-check"></i>Lançamentos ilimitados</li>
@@ -447,7 +464,7 @@
                             <div class="preco-card destaque">
                                 <span class="badge bg-primary mb-2">Mais Popular</span>
                                 <h5>Plus</h5>
-                                <div class="preco-valor">R$ 59,90</div>
+                                <div class="preco-valor" id="preco-plus">R$ 59,90</div>
                                 <div class="preco-periodo">por mês</div>
                                 <ul>
                                     <li><i class="fas fa-check"></i>Tudo do Básico</li>
@@ -463,7 +480,7 @@
                         <div class="col-md-4">
                             <div class="preco-card">
                                 <h5>Premium</h5>
-                                <div class="preco-valor">R$ 79,90</div>
+                                <div class="preco-valor" id="preco-premium">R$ 79,90</div>
                                 <div class="preco-periodo">por mês</div>
                                 <ul>
                                     <li><i class="fas fa-check"></i>Tudo do Plus</li>
@@ -642,6 +659,41 @@
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const precos = {
+            mensal: {
+                basico: "R$ 49,90",
+                plus: "R$ 59,90",
+                premium: "R$ 79,90",
+                periodo: "por mês"
+            },
+            trimestral: {
+                basico: "R$ 139,70",
+                plus: "R$ 167,70",
+                premium: "R$ 223,70",
+                periodo: "por trimestre"
+            },
+            anual: {
+                basico: "R$ 539,00",
+                plus: "R$ 647,00",
+                premium: "R$ 863,00",
+                periodo: "por ano"
+            }
+        };
+
+        function atualizarPrecos(periodo) {
+            const dados = precos[periodo];
+
+            // Atualizar valores
+            document.getElementById('preco-basico').textContent = dados.basico;
+            document.getElementById('preco-plus').textContent = dados.plus;
+            document.getElementById('preco-premium').textContent = dados.premium;
+
+            // Atualizar textos de período
+            const periodos = document.querySelectorAll('.preco-periodo');
+            periodos.forEach(el => el.textContent = dados.periodo);
+        }
+    </script>
 </body>
 
 </html>

@@ -1,0 +1,2127 @@
+/* ============================================================
+   PLANIFIN THEME - Visual Premium para Asa Finance
+   Inspirado no PlaniFin 5.0 - Layout profissional
+   v1.0
+   ============================================================ */
+
+/* ---- VARIÁVEIS DE TEMA ---- */
+:root {
+    --pf-primary: #5866d9;
+    --pf-primary-light: #764ba2;
+    --pf-primary-dark: #4e5dd1;
+    --pf-accent: #667eea;
+    --pf-accent-dark: #5866d9;
+
+    --pf-success: #00897B;
+    --pf-success-light: #E0F2F1;
+    --pf-success-bg: #43A047;
+
+    --pf-danger: #E53935;
+    --pf-danger-light: #FFEBEE;
+    --pf-danger-dark: #B71C1C;
+
+    --pf-warning: #FB8C00;
+    --pf-warning-light: #FFF3E0;
+    --pf-warning-dark: #E65100;
+
+    --pf-info: #0288D1;
+    --pf-info-light: #E1F5FE;
+
+    --pf-gray-50: #F8FAFC;
+    --pf-gray-100: #F1F5F9;
+    --pf-gray-200: #E2E8F0;
+    --pf-gray-300: #CBD5E1;
+    --pf-gray-400: #94A3B8;
+    --pf-gray-500: #64748B;
+    --pf-gray-600: #475569;
+    --pf-gray-700: #334155;
+    --pf-gray-800: #1E293B;
+    --pf-gray-900: #0F172A;
+
+    --pf-card-radius: 10px;
+    --pf-card-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+    --pf-card-shadow-hover: 0 8px 28px rgba(0, 0, 0, 0.15);
+    --pf-transition: all 0.25s ease;
+}
+
+/* ---- BODY ---- */
+body {
+    background-color: var(--pf-gray-100) !important;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif !important;
+}
+
+/* ============================================================
+   SIDEBAR / MENU - Colapsado com ícones + hover para expandir
+   ============================================================ */
+
+/* Sidebar colapsada - somente ícones */
+.menu::before,
+.menu::after {
+    border-radius: 0 !important;
+}
+
+.menu {
+    background: linear-gradient(180deg, #1b233f 0%, #131a31 100%) !important;
+    box-shadow: 2px 0 12px rgba(0, 0, 0, 0.2) !important;
+    border-right: none !important;
+    border-radius: 0 !important;
+    width: 56px !important;
+    min-width: 56px !important;
+    overflow: hidden !important;
+    transition: width 0.25s ease !important;
+    z-index: 999 !important;
+    position: fixed !important;
+    top: 85px !important;
+    left: 0 !important;
+    height: calc(100vh - 85px) !important;
+    overflow-y: auto !important;
+}
+
+/* Expandir ao hover */
+.menu:hover {
+    width: 220px !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    box-shadow: 4px 0 20px rgba(0, 0, 0, 0.3) !important;
+}
+
+.menu-nav {
+    padding: 10px 0 !important;
+    width: 220px !important;
+}
+
+.menu-nav .nav {
+    gap: 2px !important;
+    width: 220px !important;
+}
+
+/* Links do menu - seletor mais específico para vencer professional-enhancements.css */
+.menu .link-menu,
+.menu-nav .link-menu,
+.menu-nav .nav li .link-menu {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 12px !important;
+    padding: 11px 16px !important;
+    color: rgba(255, 255, 255, 0.75) !important;
+    text-decoration: none !important;
+    transition: all 0.2s ease !important;
+    border-radius: 0 !important;
+    border-left: 3px solid transparent !important;
+    font-size: 0.85rem !important;
+    font-weight: 500 !important;
+    letter-spacing: 0.2px !important;
+    white-space: nowrap !important;
+    width: 220px !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+    margin: 0 !important;
+}
+
+.menu .link-menu:hover,
+.menu-nav .link-menu:hover {
+    background: rgba(255, 255, 255, 0.1) !important;
+    color: #ffffff !important;
+    border-left-color: rgba(255, 255, 255, 0.5) !important;
+    text-decoration: none !important;
+}
+
+.menu .link-menu.active,
+.menu .link-menu:focus,
+.menu-nav .link-menu.active,
+.menu-nav .link-menu:focus {
+    background: linear-gradient(90deg, #5866d9, #818cf8) !important;
+    color: #fff !important;
+    border-left-color: #c7d2fe !important;
+}
+
+/* Ícones do menu */
+.menu .link-menu .icon,
+.menu-nav .link-menu .icon {
+    width: 24px !important;
+    min-width: 24px !important;
+    text-align: center !important;
+    font-size: 1.05rem !important;
+    flex-shrink: 0 !important;
+    color: #a5b4fc !important;
+    margin-right: 0 !important;
+}
+
+.menu .link-menu:hover .icon,
+.menu .link-menu.active .icon,
+.menu-nav .link-menu:hover .icon,
+.menu-nav .link-menu.active .icon {
+    color: #ffffff !important;
+}
+
+/* Textos do menu - ocultos quando colapsado, visíveis ao expandir */
+.menu .link-menu .aux-js,
+.menu-nav .link-menu .aux-js {
+    font-size: 0.83rem !important;
+    opacity: 0 !important;
+    transition: opacity 0.2s ease 0s !important;
+    overflow: hidden !important;
+    white-space: nowrap !important;
+    flex: 1 !important;
+    min-width: 0 !important;
+    max-width: 200px !important;
+}
+
+.menu:hover .link-menu .aux-js {
+    opacity: 1 !important;
+    transition: opacity 0.2s ease 0.1s !important;
+    max-width: 200px !important;
+}
+
+/* Separador de grupos no menu — oculto completamente */
+.menu-group-title {
+    display: none !important;
+}
+
+/* ============================================================
+   CARDS KPI - ESTILO PLANIFIN
+   ============================================================ */
+
+/* Card KPI moderno com número grande + ícone */
+.pf-kpi-card {
+    background: #fff;
+    border-radius: var(--pf-card-radius);
+    box-shadow: var(--pf-card-shadow);
+    padding: 0;
+    overflow: hidden;
+    transition: var(--pf-transition);
+    border: none !important;
+    height: 100%;
+}
+
+.pf-kpi-card:hover {
+    box-shadow: var(--pf-card-shadow-hover);
+    transform: translateY(-2px);
+}
+
+.pf-kpi-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px 10px 20px;
+}
+
+.pf-kpi-label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--pf-gray-500);
+    margin-bottom: 2px;
+}
+
+.pf-kpi-icon {
+    width: 46px;
+    height: 46px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+    flex-shrink: 0;
+}
+
+.pf-kpi-icon.success  { background: #E8F5E9; color: #2E7D32; }
+.pf-kpi-icon.danger   { background: #FFEBEE; color: #C62828; }
+.pf-kpi-icon.warning  { background: #FFF8E1; color: #E65100; }
+.pf-kpi-icon.info     { background: #E3F2FD; color: #1565C0; }
+.pf-kpi-icon.purple   { background: #F3E5F5; color: #6A1B9A; }
+.pf-kpi-icon.teal     { background: #E0F2F1; color: #00695C; }
+.pf-kpi-icon.primary  { background: #E3F2FD; color: #0D47A1; }
+
+.pf-kpi-value {
+    padding: 0 20px 8px 20px;
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: var(--pf-gray-800);
+    line-height: 1;
+    letter-spacing: -0.5px;
+}
+
+.pf-kpi-value.text-success { color: #2E7D32 !important; }
+.pf-kpi-value.text-danger  { color: #C62828 !important; }
+.pf-kpi-value.text-warning { color: #E65100 !important; }
+.pf-kpi-value.text-info    { color: #1565C0 !important; }
+
+.pf-kpi-footer {
+    padding: 8px 20px 14px 20px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.78rem;
+    color: var(--pf-gray-400);
+    border-top: 1px solid var(--pf-gray-100);
+    margin-top: 6px;
+}
+
+.pf-kpi-footer a {
+    color: var(--pf-primary-light);
+    font-weight: 600;
+    text-decoration: none;
+    font-size: 0.78rem;
+}
+
+.pf-kpi-footer a:hover {
+    text-decoration: underline;
+}
+
+/* ============================================================
+   CARDS DE PAINEL - CABEÇALHO ESTILO PLANIFIN
+   ============================================================ */
+
+/* Cabeçalho dos cards com gradiente */
+.pf-card-header-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    color: white !important;
+    border-radius: var(--pf-card-radius) var(--pf-card-radius) 0 0 !important;
+    padding: 12px 18px !important;
+    border-bottom: none !important;
+}
+
+.pf-card-header-success {
+    background: linear-gradient(135deg, #1B5E20 0%, #2E7D32 100%) !important;
+    color: white !important;
+    border-radius: var(--pf-card-radius) var(--pf-card-radius) 0 0 !important;
+    padding: 12px 18px !important;
+    border-bottom: none !important;
+}
+
+.pf-card-header-danger {
+    background: linear-gradient(135deg, #B71C1C 0%, #C62828 100%) !important;
+    color: white !important;
+    border-radius: var(--pf-card-radius) var(--pf-card-radius) 0 0 !important;
+    padding: 12px 18px !important;
+    border-bottom: none !important;
+}
+
+.pf-card-header-warning {
+    background: linear-gradient(135deg, #E65100 0%, #F57C00 100%) !important;
+    color: white !important;
+    border-radius: var(--pf-card-radius) var(--pf-card-radius) 0 0 !important;
+    padding: 12px 18px !important;
+    border-bottom: none !important;
+}
+
+.pf-card-header-info {
+    background: linear-gradient(135deg, #01579B 0%, #0288D1 100%) !important;
+    color: white !important;
+    border-radius: var(--pf-card-radius) var(--pf-card-radius) 0 0 !important;
+    padding: 12px 18px !important;
+    border-bottom: none !important;
+}
+
+.pf-card-header-neutral {
+    background: linear-gradient(135deg, var(--pf-gray-700) 0%, var(--pf-gray-600) 100%) !important;
+    color: white !important;
+    border-radius: var(--pf-card-radius) var(--pf-card-radius) 0 0 !important;
+    padding: 12px 18px !important;
+    border-bottom: none !important;
+}
+
+/* Títulos nos cabeçalhos dos cards */
+.pf-card-header-primary h5,
+.pf-card-header-success h5,
+.pf-card-header-danger h5,
+.pf-card-header-warning h5,
+.pf-card-header-info h5,
+.pf-card-header-neutral h5,
+.pf-card-header-primary h6,
+.pf-card-header-success h6,
+.pf-card-header-danger h6,
+.pf-card-header-warning h6,
+.pf-card-header-info h6,
+.pf-card-header-neutral h6 {
+    color: #ffffff !important;
+    margin: 0 !important;
+    font-weight: 600 !important;
+    font-size: 0.9rem !important;
+}
+
+/* Card container padrão */
+.pf-card {
+    background: #fff;
+    border-radius: var(--pf-card-radius) !important;
+    box-shadow: var(--pf-card-shadow) !important;
+    border: none !important;
+    overflow: hidden;
+    transition: var(--pf-transition);
+}
+
+.pf-card:hover {
+    box-shadow: var(--pf-card-shadow-hover) !important;
+}
+
+/* ============================================================
+   TABELAS
+   ============================================================ */
+
+.pf-table {
+    font-size: 0.85rem;
+    border-collapse: separate;
+    border-spacing: 0;
+    width: 100%;
+}
+
+.pf-table thead tr {
+    background: var(--pf-gray-50);
+}
+
+.pf-table thead th {
+    font-size: 0.73rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: var(--pf-gray-500) !important;
+    border-bottom: 2px solid var(--pf-gray-200) !important;
+    padding: 10px 14px !important;
+    white-space: nowrap;
+}
+
+.pf-table tbody tr {
+    border-bottom: 1px solid var(--pf-gray-100);
+    transition: background 0.15s;
+}
+
+.pf-table tbody tr:hover {
+    background-color: var(--pf-gray-50);
+}
+
+.pf-table tbody td {
+    padding: 9px 14px !important;
+    vertical-align: middle !important;
+    color: var(--pf-gray-700);
+    border-bottom: 1px solid var(--pf-gray-100) !important;
+}
+
+/* ============================================================
+   BADGES STATUS
+   ============================================================ */
+
+.pf-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    border-radius: 20px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+}
+
+.pf-badge-success {
+    background: #E8F5E9;
+    color: #1B5E20;
+}
+
+.pf-badge-danger {
+    background: #FFEBEE;
+    color: #B71C1C;
+}
+
+.pf-badge-warning {
+    background: #FFF8E1;
+    color: #E65100;
+}
+
+.pf-badge-info {
+    background: #E3F2FD;
+    color: #01579B;
+}
+
+.pf-badge-muted {
+    background: var(--pf-gray-100);
+    color: var(--pf-gray-600);
+}
+
+/* ============================================================
+   FILTROS / BARRA DE AÇÕES
+   ============================================================ */
+
+.pf-filter-bar {
+    background: #fff;
+    border-radius: var(--pf-card-radius);
+    box-shadow: var(--pf-card-shadow);
+    padding: 14px 18px;
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.pf-filter-bar label {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--pf-gray-500);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    margin-bottom: 0;
+}
+
+.pf-filter-bar .form-select,
+.pf-filter-bar .form-control {
+    font-size: 0.85rem;
+    border-color: var(--pf-gray-200);
+    border-radius: 7px;
+    padding: 6px 10px;
+    height: 36px;
+}
+
+.pf-filter-bar .form-select:focus,
+.pf-filter-bar .form-control:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
+}
+
+/* ============================================================
+   BOTÕES
+   ============================================================ */
+
+.pf-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 16px;
+    border-radius: 7px;
+    font-size: 0.84rem;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: var(--pf-transition);
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.pf-btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.pf-btn-primary:hover {
+    background: linear-gradient(135deg, #5866d9 0%, #6a3f8f 100%);
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.35);
+}
+
+.pf-btn-success {
+    background: linear-gradient(135deg, #1B5E20 0%, #2E7D32 100%);
+    color: white;
+}
+
+.pf-btn-success:hover {
+    background: linear-gradient(135deg, #1B5E20 0%, #1B5E20 100%);
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(27, 94, 32, 0.3);
+}
+
+.pf-btn-danger {
+    background: linear-gradient(135deg, #B71C1C 0%, #E53935 100%);
+    color: white;
+}
+
+.pf-btn-sm {
+    padding: 4px 10px;
+    font-size: 0.78rem;
+    border-radius: 5px;
+}
+
+.pf-btn-outline {
+    background: transparent;
+    border: 1.5px solid var(--pf-gray-300);
+    color: var(--pf-gray-600);
+}
+
+.pf-btn-outline:hover {
+    background: var(--pf-gray-50);
+    border-color: var(--pf-gray-400);
+    color: var(--pf-gray-700);
+}
+
+/* ============================================================
+   BARRA DE PROGRESSO - FLUXO DE CAIXA
+   ============================================================ */
+
+.pf-progress-bar-track {
+    height: 8px;
+    background: var(--pf-gray-100);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-top: 6px;
+}
+
+.pf-progress-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.6s ease;
+}
+
+.pf-progress-success { background: linear-gradient(90deg, #43A047, #00897B); }
+.pf-progress-danger  { background: linear-gradient(90deg, #E53935, #C62828); }
+.pf-progress-warning { background: linear-gradient(90deg, #FB8C00, #F57C00); }
+.pf-progress-info    { background: linear-gradient(90deg, #039BE5, #0288D1); }
+
+/* ============================================================
+   DASHBOARD - SECTION TITLE
+   ============================================================ */
+
+.pf-section-title {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--pf-gray-400);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.pf-section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--pf-gray-200);
+}
+
+/* ============================================================
+   RESUMO FINANCEIRO - LINHA HORIZONTAL
+   ============================================================ */
+
+.pf-summary-row {
+    display: flex;
+    gap: 2px;
+    background: var(--pf-gray-100);
+    border-radius: var(--pf-card-radius);
+    overflow: hidden;
+    box-shadow: var(--pf-card-shadow);
+}
+
+.pf-summary-item {
+    flex: 1;
+    padding: 16px 18px;
+    background: #fff;
+    text-align: center;
+    position: relative;
+}
+
+.pf-summary-item:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 20%;
+    height: 60%;
+    width: 1px;
+    background: var(--pf-gray-200);
+}
+
+.pf-summary-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--pf-gray-400);
+    margin-bottom: 6px;
+}
+
+.pf-summary-value {
+    font-size: 1.35rem;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    line-height: 1;
+    margin-bottom: 4px;
+}
+
+.pf-summary-sub {
+    font-size: 0.72rem;
+    color: var(--pf-gray-400);
+}
+
+/* ============================================================
+   CONTEÚDO PRINCIPAL - BACKGROUND
+   ============================================================ */
+
+.conteudo {
+    background: var(--pf-gray-100) !important;
+}
+
+/* Title row — ocultado globalmente pois cada módulo já tem modern-panel-header com o título */
+.title-row {
+    display: none !important;
+}
+
+/* ============================================================
+   TABELA DE LANÇAMENTOS RECENTES
+   ============================================================ */
+
+.pf-entry-row {
+    display: flex;
+    align-items: center;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--pf-gray-100);
+    gap: 12px;
+    transition: background 0.15s;
+}
+
+.pf-entry-row:hover {
+    background: var(--pf-gray-50);
+}
+
+.pf-entry-type {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    flex-shrink: 0;
+}
+
+.pf-entry-type.entrada {
+    background: #E8F5E9;
+    color: #2E7D32;
+}
+
+.pf-entry-type.saida {
+    background: #FFEBEE;
+    color: #C62828;
+}
+
+.pf-entry-desc {
+    flex: 1;
+    min-width: 0;
+}
+
+.pf-entry-name {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--pf-gray-700);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.pf-entry-cat {
+    font-size: 0.72rem;
+    color: var(--pf-gray-400);
+}
+
+.pf-entry-value {
+    font-size: 0.9rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.pf-entry-value.entrada { color: #2E7D32; }
+.pf-entry-value.saida   { color: #C62828; }
+
+.pf-entry-date {
+    font-size: 0.72rem;
+    color: var(--pf-gray-400);
+    white-space: nowrap;
+}
+
+/* ============================================================
+   HEADER OVERRIDE - gradiente roxo/violeta original
+   ============================================================ */
+
+.modern-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+}
+
+/* Badge de assinatura — contido dentro do company-card */
+.company-subscription {
+    display: flex !important;
+    align-items: center !important;
+    margin-left: 10px !important;
+    border-left: none !important;
+    padding-left: 0 !important;
+}
+
+/* Sobrescreve todos os gradientes coloridos do professional-enhancements.css */
+.subscription-badge,
+.subscription-badge.excellent,
+.subscription-badge.good,
+.subscription-badge.alert,
+.subscription-badge.critical,
+.subscription-badge.expired,
+.subscription-badge.warning,
+.subscription-badge.danger {
+    background: rgba(255, 255, 255, 0.15) !important;
+    border: 1px solid rgba(255, 255, 255, 0.3) !important;
+    border-radius: 7px !important;
+    padding: 4px 9px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-width: 70px !important;
+    max-height: 44px !important;
+    text-align: center !important;
+    overflow: hidden !important;
+    gap: 0 !important;
+    animation: none !important;
+    transform: none !important;
+    backdrop-filter: none !important;
+    box-shadow: none !important;
+}
+
+.subscription-plan {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 3px !important;
+    font-weight: 700 !important;
+    font-size: 0.58rem !important;
+    color: rgba(255, 255, 255, 0.85) !important;
+    white-space: nowrap !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.2px !important;
+    line-height: 1 !important;
+    margin-bottom: 1px !important;
+}
+
+.subscription-plan i {
+    color: #ffd700 !important;
+    font-size: 0.52rem !important;
+}
+
+.subscription-days-info {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    line-height: 1 !important;
+}
+
+.subscription-days {
+    font-weight: 900 !important;
+    font-size: 1.1rem !important;
+    color: #ffffff !important;
+    line-height: 1 !important;
+    min-width: unset !important;
+}
+
+.subscription-text {
+    color: rgba(255, 255, 255, 0.65) !important;
+    font-size: 0.48rem !important;
+    font-weight: 600 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.2px !important;
+    line-height: 1 !important;
+    margin-top: 1px !important;
+}
+
+/* ============================================================
+   GRÁFICOS
+   ============================================================ */
+
+.pf-chart-container {
+    position: relative;
+    padding: 8px 0;
+}
+
+.pf-chart-legend {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+    padding: 0 4px;
+}
+
+.pf-chart-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.78rem;
+    color: var(--pf-gray-500);
+}
+
+.pf-chart-legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+/* ============================================================
+   ALERTAS COMPACTOS
+   ============================================================ */
+
+.pf-alert {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    margin-bottom: 12px;
+    border: none;
+}
+
+.pf-alert-warning {
+    background: #FFF8E1;
+    color: #E65100;
+    border-left: 4px solid #FB8C00;
+}
+
+.pf-alert-danger {
+    background: #FFEBEE;
+    color: #B71C1C;
+    border-left: 4px solid #E53935;
+}
+
+.pf-alert-info {
+    background: #E3F2FD;
+    color: #01579B;
+    border-left: 4px solid #039BE5;
+}
+
+.pf-alert-success {
+    background: #E8F5E9;
+    color: #1B5E20;
+    border-left: 4px solid #43A047;
+}
+
+/* ============================================================
+   UTILITÁRIOS
+   ============================================================ */
+
+.pf-divider {
+    height: 1px;
+    background: var(--pf-gray-200);
+    margin: 14px 0;
+}
+
+.pf-text-muted {
+    color: var(--pf-gray-400) !important;
+    font-size: 0.8rem;
+}
+
+.pf-text-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--pf-gray-500);
+}
+
+/* Formatação de valores monetários */
+.pf-money {
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.3px;
+}
+
+.pf-money-pos { color: #2E7D32; }
+.pf-money-neg { color: #C62828; }
+.pf-money-neu { color: var(--pf-gray-600); }
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 768px) {
+    .pf-summary-row {
+        flex-direction: column;
+        gap: 1px;
+    }
+
+    .pf-summary-item::after {
+        display: none;
+    }
+
+    .pf-filter-bar {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .pf-kpi-value {
+        font-size: 1.4rem;
+    }
+
+    .title-row {
+        margin: -15px -12px 14px -12px !important;
+    }
+}
+
+/* ============================================================
+   SCROLLBAR CUSTOM
+   ============================================================ */
+
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--pf-gray-100);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--pf-gray-300);
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--pf-gray-400);
+}
+
+/* ============================================================
+   CARD H5/H6 FIX - override do style.css que força branco
+   ============================================================ */
+
+.card-header h5,
+.card-header h6,
+.pf-card .card-header h5,
+.pf-card .card-header h6 {
+    color: inherit !important;
+}
+
+.card-body h5,
+.card-body h6,
+.card-body h3,
+.card-body h4 {
+    color: inherit !important;
+}
+
+/* Card titles padrão do Bootstrap ficam com cor correta */
+.card-title {
+    color: inherit !important;
+}
+
+/* Títulos dentro de cards sem fundo colorido */
+.card:not([class*="bg-"]) .card-header:not([class*="bg-"]) h5,
+.card:not([class*="bg-"]) .card-header:not([class*="bg-"]) h6 {
+    color: var(--pf-gray-700) !important;
+}
+
+/* ============================================================
+   MODERN-PANEL - SISTEMA VISUAL GLOBAL PlaniFin
+   Aplica estilo premium a TODAS as páginas que usam modern-panel
+   ============================================================ */
+
+/* Correção global: h5, h6 em contextos não coloridos */
+.modern-panel h5,
+.modern-panel h6,
+.modern-panel h4,
+.modern-panel h3,
+.card-body h5,
+.card-body h6,
+.card-body h4,
+.card-body h3 {
+    color: var(--pf-gray-700) !important;
+}
+
+/* Panel principal */
+.modern-panel {
+    background: transparent !important;
+    padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+/* Cabeçalho do painel - gradiente roxo/violeta */
+.modern-panel-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    color: white !important;
+    padding: 14px 20px !important;
+    border-radius: var(--pf-card-radius) var(--pf-card-radius) 0 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    flex-wrap: wrap !important;
+    gap: 10px !important;
+    margin-bottom: 0 !important;
+    border: none !important;
+    box-shadow: 0 2px 8px rgba(15, 37, 71, 0.25) !important;
+}
+
+.modern-panel-title {
+    color: #ffffff !important;
+    font-size: 1rem !important;
+    font-weight: 700 !important;
+    margin: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    letter-spacing: 0.2px !important;
+}
+
+.modern-panel-title i {
+    opacity: 0.85;
+    font-size: 0.95rem;
+}
+
+.modern-panel-actions {
+    display: flex !important;
+    gap: 8px !important;
+    align-items: center !important;
+    flex-wrap: wrap !important;
+}
+
+/* Botões dentro do cabeçalho */
+.modern-panel-actions .btn-primary {
+    background: rgba(255,255,255,0.2) !important;
+    border: 1.5px solid rgba(255,255,255,0.5) !important;
+    color: white !important;
+    font-size: 0.82rem !important;
+    font-weight: 600 !important;
+    padding: 5px 14px !important;
+    border-radius: 6px !important;
+    transition: var(--pf-transition) !important;
+}
+
+.modern-panel-actions .btn-primary:hover {
+    background: rgba(255,255,255,0.35) !important;
+    border-color: white !important;
+}
+
+.modern-panel-actions .btn-success {
+    background: rgba(67,160,71,0.85) !important;
+    border: 1.5px solid rgba(255,255,255,0.4) !important;
+    color: white !important;
+    font-size: 0.82rem !important;
+    font-weight: 600 !important;
+    padding: 5px 14px !important;
+    border-radius: 6px !important;
+    transition: var(--pf-transition) !important;
+}
+
+.modern-panel-actions .btn-success:hover {
+    background: rgba(67,160,71,1) !important;
+}
+
+.modern-panel-actions .btn-warning {
+    background: rgba(251,140,0,0.9) !important;
+    border: 1.5px solid rgba(255,255,255,0.4) !important;
+    color: white !important;
+    font-size: 0.82rem !important;
+    font-weight: 600 !important;
+    padding: 5px 14px !important;
+    border-radius: 6px !important;
+}
+
+.modern-panel-actions .btn-danger {
+    background: rgba(229,57,53,0.85) !important;
+    border: 1.5px solid rgba(255,255,255,0.4) !important;
+    color: white !important;
+    font-size: 0.82rem !important;
+    font-weight: 600 !important;
+    padding: 5px 14px !important;
+    border-radius: 6px !important;
+}
+
+/* Seção de filtros */
+.modern-filters {
+    background: #F8FAFC !important;
+    border: 1px solid var(--pf-gray-200) !important;
+    border-top: none !important;
+    padding: 12px 16px !important;
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 10px !important;
+    align-items: flex-end !important;
+}
+
+.modern-filter-group {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 3px !important;
+    min-width: 120px !important;
+}
+
+.modern-filter-label {
+    font-size: 0.7rem !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
+    color: var(--pf-gray-500) !important;
+    margin: 0 !important;
+    white-space: nowrap !important;
+}
+
+.modern-filter-input {
+    height: 34px !important;
+    font-size: 0.83rem !important;
+    border: 1px solid var(--pf-gray-200) !important;
+    border-radius: 6px !important;
+    padding: 4px 10px !important;
+    background: white !important;
+    color: var(--pf-gray-700) !important;
+    transition: border-color 0.2s !important;
+    width: 100% !important;
+    min-width: 100px !important;
+}
+
+.modern-filter-input:focus {
+    border-color: #667eea !important;
+    box-shadow: 0 0 0 3px rgba(102,126,234,0.15) !important;
+    outline: none !important;
+}
+
+/* Seção de busca */
+.search-section {
+    background: white !important;
+    border: 1px solid var(--pf-gray-200) !important;
+    border-top: none !important;
+    padding: 10px 16px !important;
+}
+
+.search-input-group {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+}
+
+.search-input {
+    flex: 1 !important;
+    height: 36px !important;
+    font-size: 0.85rem !important;
+    border: 1px solid var(--pf-gray-200) !important;
+    border-radius: 7px !important;
+    padding: 4px 14px !important;
+    color: var(--pf-gray-700) !important;
+}
+
+.search-input:focus {
+    border-color: var(--pf-accent) !important;
+    box-shadow: 0 0 0 3px rgba(33,150,243,0.12) !important;
+    outline: none !important;
+}
+
+.search-btn {
+    height: 36px !important;
+    padding: 0 14px !important;
+    background: #667eea !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 7px !important;
+    font-size: 0.85rem !important;
+    cursor: pointer !important;
+    transition: var(--pf-transition) !important;
+}
+
+.search-btn:hover {
+    background: #5866d9 !important;
+}
+
+/* Totalizadores */
+.modern-totals-summary {
+    background: white !important;
+    border: 1px solid var(--pf-gray-200) !important;
+    border-top: none !important;
+}
+
+.totals-container-enhanced {
+    padding: 0 !important;
+}
+
+.totals-header {
+    background: var(--pf-gray-50) !important;
+    padding: 8px 16px !important;
+    border-bottom: 1px solid var(--pf-gray-200) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+}
+
+.totals-title {
+    font-size: 0.75rem !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.6px !important;
+    color: var(--pf-gray-500) !important;
+}
+
+.totals-grid {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+}
+
+.totals-group {
+    padding: 14px 18px !important;
+    position: relative !important;
+}
+
+.totals-group.entradas-group {
+    border-right: 1px solid var(--pf-gray-200) !important;
+}
+
+.group-title {
+    font-size: 0.72rem !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.8px !important;
+    margin-bottom: 10px !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+}
+
+.entradas-group .group-title {
+    color: #2E7D32 !important;
+}
+
+.saidas-group .group-title {
+    color: #C62828 !important;
+}
+
+.group-items {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+}
+
+.total-item {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 2px !important;
+}
+
+.item-label {
+    font-size: 0.68rem !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.3px !important;
+    color: var(--pf-gray-400) !important;
+    font-weight: 600 !important;
+}
+
+.item-value {
+    font-size: 0.92rem !important;
+    font-weight: 700 !important;
+    color: var(--pf-gray-700) !important;
+    font-variant-numeric: tabular-nums !important;
+}
+
+.item-value.entrada-total { color: #2E7D32 !important; }
+.item-value.entrada-realizada { color: #43A047 !important; }
+.item-value.saida-total { color: #C62828 !important; }
+.item-value.saida-realizada { color: #E53935 !important; }
+
+/* Controles de paginação */
+.modern-panel-controls {
+    background: white !important;
+    border: 1px solid var(--pf-gray-200) !important;
+    border-top: none !important;
+    padding: 8px 16px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+}
+
+.modern-pagination-info {
+    font-size: 0.8rem !important;
+    color: var(--pf-gray-500) !important;
+}
+
+.modern-pagination-controls {
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+}
+
+.modern-pagination-btn {
+    width: 30px !important;
+    height: 30px !important;
+    border: 1px solid var(--pf-gray-200) !important;
+    border-radius: 6px !important;
+    background: white !important;
+    color: var(--pf-gray-600) !important;
+    cursor: pointer !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 0.8rem !important;
+    transition: var(--pf-transition) !important;
+}
+
+.modern-pagination-btn:hover {
+    background: #667eea !important;
+    color: white !important;
+    border-color: #667eea !important;
+}
+
+.modern-page-selector {
+    font-size: 0.83rem !important;
+    font-weight: 600 !important;
+    color: var(--pf-gray-700) !important;
+    min-width: 24px !important;
+    text-align: center !important;
+}
+
+/* Ações em lote — display controlado pelo JS (display:none por padrão no HTML) */
+.modern-batch-actions {
+    background: #FFF8E1 !important;
+    border: 1px solid #FFD54F !important;
+    border-top: 3px solid #FB8C00 !important;
+    padding: 10px 16px !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 12px !important;
+    flex-wrap: wrap !important;
+}
+.modern-batch-actions.active {
+    display: flex !important;
+}
+
+.modern-batch-info {
+    font-size: 0.85rem !important;
+    font-weight: 600 !important;
+    color: #E65100 !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+}
+
+.modern-batch-buttons {
+    display: flex !important;
+    gap: 8px !important;
+}
+
+.modern-batch-btn {
+    padding: 5px 14px !important;
+    border: none !important;
+    border-radius: 6px !important;
+    font-size: 0.8rem !important;
+    font-weight: 600 !important;
+    cursor: pointer !important;
+    transition: var(--pf-transition) !important;
+}
+
+.modern-batch-btn.success { background: #43A047 !important; color: white !important; }
+.modern-batch-btn.warning { background: #FB8C00 !important; color: white !important; }
+.modern-batch-btn.danger  { background: #E53935 !important; color: white !important; }
+.modern-batch-btn.secondary { background: var(--pf-gray-500) !important; color: white !important; }
+
+/* Tabela principal */
+.modern-table-container {
+    background: white !important;
+    border: 1px solid var(--pf-gray-200) !important;
+    border-top: none !important;
+    overflow-x: auto !important;
+}
+
+.modern-table {
+    width: 100% !important;
+    font-size: 0.83rem !important;
+    border-collapse: collapse !important;
+}
+
+.modern-table thead,
+.modern-table thead tr {
+    background: var(--pf-gray-50) !important;
+    background-image: none !important;
+    border-bottom: 2px solid var(--pf-gray-200) !important;
+    color: var(--pf-gray-500) !important;
+}
+
+.modern-table thead th {
+    padding: 10px 12px !important;
+    font-size: 0.7rem !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.6px !important;
+    text-transform: uppercase !important;
+    color: var(--pf-gray-500) !important;
+    white-space: nowrap !important;
+    border: none !important;
+    background: var(--pf-gray-50) !important;
+    background-image: none !important;
+    text-shadow: none !important;
+}
+
+.modern-table tbody tr {
+    border-bottom: 1px solid var(--pf-gray-100) !important;
+    transition: background 0.12s !important;
+}
+
+.modern-table tbody tr:hover {
+    background-color: #F0F7FF !important;
+}
+
+.modern-table tbody td {
+    padding: 9px 12px !important;
+    vertical-align: middle !important;
+    color: var(--pf-gray-700) !important;
+    border: none !important;
+    border-bottom: 1px solid var(--pf-gray-100) !important;
+}
+
+/* Colunas específicas */
+.modern-checkbox-col { width: 38px !important; text-align: center !important; }
+.modern-date-col     { width: 90px !important; white-space: nowrap !important; }
+.modern-value-col    { width: 110px !important; text-align: right !important; font-weight: 700 !important; font-variant-numeric: tabular-nums !important; }
+.modern-status-col   { width: 110px !important; }
+.modern-actions-col  { width: 100px !important; text-align: center !important; white-space: nowrap !important; }
+.modern-data-col     { max-width: 200px !important; }
+
+/* Valor positivo/negativo na tabela */
+.modern-value-col.positive { color: #2E7D32 !important; }
+.modern-value-col.negative { color: #C62828 !important; }
+
+/* Checkbox estilizado */
+.modern-checkbox {
+    width: 15px !important;
+    height: 15px !important;
+    cursor: pointer !important;
+    accent-color: #667eea !important;
+}
+
+/* Status badges */
+.modern-status-badge {
+    display: inline-flex !important;
+    align-items: center !important;
+    padding: 3px 10px !important;
+    border-radius: 20px !important;
+    font-size: 0.72rem !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.2px !important;
+    white-space: nowrap !important;
+}
+
+.modern-status-badge.completed,
+.modern-status-badge.realizado {
+    background: #E8F5E9 !important;
+    color: #1B5E20 !important;
+}
+
+.modern-status-badge.pending,
+.modern-status-badge.a-vencer {
+    background: #E3F2FD !important;
+    color: #01579B !important;
+}
+
+.modern-status-badge.overdue,
+.modern-status-badge.vencido {
+    background: #FFEBEE !important;
+    color: #B71C1C !important;
+}
+
+.modern-status-badge.scheduled,
+.modern-status-badge.agendado {
+    background: #FFF8E1 !important;
+    color: #E65100 !important;
+}
+
+/* Botões de ação na tabela */
+.modern-action-btn {
+    width: 28px !important;
+    height: 28px !important;
+    border: none !important;
+    border-radius: 6px !important;
+    cursor: pointer !important;
+    font-size: 0.75rem !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    transition: var(--pf-transition) !important;
+    margin: 0 1px !important;
+}
+
+.modern-action-btn.edit {
+    background: #ede9fe !important;
+    color: #5866d9 !important;
+}
+
+.modern-action-btn.edit:hover {
+    background: #5866d9 !important;
+    color: white !important;
+}
+
+.modern-action-btn.delete {
+    background: #FFEBEE !important;
+    color: #B71C1C !important;
+}
+
+.modern-action-btn.delete:hover {
+    background: #B71C1C !important;
+    color: white !important;
+}
+
+.modern-action-btn.check {
+    background: #E8F5E9 !important;
+    color: #2E7D32 !important;
+}
+
+.modern-action-btn.check:hover {
+    background: #2E7D32 !important;
+    color: white !important;
+}
+
+.modern-action-btn.times {
+    background: #FFF8E1 !important;
+    color: #E65100 !important;
+}
+
+.modern-action-btn.times:hover {
+    background: #E65100 !important;
+    color: white !important;
+}
+
+/* Rodapé do painel */
+.modern-panel-footer {
+    background: white !important;
+    border: 1px solid var(--pf-gray-200) !important;
+    border-top: 2px solid var(--pf-gray-200) !important;
+    border-radius: 0 0 var(--pf-card-radius) var(--pf-card-radius) !important;
+}
+
+.modern-totals {
+    display: flex !important;
+    align-items: center !important;
+    gap: 32px !important;
+    padding: 14px 20px !important;
+    flex-wrap: wrap !important;
+}
+
+.modern-total-label {
+    font-size: 0.7rem !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
+    color: var(--pf-gray-400) !important;
+    display: block !important;
+    margin-bottom: 2px !important;
+}
+
+.modern-total-value {
+    font-size: 1.05rem !important;
+    font-weight: 800 !important;
+    color: var(--pf-gray-800) !important;
+    font-variant-numeric: tabular-nums !important;
+    letter-spacing: -0.3px !important;
+}
+
+.modern-total-value.positive { color: #2E7D32 !important; }
+.modern-total-value.negative { color: #C62828 !important; }
+
+/* Total badge ícone */
+.total-badge {
+    width: 38px !important;
+    height: 38px !important;
+    border-radius: 9px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 1rem !important;
+    flex-shrink: 0 !important;
+}
+
+.total-badge.bg-success-light { background: #E8F5E9 !important; }
+.total-badge.bg-danger-light  { background: #FFEBEE !important; }
+
+/* Estado vazio */
+.empty-state {
+    padding: 32px 16px !important;
+    text-align: center !important;
+    color: var(--pf-gray-400) !important;
+}
+
+.empty-state i {
+    color: var(--pf-gray-300) !important;
+}
+
+/* ============================================================
+   SIDEBAR - Hover expand behavior
+   ============================================================ */
+
+/* Espaço de conteúdo — margin-top compensa o header fixo de 85px */
+.all {
+    display: flex !important;
+    margin-top: 85px !important;
+    min-height: calc(100vh - 85px) !important;
+}
+
+/* Conteúdo principal */
+.conteudo {
+    margin-top: 0 !important;
+    padding-top: 20px !important;
+}
+
+/* Responsivo para mobile */
+@media (max-width: 768px) {
+    .menu {
+        width: 0 !important;
+        min-width: 0 !important;
+    }
+
+    .conteudo {
+        margin-left: 0 !important;
+        width: 100% !important;
+    }
+}
+
+/* ============================================================
+   CABEÇALHO TÍTULO - TODAS AS PÁGINAS
+   ============================================================ */
+
+/* Remove o title-row padrão vazio que ocupa espaço */
+.title-row:empty,
+.title-row .title:empty {
+    display: none !important;
+}
+
+/* Quando o title-row tem conteúdo, estiliza */
+.title-row .col-lg-8:not(:empty) {
+    display: flex !important;
+    align-items: center !important;
+}
+
+/* ============================================================
+   FORMULÁRIOS - ESTILO PREMIUM
+   ============================================================ */
+
+/* Inputs em formulários de cadastro */
+.form-control,
+.form-select {
+    border-color: var(--pf-gray-200) !important;
+    border-radius: 7px !important;
+    font-size: 0.875rem !important;
+    transition: border-color 0.2s, box-shadow 0.2s !important;
+}
+
+.form-control:focus,
+.form-select:focus {
+    border-color: #667eea !important;
+    box-shadow: 0 0 0 3px rgba(102,126,234,0.15) !important;
+}
+
+.form-label {
+    font-size: 0.8rem !important;
+    font-weight: 600 !important;
+    color: var(--pf-gray-600) !important;
+    margin-bottom: 4px !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.3px !important;
+}
+
+/* Cards em formulários */
+.card {
+    border: 1px solid var(--pf-gray-200) !important;
+    border-radius: var(--pf-card-radius) !important;
+    box-shadow: var(--pf-card-shadow) !important;
+}
+
+.card-header {
+    background: var(--pf-gray-50) !important;
+    border-bottom: 1px solid var(--pf-gray-200) !important;
+    padding: 12px 18px !important;
+    font-weight: 600 !important;
+    font-size: 0.9rem !important;
+    color: var(--pf-gray-700) !important;
+}
+
+.card-body {
+    padding: 18px !important;
+}
+
+/* Cabeçalhos coloridos dos cards */
+.card-header.bg-primary,
+.card-header.bg-success,
+.card-header.bg-danger,
+.card-header.bg-warning,
+.card-header.bg-info {
+    border-bottom: none !important;
+}
+
+.card-header.bg-primary,
+.card-header.bg-dark,
+.card-header.bg-secondary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    color: white !important;
+}
+
+.card-header.bg-success,
+.card-header.bg-danger,
+.card-header.bg-warning,
+.card-header.bg-info,
+.card .card-header.bg-success,
+.card .card-header.bg-danger,
+.card .card-header.bg-warning,
+.card .card-header.bg-info {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    color: white !important;
+}
+
+/* Títulos em card-header sem fundo colorido — cor escura */
+.card-header h4, .card-header h5, .card-header h6 {
+    color: var(--pf-gray-700) !important;
+    margin: 0 !important;
+    font-size: 0.95rem !important;
+}
+
+/* Títulos em card-header com fundo colorido — branco */
+.card-header.bg-primary h4, .card-header.bg-primary h5, .card-header.bg-primary h6,
+.card-header.bg-success h4, .card-header.bg-success h5, .card-header.bg-success h6,
+.card-header.bg-danger h4, .card-header.bg-danger h5, .card-header.bg-danger h6,
+.card-header.bg-warning h4, .card-header.bg-warning h5, .card-header.bg-warning h6,
+.card-header.bg-info h4, .card-header.bg-info h5, .card-header.bg-info h6,
+.card-header.bg-dark h4, .card-header.bg-dark h5, .card-header.bg-dark h6,
+.card-header.bg-secondary h4, .card-header.bg-secondary h5, .card-header.bg-secondary h6 {
+    color: white !important;
+    margin: 0 !important;
+    font-size: 0.95rem !important;
+}
+
+/* Botão btn-dark → roxo */
+.btn-dark {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    border-color: #667eea !important;
+    color: white !important;
+    font-weight: 600 !important;
+    border-radius: 7px !important;
+}
+
+.btn-dark:hover {
+    background: linear-gradient(135deg, #5866d9 0%, #6a3f8f 100%) !important;
+    color: white !important;
+}
+
+/* Botão btn-info → roxo */
+.btn-info {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    border-color: #667eea !important;
+    color: white !important;
+    font-weight: 600 !important;
+    border-radius: 7px !important;
+}
+
+.btn-info:hover {
+    background: linear-gradient(135deg, #5866d9 0%, #6a3f8f 100%) !important;
+    color: white !important;
+}
+
+/* Plano de Contas — balancete-header duplicado */
+.balancete-header {
+    display: none !important;
+}
+
+
+/* ============================================================
+   BOTÕES GLOBAIS - ESTILO PREMIUM
+   ============================================================ */
+
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    border-color: #667eea !important;
+    font-weight: 600 !important;
+    border-radius: 7px !important;
+    transition: var(--pf-transition) !important;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, #5866d9 0%, #6a3f8f 100%) !important;
+    border-color: #5866d9 !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4) !important;
+}
+
+.btn-success {
+    background: linear-gradient(135deg, #1B5E20 0%, #2E7D32 100%) !important;
+    border-color: #2E7D32 !important;
+    font-weight: 600 !important;
+    border-radius: 7px !important;
+}
+
+.btn-success:hover {
+    background: linear-gradient(135deg, #1B5E20 0%, #1B5E20 100%) !important;
+    transform: translateY(-1px) !important;
+}
+
+.btn-danger {
+    background: linear-gradient(135deg, #B71C1C 0%, #C62828 100%) !important;
+    border-color: #C62828 !important;
+    font-weight: 600 !important;
+    border-radius: 7px !important;
+}
+
+.btn-warning {
+    background: linear-gradient(135deg, #E65100 0%, #FB8C00 100%) !important;
+    border-color: #FB8C00 !important;
+    color: white !important;
+    font-weight: 600 !important;
+    border-radius: 7px !important;
+}
+
+.btn-warning:hover {
+    color: white !important;
+}
+
+.btn-secondary {
+    background: var(--pf-gray-600) !important;
+    border-color: var(--pf-gray-600) !important;
+    font-weight: 600 !important;
+    border-radius: 7px !important;
+}
+
+.btn-outline-primary {
+    border-color: #667eea !important;
+    color: #667eea !important;
+    font-weight: 600 !important;
+    border-radius: 7px !important;
+}
+
+.btn-outline-primary:hover {
+    background: #667eea !important;
+    color: white !important;
+}
+
+/* ============================================================
+   ALERTAS BOOTSTRAP - ESTILO MODERNO
+   ============================================================ */
+
+.alert {
+    border-radius: 9px !important;
+    border: none !important;
+    padding: 12px 16px !important;
+    font-size: 0.875rem !important;
+}
+
+.alert-success {
+    background: #E8F5E9 !important;
+    color: #1B5E20 !important;
+    border-left: 4px solid #43A047 !important;
+}
+
+.alert-danger {
+    background: #FFEBEE !important;
+    color: #B71C1C !important;
+    border-left: 4px solid #E53935 !important;
+}
+
+.alert-warning {
+    background: #FFF8E1 !important;
+    color: #E65100 !important;
+    border-left: 4px solid #FB8C00 !important;
+}
+
+.alert-info {
+    background: #E3F2FD !important;
+    color: #01579B !important;
+    border-left: 4px solid #039BE5 !important;
+}
+
+/* ============================================================
+   BADGES BOOTSTRAP - ESTILO MODERNO
+   ============================================================ */
+
+.badge.bg-success {
+    background: #2E7D32 !important;
+    font-weight: 600 !important;
+    padding: 4px 8px !important;
+    border-radius: 5px !important;
+    font-size: 0.72rem !important;
+}
+
+.badge.bg-danger {
+    background: #C62828 !important;
+    font-weight: 600 !important;
+    padding: 4px 8px !important;
+    border-radius: 5px !important;
+    font-size: 0.72rem !important;
+}
+
+.badge.bg-warning {
+    background: #FB8C00 !important;
+    font-weight: 600 !important;
+    padding: 4px 8px !important;
+    border-radius: 5px !important;
+    font-size: 0.72rem !important;
+    color: white !important;
+}
+
+.badge.bg-info {
+    background: #0288D1 !important;
+    font-weight: 600 !important;
+    padding: 4px 8px !important;
+    border-radius: 5px !important;
+    font-size: 0.72rem !important;
+}
+
+.badge.bg-primary {
+    background: #667eea !important;
+    font-weight: 600 !important;
+    padding: 4px 8px !important;
+    border-radius: 5px !important;
+    font-size: 0.72rem !important;
+}
+
+.badge.bg-secondary {
+    background: var(--pf-gray-500) !important;
+    font-weight: 600 !important;
+    padding: 4px 8px !important;
+    border-radius: 5px !important;
+    font-size: 0.72rem !important;
+}
+
+/* ============================================================
+   TABELAS BOOTSTRAP PADRÃO - ESTILO MODERNO
+   ============================================================ */
+
+.table {
+    font-size: 0.85rem !important;
+}
+
+.table thead th {
+    background: var(--pf-gray-50) !important;
+    color: var(--pf-gray-500) !important;
+    font-size: 0.72rem !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
+    border-bottom: 2px solid var(--pf-gray-200) !important;
+    padding: 10px 12px !important;
+    white-space: nowrap !important;
+}
+
+.table tbody td {
+    padding: 9px 12px !important;
+    vertical-align: middle !important;
+    color: var(--pf-gray-700) !important;
+    border-color: var(--pf-gray-100) !important;
+}
+
+.table tbody tr:hover {
+    background-color: #F0F7FF !important;
+}
+
+.table-striped > tbody > tr:nth-of-type(odd) > * {
+    background-color: var(--pf-gray-50) !important;
+}
+
+/* ============================================================
+   MODALS - ESTILO PREMIUM
+   ============================================================ */
+
+.modal-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    color: white !important;
+    border-bottom: none !important;
+    border-radius: calc(var(--pf-card-radius) - 1px) calc(var(--pf-card-radius) - 1px) 0 0 !important;
+    padding: 14px 20px !important;
+}
+
+.modal-header .modal-title {
+    color: white !important;
+    font-size: 1rem !important;
+    font-weight: 700 !important;
+}
+
+.modal-header .btn-close {
+    filter: invert(1) !important;
+}
+
+.modal-content {
+    border: none !important;
+    border-radius: var(--pf-card-radius) !important;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.2) !important;
+}
+
+.modal-footer {
+    border-top: 1px solid var(--pf-gray-200) !important;
+    padding: 12px 20px !important;
+}
+
+/* ============================================================
+   DROPDOWN - ESTILO PREMIUM
+   ============================================================ */
+
+.dropdown-menu {
+    border: 1px solid var(--pf-gray-200) !important;
+    border-radius: 9px !important;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12) !important;
+    padding: 6px !important;
+    font-size: 0.875rem !important;
+}
+
+.dropdown-item {
+    border-radius: 6px !important;
+    padding: 8px 12px !important;
+    color: var(--pf-gray-700) !important;
+    font-size: 0.85rem !important;
+    transition: var(--pf-transition) !important;
+}
+
+.dropdown-item:hover {
+    background: var(--pf-gray-50) !important;
+    color: var(--pf-primary) !important;
+}
+
+.dropdown-item i {
+    width: 18px !important;
+    text-align: center !important;
+    color: var(--pf-gray-400) !important;
+    margin-right: 6px !important;
+}
+
+.dropdown-item:hover i {
+    color: var(--pf-primary) !important;
+}
+
+/* ============================================================
+   PÁGINA CONTEÚDO - PADDING E BACKGROUND
+   ============================================================ */
+
+/* Conteúdo principal - margin para sidebar colapsada de 56px */
+.conteudo {
+    overflow: auto !important;
+    margin-left: 56px !important;
+    width: calc(100% - 56px) !important;
+    box-sizing: border-box !important;
+    transition: margin-left 0.25s ease !important;
+}
+
+.conteudo-row {
+    min-height: calc(100vh - 160px) !important;
+}
+
+/* Ajuste do conteudo principal */
+.conteudo .container-fluid {
+    padding: 0 !important;
+}
+
+.conteudo-row {
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+/* Thead sticky - garantir visibilidade acima do header */
+.modern-table thead {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 5 !important;
+}
+
+/* ============================================================
+   RESPONSIVO
+   ============================================================ */
+
+@media (max-width: 768px) {
+    .modern-filters {
+        flex-direction: column !important;
+    }
+
+    .modern-filter-group {
+        width: 100% !important;
+    }
+
+    .modern-totals {
+        flex-direction: column !important;
+        gap: 14px !important;
+    }
+
+    .totals-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    .group-items {
+        grid-template-columns: 1fr 1fr !important;
+    }
+}

@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 
-{% block title %}Dashboard - Sistema de Gestão Financeira{% endblock %}
+{% block title %}Dashboard - Asa Finance{% endblock %}
 
-{% block page_title %}Dashboard{% endblock %}
+{% block page_title %}<i class="fas fa-home me-2"></i>Dashboard{% endblock %}
 
 {% block content %}
 
@@ -11,34 +11,30 @@
 <div class="modal fade" id="modalAssinaturaExpirada" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
     aria-labelledby="modalAssinaturaExpiradaLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content border-danger">
-            <div class="modal-header bg-danger text-white">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header pf-card-header-danger">
                 <h5 class="modal-title" id="modalAssinaturaExpiradaLabel">
                     <i class="fas fa-exclamation-circle me-2"></i>Assinatura Expirada
                 </h5>
             </div>
             <div class="modal-body text-center py-5">
-                <i class="fas fa-calendar-times fa-4x text-danger mb-4"></i>
-                <h4 class="mb-3">Sua assinatura expirou!</h4>
-                <p class="lead mb-4">Para continuar usando o sistema, você precisa escolher um plano de assinatura.</p>
-                <p class="text-muted mb-4">Escolha o plano que melhor atende suas necessidades e volte a ter acesso
-                    completo a todas as funcionalidades.</p>
-                <a href="/precos" class="btn btn-danger btn-lg px-5">
-                    <i class="fas fa-shopping-cart me-2"></i>Ver Planos e Assinar
+                <i class="fas fa-calendar-times fa-4x text-danger mb-4" style="color: #E53935 !important;"></i>
+                <h4 class="mb-3" style="color: #1E293B !important;">Sua assinatura expirou!</h4>
+                <p class="lead mb-4" style="color: #475569;">Para continuar usando o sistema, escolha um plano de assinatura.</p>
+                <a href="/precos" class="pf-btn pf-btn-danger" style="font-size: 1rem; padding: 12px 32px;">
+                    <i class="fas fa-shopping-cart"></i>Ver Planos e Assinar
                 </a>
             </div>
             <div class="modal-footer bg-light">
                 <p class="text-muted mb-0 small">
                     <i class="fas fa-info-circle me-1"></i>
-                    Sem um plano ativo, você não poderá acessar o sistema. Entre em contato conosco caso tenha dúvidas.
+                    Sem um plano ativo, você não poderá acessar o sistema.
                 </p>
             </div>
         </div>
     </div>
 </div>
-
 <script>
-    // Mostrar modal automaticamente quando a página carregar
     document.addEventListener('DOMContentLoaded', function () {
         var modalElement = document.getElementById('modalAssinaturaExpirada');
         if (modalElement) {
@@ -49,910 +45,650 @@
 </script>
 {% endif %}
 
+<!-- Alertas de vínculos pendentes -->
 {% if vinculos_pendentes %}
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="card border-warning shadow-sm">
-            <div class="card-header bg-warning text-dark">
-                <h5 class="card-title mb-0">
-                    <i class="fas fa-exclamation-triangle me-2"></i>Solicitações de Vínculo Pendentes
-                </h5>
+<div class="pf-alert pf-alert-warning mb-3 d-flex align-items-start gap-3">
+    <i class="fas fa-exclamation-triangle fa-lg mt-1 flex-shrink-0"></i>
+    <div class="flex-grow-1">
+        <strong>{{ vinculos_pendentes|length }} solicitação(ões) de vínculo pendente(s)</strong>
+        <div class="d-flex gap-2 mt-2 flex-wrap">
+            {% for vinculo in vinculos_pendentes[:2] %}
+            <div class="d-flex align-items-center gap-2 p-2 rounded" style="background: rgba(0,0,0,0.06); font-size: 0.82rem;">
+                <i class="fas fa-building"></i>
+                <span>Solicitado em {{ vinculo.data_solicitacao.strftime('%d/%m/%Y') }}</span>
+                <form method="POST" action="{{ url_for('autorizar_vinculo', vinculo_id=vinculo.id) }}" style="display:inline;">
+                    <button type="submit" class="pf-btn pf-btn-success pf-btn-sm"
+                        onclick="return confirm('Autorizar este contador?');">
+                        <i class="fas fa-check"></i> Autorizar
+                    </button>
+                </form>
+                <form method="POST" action="{{ url_for('rejeitar_vinculo', vinculo_id=vinculo.id) }}" style="display:inline;">
+                    <button type="submit" class="pf-btn pf-btn-danger pf-btn-sm"
+                        onclick="return confirm('Rejeitar esta solicitação?');">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </form>
             </div>
-            <div class="card-body">
-                <p class="mb-3">Você tem <strong>{{ vinculos_pendentes|length }}</strong> solicitação(ões) de vínculo de
-                    contador/BPO aguardando sua autorização:</p>
-                <div class="row">
-                    {% for vinculo in vinculos_pendentes %}
-                    <div class="col-md-6 mb-3">
-                        <div class="card border-left-warning" style="border-left: 4px solid #ffc107;">
-                            <div class="card-body">
-                                <h6 class="card-title">
-                                    <i class="fas fa-building me-2"></i>Contador/BPO
-                                </h6>
-                                <p class="text-muted mb-2">
-                                    <small>
-                                        <i class="fas fa-calendar me-1"></i>
-                                        Solicitado em: {{ vinculo.data_solicitacao.strftime('%d/%m/%Y às %H:%M') }}
-                                    </small>
-                                </p>
-                                <div class="alert alert-info mb-2 py-2">
-                                    <small>
-                                        <i class="fas fa-info-circle me-1"></i>
-                                        Ao autorizar, este contador terá acesso para visualizar os dados financeiros da
-                                        sua empresa.
-                                    </small>
-                                </div>
-                                <div class="d-flex gap-2">
-                                    <form method="POST"
-                                        action="{{ url_for('autorizar_vinculo', vinculo_id=vinculo.id) }}"
-                                        style="display: inline;">
-                                        <button type="submit" class="btn btn-success btn-sm"
-                                            onclick="return confirm('Tem certeza que deseja AUTORIZAR este contador a acessar os dados da sua empresa?');">
-                                            <i class="fas fa-check me-1"></i>Autorizar
-                                        </button>
-                                    </form>
-                                    <form method="POST"
-                                        action="{{ url_for('rejeitar_vinculo', vinculo_id=vinculo.id) }}"
-                                        style="display: inline;">
-                                        <button type="submit" class="btn btn-danger btn-sm"
-                                            onclick="return confirm('Tem certeza que deseja REJEITAR esta solicitação?');">
-                                            <i class="fas fa-times me-1"></i>Rejeitar
-                                        </button>
-                                    </form>
-                                    <a href="{{ url_for('vinculos_pendentes') }}"
-                                        class="btn btn-outline-primary btn-sm ms-auto">
-                                        <i class="fas fa-eye me-1"></i>Ver Detalhes
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
+            {% endfor %}
+            <a href="{{ url_for('vinculos_pendentes') }}" class="pf-btn pf-btn-outline pf-btn-sm align-self-center">
+                <i class="fas fa-eye"></i> Ver Todos
+            </a>
         </div>
     </div>
 </div>
 {% endif %}
 
+<!-- Alertas do sistema -->
 {% if alertas %}
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="card border-warning">
-            <div class="card-header bg-warning">
-                <h5 class="card-title mb-0 text-dark">
-                    <i class="fas fa-bell me-2"></i>Alertas do Sistema
-                </h5>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    {% for alerta in alertas %}
-                    <div class="col-md-6 col-lg-4 mb-3">
-                        <div class="alert alert-{{ alerta.tipo }} d-flex align-items-center" role="alert">
-                            <i class="{{ alerta.icone }} me-2"></i>
-                            <div>
-                                <strong>{{ alerta.titulo }}</strong><br>
-                                <small>{{ alerta.mensagem }}</small>
-                            </div>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-{% endif %}
-
-<!-- Conteúdo principal do dashboard - sempre visível -->
-<div class="dashboard-content"
-    style="display: block !important; visibility: visible !important; opacity: 1 !important;">
-    <div class="row mb-4" id="lancamentos-agendados-container" style="display: none;">
-        <div class="col-12">
-            <div class="card border-info">
-                <div class="card-header bg-info text-white">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-calendar-check me-2"></i>Lançamentos para Confirmar Hoje
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <div id="lancamentos-agendados-lista">
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-filter me-2"></i>Filtros de Período
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <form method="GET" action="{{ url_for('dashboard') }}" class="row g-3">
-                        <div class="col-md-3">
-                            <label for="filtro" class="form-label">Tipo de Período</label>
-                            <select name="filtro" id="filtro" class="form-select" onchange="this.form.submit()">
-                                <option value="mes" {{ 'selected' if filtro_tipo=='mes' }}>Mês a Mês</option>
-                                <option value="ano" {{ 'selected' if filtro_tipo=='ano' }}>Por Ano</option>
-                            </select>
-                        </div>
-
-                        <div class="col-md-3">
-                            <label for="ano" class="form-label">Ano</label>
-                            <select name="ano" id="ano" class="form-select" onchange="this.form.submit()">
-                                {% for ano_opcao in anos_disponiveis %}
-                                <option value="{{ ano_opcao }}" {{ 'selected' if ano_opcao==ano }}>{{ ano_opcao }}
-                                </option>
-                                {% endfor %}
-                            </select>
-                        </div>
-
-                        <div class="col-md-3" id="mes_container"
-                            style="display: {{ 'block' if filtro_tipo == 'mes' else 'none' }};">
-                            <label for="mes" class="form-label">Mês</label>
-                            <select name="mes" id="mes" class="form-select" onchange="this.form.submit()">
-                                {% for mes_num, mes_nome in meses %}
-                                <option value="{{ mes_num }}" {{ 'selected' if mes_num==mes }}>{{ mes_nome }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-
-                        <div class="col-md-3 d-flex align-items-end">
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-search me-2"></i>Filtrar
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    {% if empresas_vinculadas_resumo %}
-    <!-- Cards de Resumo para Empresas Vinculadas (Contador/BPO) -->
-    {% for resumo in empresas_vinculadas_resumo %}
-    <div class="row mb-4">
-        <div class="col-md-12">
-            <div class="card border-success shadow-sm">
-                <div class="card-header bg-success text-white">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-building me-2"></i>Resumo da Empresa
-                    </h5>
-                </div>
-                <div class="card-body p-4">
-                    <div class="row g-4">
-                        <!-- Saldo do Período (Realizado) - Destaque -->
-                        <div class="col-lg-3 col-md-3 col-sm-6">
-                            <div class="resumo-item text-center p-3 rounded"
-                                style="background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%); border-left: 4px solid #28a745;">
-                                <div class="mb-2">
-                                    <i class="fas fa-balance-scale fa-2x text-success"></i>
-                                </div>
-                                <h6 class="text-muted mb-2 fw-bold text-uppercase"
-                                    style="font-size: 0.75rem; letter-spacing: 0.5px;">Saldo Realizado</h6>
-                                <h2 class="text-success mb-2 fw-bold">
-                                    R$ {{ "%.2f"|format(resumo.saldo_periodo) }}
-                                </h2>
-                                <small class="text-muted d-block">Entradas - Saídas</small>
-                            </div>
-                        </div>
-
-                        <!-- Entradas Realizadas -->
-                        <div class="col-lg-3 col-md-3 col-sm-6">
-                            <div class="resumo-item text-center p-3 rounded"
-                                style="background: linear-gradient(135deg, #d1ecf1 0%, #bee5eb 100%); border-left: 4px solid #17a2b8;">
-                                <div class="mb-2">
-                                    <i class="fas fa-arrow-circle-down fa-2x text-success"></i>
-                                </div>
-                                <h6 class="text-muted mb-2 fw-bold text-uppercase"
-                                    style="font-size: 0.75rem; letter-spacing: 0.5px;">Entradas Realizadas</h6>
-                                <h3 class="text-success mb-2 fw-bold">
-                                    R$ {{ "%.2f"|format(resumo.total_entradas) }}
-                                </h3>
-                                <small class="text-muted d-block">Lançamentos confirmados</small>
-                            </div>
-                        </div>
-
-                        <!-- Saídas Realizadas -->
-                        <div class="col-lg-3 col-md-3 col-sm-6">
-                            <div class="resumo-item text-center p-3 rounded"
-                                style="background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%); border-left: 4px solid #dc3545;">
-                                <div class="mb-2">
-                                    <i class="fas fa-arrow-circle-up fa-2x text-danger"></i>
-                                </div>
-                                <h6 class="text-muted mb-2 fw-bold text-uppercase"
-                                    style="font-size: 0.75rem; letter-spacing: 0.5px;">Saídas Realizadas</h6>
-                                <h3 class="text-danger mb-2 fw-bold">
-                                    R$ {{ "%.2f"|format(resumo.total_saidas) }}
-                                </h3>
-                                <small class="text-muted d-block">Lançamentos confirmados</small>
-                            </div>
-                        </div>
-
-                        <!-- Contas Pendentes -->
-                        <div class="col-lg-3 col-md-3 col-sm-6">
-                            <div class="resumo-item p-3 rounded"
-                                style="background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%); border-left: 4px solid #ffc107;">
-                                <div class="text-center mb-3">
-                                    <i class="fas fa-clock fa-2x text-warning"></i>
-                                    <h6 class="text-muted mb-3 mt-2 fw-bold text-uppercase"
-                                        style="font-size: 0.75rem; letter-spacing: 0.5px;">Contas Pendentes</h6>
-                                </div>
-                                <div class="d-flex justify-content-between align-items-center mb-2 pb-2"
-                                    style="border-bottom: 1px solid rgba(0,0,0,0.1);">
-                                    <div>
-                                        <small class="text-muted d-block mb-1">A Receber</small>
-                                        <strong class="text-info fs-5">R$ {{
-                                            "%.2f"|format(resumo.total_receber_pendente) }}</strong>
-                                    </div>
-                                    <i class="fas fa-arrow-right text-info"></i>
-                                </div>
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <small class="text-muted d-block mb-1">A Pagar</small>
-                                        <strong class="text-warning fs-5">R$ {{
-                                            "%.2f"|format(resumo.total_pagar_pendente) }}</strong>
-                                    </div>
-                                    <i class="fas fa-arrow-right text-warning"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+<div class="row mb-3 g-2">
+    {% for alerta in alertas %}
+    <div class="col-md-6 col-lg-4">
+        <div class="pf-alert pf-alert-{{ alerta.tipo }}">
+            <i class="{{ alerta.icone }} flex-shrink-0"></i>
+            <div>
+                <strong style="font-size:0.82rem;">{{ alerta.titulo }}</strong>
+                <div style="font-size:0.78rem; margin-top:2px;">{{ alerta.mensagem }}</div>
             </div>
         </div>
     </div>
     {% endfor %}
-    {% endif %}
-
-    {% if not empresas_vinculadas_resumo %}
-    <!-- Card de Resumo do Período (apenas para empresas/pessoas físicas, não para contador/BPO) -->
-    <div class="row mb-4">
-        <div class="col-md-12">
-            <div class="card border-{{ 'success' if saldo_periodo >= 0 else 'danger' }} shadow-sm">
-                <div class="card-header bg-{{ 'success' if saldo_periodo >= 0 else 'danger' }} text-white">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-calendar-alt me-2"></i>Resumo do Período
-                    </h5>
-                </div>
-                <div class="card-body p-4">
-                    <div class="row g-4">
-                        <!-- Saldo do Período (Realizado) - Destaque -->
-                        <div class="col-lg-3 col-md-3 col-sm-6">
-                            <div class="resumo-item text-center p-3 rounded"
-                                style="background: linear-gradient(135deg, {{ '#d4edda' if saldo_periodo >= 0 else '#f8d7da' }} 0%, {{ '#c3e6cb' if saldo_periodo >= 0 else '#f5c6cb' }} 100%); border-left: 4px solid {{ '#28a745' if saldo_periodo >= 0 else '#dc3545' }};">
-                                <div class="mb-2">
-                                    <i
-                                        class="fas fa-balance-scale fa-2x text-{{ 'success' if saldo_periodo >= 0 else 'danger' }}"></i>
-                                </div>
-                                <h6 class="text-muted mb-2 fw-bold text-uppercase"
-                                    style="font-size: 0.75rem; letter-spacing: 0.5px;">Saldo Realizado</h6>
-                                <h2 class="text-{{ 'success' if saldo_periodo >= 0 else 'danger' }} mb-2 fw-bold">
-                                    R$ {{ "%.2f"|format(saldo_periodo) }}
-                                </h2>
-                                <small class="text-muted d-block">Entradas - Saídas</small>
-                            </div>
-                        </div>
-
-                        <!-- Entradas Realizadas -->
-                        <div class="col-lg-3 col-md-3 col-sm-6">
-                            <div class="resumo-item text-center p-3 rounded"
-                                style="background: linear-gradient(135deg, #d1ecf1 0%, #bee5eb 100%); border-left: 4px solid #17a2b8;">
-                                <div class="mb-2">
-                                    <i class="fas fa-arrow-circle-down fa-2x text-success"></i>
-                                </div>
-                                <h6 class="text-muted mb-2 fw-bold text-uppercase"
-                                    style="font-size: 0.75rem; letter-spacing: 0.5px;">Entradas Realizadas</h6>
-                                <h3 class="text-success mb-2 fw-bold">
-                                    R$ {{ "%.2f"|format(total_entradas_periodo) }}
-                                </h3>
-                                <small class="text-muted d-block">Lançamentos confirmados</small>
-                            </div>
-                        </div>
-
-                        <!-- Saídas Realizadas -->
-                        <div class="col-lg-3 col-md-3 col-sm-6">
-                            <div class="resumo-item text-center p-3 rounded"
-                                style="background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%); border-left: 4px solid #dc3545;">
-                                <div class="mb-2">
-                                    <i class="fas fa-arrow-circle-up fa-2x text-danger"></i>
-                                </div>
-                                <h6 class="text-muted mb-2 fw-bold text-uppercase"
-                                    style="font-size: 0.75rem; letter-spacing: 0.5px;">Saídas Realizadas</h6>
-                                <h3 class="text-danger mb-2 fw-bold">
-                                    R$ {{ "%.2f"|format(total_saidas_periodo) }}
-                                </h3>
-                                <small class="text-muted d-block">Lançamentos confirmados</small>
-                            </div>
-                        </div>
-
-                        <!-- Contas Pendentes -->
-                        <div class="col-lg-3 col-md-3 col-sm-6">
-                            <div class="resumo-item p-3 rounded"
-                                style="background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%); border-left: 4px solid #ffc107;">
-                                <div class="text-center mb-3">
-                                    <i class="fas fa-clock fa-2x text-warning"></i>
-                                    <h6 class="text-muted mb-3 mt-2 fw-bold text-uppercase"
-                                        style="font-size: 0.75rem; letter-spacing: 0.5px;">Contas Pendentes</h6>
-                                </div>
-                                <div class="d-flex justify-content-between align-items-center mb-2 pb-2"
-                                    style="border-bottom: 1px solid rgba(0,0,0,0.1);">
-                                    <div>
-                                        <small class="text-muted d-block mb-1">A Receber</small>
-                                        <strong class="text-info fs-5">R$ {{ "%.2f"|format(total_entrada_mes)
-                                            }}</strong>
-                                    </div>
-                                    <i class="fas fa-arrow-right text-info"></i>
-                                </div>
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <small class="text-muted d-block mb-1">A Pagar</small>
-                                        <strong class="text-warning fs-5">R$ {{ "%.2f"|format(total_saida_mes)
-                                            }}</strong>
-                                    </div>
-                                    <i class="fas fa-arrow-right text-warning"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    {% endif %}
-
-    <div class="row mb-4" id="quadrinhosFinanceiro">
-        <div id="receberHoje" class="col-12 col-sm-6 col-md-6 col-lg-6 mb-3 mb-md-0">
-            <div class="caixinha">
-                <div class="boxCaixinha">
-                    <i class="fas fa-sign-in-alt iconeCaixinha"></i>
-                    <div class="destaque"></div>
-                    <div class="texto">Contas a receber hoje</div>
-                    <div class="subtexto">Total R$ {{ "%.2f"|format(total_entrada_hoje) }}</div>
-                    <small class="text-muted">Pendentes</small>
-                </div>
-                <div class="rodape">
-                    <a href="{{ url_for('lancamentos') }}">Mais detalhes »</a>
-                </div>
-            </div>
-        </div>
-
-        <div id="pagarHoje" class="col-12 col-sm-6 col-md-6 col-lg-6">
-            <div class="caixinha">
-                <div class="boxCaixinha">
-                    <i class="fas fa-sign-out-alt iconeCaixinha"></i>
-                    <div class="destaque"></div>
-                    <div class="texto">Contas a pagar hoje</div>
-                    <div class="subtexto">Total R$ {{ "%.2f"|format(total_saida_hoje) }}</div>
-                    <small class="text-muted">Pendentes</small>
-                </div>
-                <div class="rodape">
-                    <a href="{{ url_for('lancamentos') }}">Mais detalhes »</a>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="row mt-3 mb-4" id="quadrinhosPrevistos">
-        <div id="receberMes" class="col-12 col-sm-6 col-md-6 col-lg-6 mb-3 mb-md-0">
-            <div class="caixinha">
-                <div class="boxCaixinha">
-                    <i class="fas fa-calendar-plus iconeCaixinha"></i>
-                    <div class="destaque"></div>
-                    <div class="texto">Contas a receber do mês</div>
-                    <div class="subtexto">Total R$ {{ "%.2f"|format(total_entrada_mes) }}</div>
-                    <small class="text-muted">Pendentes</small>
-                </div>
-                <div class="rodape">
-                    <a href="{{ url_for('lancamentos') }}">Mais detalhes »</a>
-                </div>
-            </div>
-        </div>
-
-        <div id="pagarMes" class="col-12 col-sm-6 col-md-6 col-lg-6">
-            <div class="caixinha">
-                <div class="boxCaixinha">
-                    <i class="fas fa-calendar-minus iconeCaixinha"></i>
-                    <div class="destaque"></div>
-                    <div class="texto">Contas a pagar do mês</div>
-                    <div class="subtexto">Total R$ {{ "%.2f"|format(total_saida_mes) }}</div>
-                    <small class="text-muted">Pendentes</small>
-                </div>
-                <div class="rodape">
-                    <a href="{{ url_for('lancamentos') }}">Mais detalhes »</a>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Quadro de Informações Financeiras do Período -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card border-primary shadow-sm">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-chart-line me-2"></i>Informações Financeiras
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <div class="row g-2">
-                        <div class="col-md-2 col-sm-4 col-6">
-                            <div class="text-center p-2 rounded"
-                                style="background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%); border-left: 4px solid #28a745;">
-                                <h6 class="text-muted mb-1 fw-bold text-uppercase" style="font-size: 0.7rem;">Total
-                                    Entradas</h6>
-                                <h5 class="text-success mb-0">R$ {{ "%.2f"|format(total_entradas_periodo) }}</h5>
-                            </div>
-                        </div>
-                        <div class="col-md-2 col-sm-4 col-6">
-                            <div class="text-center p-2 rounded"
-                                style="background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%); border-left: 4px solid #dc3545;">
-                                <h6 class="text-muted mb-1 fw-bold text-uppercase" style="font-size: 0.7rem;">Total
-                                    Saídas</h6>
-                                <h5 class="text-danger mb-0">R$ {{ "%.2f"|format(total_saidas_periodo) }}</h5>
-                            </div>
-                        </div>
-                        <div class="col-md-2 col-sm-4 col-6">
-                            <div class="text-center p-2 rounded"
-                                style="background: linear-gradient(135deg, #d1ecf1 0%, #bee5eb 100%); border-left: 4px solid #17a2b8;">
-                                <h6 class="text-muted mb-1 fw-bold text-uppercase" style="font-size: 0.7rem;">Total
-                                    Realizado</h6>
-                                <h5 class="text-info mb-0">R$ {{ "%.2f"|format(total_realizado) }}</h5>
-                            </div>
-                        </div>
-                        <div class="col-md-2 col-sm-4 col-6">
-                            <div class="text-center p-2 rounded"
-                                style="background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%); border-left: 4px solid #ffc107;">
-                                <h6 class="text-muted mb-1 fw-bold text-uppercase" style="font-size: 0.7rem;">A Vencer
-                                </h6>
-                                <h5 class="text-warning mb-0">R$ {{ "%.2f"|format(total_a_vencer) }}</h5>
-                            </div>
-                        </div>
-                        <div class="col-md-2 col-sm-4 col-6">
-                            <div class="text-center p-2 rounded"
-                                style="background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%); border-left: 4px solid #dc3545;">
-                                <h6 class="text-muted mb-1 fw-bold text-uppercase" style="font-size: 0.7rem;">Vencido
-                                </h6>
-                                <h5 class="text-danger mb-0">R$ {{ "%.2f"|format(total_vencido) }}</h5>
-                            </div>
-                        </div>
-                        <div class="col-md-2 col-sm-4 col-6">
-                            <div class="text-center p-2 rounded"
-                                style="background: linear-gradient(135deg, #d1ecf1 0%, #bee5eb 100%); border-left: 4px solid #17a2b8;">
-                                <h6 class="text-muted mb-1 fw-bold text-uppercase" style="font-size: 0.7rem;">Agendado
-                                </h6>
-                                <h5 class="text-info mb-0">R$ {{ "%.2f"|format(total_agendado) }}</h5>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Quadros de Contas a Receber e Pagar -->
-    <div class="row mb-4">
-        <div class="col-md-6">
-            <div class="card border-success shadow-sm">
-                <div class="card-header bg-success text-white">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-arrow-circle-down me-2"></i>Contas a Receber
-                    </h5>
-                </div>
-                <div class="card-body" style="max-height: 400px; overflow-y: auto;">
-                    {% if todas_contas_entrada %}
-                    <div class="table-responsive">
-                        <table class="table table-sm table-hover mb-0">
-                            <thead>
-                                <tr>
-                                    <th style="width: 40%;">Descrição</th>
-                                    <th style="width: 18%;">Vencimento</th>
-                                    <th style="width: 18%;">Valor</th>
-                                    <th style="width: 16%;">Status</th>
-                                    <th style="width: 8%;" class="text-center">Ação</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for conta in todas_contas_entrada %}
-                                <tr>
-                                    <td style="width: 40%;">{{ conta.descricao[:30] }}{% if conta.descricao|length > 30
-                                        %}...{% endif %}</td>
-                                    <td style="width: 18%;">{{ conta.data_prevista.strftime('%d/%m/%Y') }}</td>
-                                    <td style="width: 18%;">R$ {{ "%.2f"|format(conta.valor) }}</td>
-                                    <td style="width: 16%;">
-                                        {% if conta.realizado %}
-                                        <span class="badge bg-success">Realizado</span>
-                                        {% elif conta.data_prevista < hoje %} <span class="badge bg-danger">
-                                            Vencido</span>
-                                            {% elif conta.data_realizada and conta.data_realizada > hoje %}
-                                            <span class="badge bg-info">Agendado</span>
-                                            {% else %}
-                                            <span class="badge bg-warning">Pendente</span>
-                                            {% endif %}
-                                    </td>
-                                    <td style="width: 8%;" class="text-center">
-                                        <button type="button"
-                                            class="btn btn-sm btn-{{ 'warning' if conta.realizado else 'success' }}"
-                                            onclick="toggleLancamentoStatus({{ conta.id }}, {{ 'false' if conta.realizado else 'true' }})"
-                                            title="{{ 'Marcar como Pendente' if conta.realizado else 'Marcar como Realizado' }}">
-                                            <i class="fas fa-{{ 'undo' if conta.realizado else 'check' }}"></i>
-                                        </button>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                    {% else %}
-                    <p class="text-muted text-center">Nenhuma conta a receber no período.</p>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-6">
-            <div class="card border-danger shadow-sm">
-                <div class="card-header bg-danger text-white">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-arrow-circle-up me-2"></i>Contas a Pagar
-                    </h5>
-                </div>
-                <div class="card-body" style="max-height: 400px; overflow-y: auto;">
-                    {% if todas_contas_saida %}
-                    <div class="table-responsive">
-                        <table class="table table-sm table-hover mb-0">
-                            <thead>
-                                <tr>
-                                    <th style="width: 40%;">Descrição</th>
-                                    <th style="width: 18%;">Vencimento</th>
-                                    <th style="width: 18%;">Valor</th>
-                                    <th style="width: 16%;">Status</th>
-                                    <th style="width: 8%;" class="text-center">Ação</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for conta in todas_contas_saida %}
-                                <tr>
-                                    <td style="width: 40%;">{{ conta.descricao[:30] }}{% if conta.descricao|length > 30
-                                        %}...{% endif %}</td>
-                                    <td style="width: 18%;">{{ conta.data_prevista.strftime('%d/%m/%Y') }}</td>
-                                    <td style="width: 18%;">R$ {{ "%.2f"|format(conta.valor) }}</td>
-                                    <td style="width: 16%;">
-                                        {% if conta.realizado %}
-                                        <span class="badge bg-success">Realizado</span>
-                                        {% elif conta.data_prevista < hoje %} <span class="badge bg-danger">
-                                            Vencido</span>
-                                            {% elif conta.data_realizada and conta.data_realizada > hoje %}
-                                            <span class="badge bg-info">Agendado</span>
-                                            {% else %}
-                                            <span class="badge bg-warning">Pendente</span>
-                                            {% endif %}
-                                    </td>
-                                    <td style="width: 8%;" class="text-center">
-                                        <button type="button"
-                                            class="btn btn-sm btn-{{ 'warning' if conta.realizado else 'success' }}"
-                                            onclick="toggleLancamentoStatus({{ conta.id }}, {{ 'false' if conta.realizado else 'true' }})"
-                                            title="{{ 'Marcar como Pendente' if conta.realizado else 'Marcar como Realizado' }}">
-                                            <i class="fas fa-{{ 'undo' if conta.realizado else 'check' }}"></i>
-                                        </button>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                    {% else %}
-                    <p class="text-muted text-center">Nenhuma conta a pagar no período.</p>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="row mt-4">
-        <div class="col-md-8">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-chart-pie me-2"></i>Resumo Financeiro
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-4">
-                            <h6 class="text-success fw-bold">Entradas Realizadas</h6>
-                            <h3 class="text-success">
-                                R$ {{ "%.2f"|format(total_entradas_periodo) }}
-                            </h3>
-                        </div>
-                        <div class="col-md-4">
-                            <h6 class="text-danger fw-bold">Saídas Realizadas</h6>
-                            <h3 class="text-danger">
-                                R$ {{ "%.2f"|format(total_saidas_periodo) }}
-                            </h3>
-                        </div>
-                        <div class="col-md-4">
-                            <h6 class="text-primary fw-bold">Margem de Lucro</h6>
-                            {% set margem = ((total_entradas_periodo - total_saidas_periodo) / total_entradas_periodo *
-                            100) if total_entradas_periodo > 0 else 0 %}
-                            <h3 class="text-{{ 'success' if margem >= 0 else 'danger' }}">
-                                {{ "%.1f"|format(margem) }}%
-                            </h3>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-4">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-tasks me-2"></i>Ações Rápidas
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <div class="d-grid gap-2">
-                        <a href="{{ url_for('novo_lancamento') }}" class="btn btn-primary">
-                            <i class="fas fa-plus me-2"></i>Novo Lançamento
-                        </a>
-                        <a href="{{ url_for('novo_cliente') }}" class="btn btn-success">
-                            <i class="fas fa-user-plus me-2"></i>Novo Cliente
-                        </a>
-                        <a href="{{ url_for('novo_fornecedor') }}" class="btn btn-info">
-                            <i class="fas fa-truck me-2"></i>Novo Fornecedor
-                        </a>
-                        {% if usuario and usuario.empresa and usuario.empresa.tipo_empresa in ['comercio', 'industria']
-                        %}
-                        <a href="{{ url_for('novo_produto') }}" class="btn btn-warning">
-                            <i class="fas fa-box me-2"></i>Novo Produto
-                        </a>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="row mt-4">
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-calendar me-2"></i>Próximos Vencimentos
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <p class="text-muted">Nenhum vencimento próximo.</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-bell me-2"></i>Últimas Atividades
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <p class="text-muted">Nenhuma atividade recente.</p>
-                </div>
-            </div>
-        </div>
-    </div>
 </div>
-<!-- Fim do wrapper dashboard-content -->
+{% endif %}
+
+<div class="dashboard-content">
+
+    <!-- ======== FILTRO DE PERÍODO ======== -->
+    <div class="pf-filter-bar mb-4">
+        <i class="fas fa-filter" style="color: var(--pf-gray-400);"></i>
+        <form method="GET" action="{{ url_for('dashboard') }}" class="d-flex align-items-center gap-3 flex-wrap w-100">
+            <div class="d-flex align-items-center gap-2">
+                <label for="filtro" class="mb-0">Período:</label>
+                <select name="filtro" id="filtro" class="form-select form-select-sm" style="width:auto; min-width:130px;" onchange="this.form.submit()">
+                    <option value="mes" {{ 'selected' if filtro_tipo=='mes' }}>Mês a Mês</option>
+                    <option value="ano" {{ 'selected' if filtro_tipo=='ano' }}>Por Ano</option>
+                </select>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <label for="ano" class="mb-0">Ano:</label>
+                <select name="ano" id="ano" class="form-select form-select-sm" style="width:auto; min-width:90px;" onchange="this.form.submit()">
+                    {% for ano_opcao in anos_disponiveis %}
+                    <option value="{{ ano_opcao }}" {{ 'selected' if ano_opcao==ano }}>{{ ano_opcao }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div id="mes_container" class="d-flex align-items-center gap-2" style="display: {{ 'flex' if filtro_tipo == 'mes' else 'none' }} !important;">
+                <label for="mes" class="mb-0">Mês:</label>
+                <select name="mes" id="mes" class="form-select form-select-sm" style="width:auto; min-width:130px;" onchange="this.form.submit()">
+                    {% for mes_num, mes_nome in meses %}
+                    <option value="{{ mes_num }}" {{ 'selected' if mes_num==mes }}>{{ mes_nome }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit" class="pf-btn pf-btn-primary pf-btn-sm">
+                <i class="fas fa-sync-alt"></i> Atualizar
+            </button>
+        </form>
+    </div>
+
+    <!-- ======== BARRA RESUMO FINANCEIRO - ESTILO PLANIFIN ======== -->
+    <div class="pf-section-title mb-3">Resumo do Período</div>
+
+    <div class="pf-summary-row mb-4">
+        <div class="pf-summary-item">
+            <div class="pf-summary-label"><i class="fas fa-arrow-down text-success me-1"></i>Entradas Realizadas</div>
+            <div class="pf-summary-value pf-money pf-money-pos">R$ {{ "%.2f"|format(total_entradas_periodo) }}</div>
+            <div class="pf-summary-sub">Lançamentos confirmados</div>
+        </div>
+        <div class="pf-summary-item">
+            <div class="pf-summary-label"><i class="fas fa-arrow-up text-danger me-1"></i>Saídas Realizadas</div>
+            <div class="pf-summary-value pf-money pf-money-neg">R$ {{ "%.2f"|format(total_saidas_periodo) }}</div>
+            <div class="pf-summary-sub">Lançamentos confirmados</div>
+        </div>
+        <div class="pf-summary-item">
+            <div class="pf-summary-label"><i class="fas fa-balance-scale me-1" style="color: {{ '#2E7D32' if saldo_periodo >= 0 else '#C62828' }};"></i>Saldo Realizado</div>
+            <div class="pf-summary-value pf-money {{ 'pf-money-pos' if saldo_periodo >= 0 else 'pf-money-neg' }}">R$ {{ "%.2f"|format(saldo_periodo) }}</div>
+            <div class="pf-summary-sub">Entradas - Saídas</div>
+        </div>
+        <div class="pf-summary-item">
+            <div class="pf-summary-label"><i class="fas fa-clock text-warning me-1"></i>A Receber (Pendente)</div>
+            <div class="pf-summary-value pf-money" style="color: #0288D1;">R$ {{ "%.2f"|format(total_entrada_mes) }}</div>
+            <div class="pf-summary-sub">No período selecionado</div>
+        </div>
+        <div class="pf-summary-item">
+            <div class="pf-summary-label"><i class="fas fa-clock text-warning me-1"></i>A Pagar (Pendente)</div>
+            <div class="pf-summary-value pf-money pf-money-neg">R$ {{ "%.2f"|format(total_saida_mes) }}</div>
+            <div class="pf-summary-sub">No período selecionado</div>
+        </div>
+        {% if total_entradas_periodo > 0 %}
+        <div class="pf-summary-item">
+            {% set margem = ((total_entradas_periodo - total_saidas_periodo) / total_entradas_periodo * 100) %}
+            <div class="pf-summary-label"><i class="fas fa-percentage me-1"></i>Margem</div>
+            <div class="pf-summary-value pf-money {{ 'pf-money-pos' if margem >= 0 else 'pf-money-neg' }}">{{ "%.1f"|format(margem) }}%</div>
+            <div class="pf-summary-sub">Margem de resultado</div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- ======== KPI CARDS ======== -->
+    <div class="pf-section-title mb-3">Hoje</div>
+    <div class="row g-3 mb-4">
+        <div class="col-12 col-sm-6 col-lg-3">
+            <div class="pf-kpi-card">
+                <div class="pf-kpi-header">
+                    <div>
+                        <div class="pf-kpi-label">A Receber Hoje</div>
+                    </div>
+                    <div class="pf-kpi-icon success"><i class="fas fa-sign-in-alt"></i></div>
+                </div>
+                <div class="pf-kpi-value text-success">R$ {{ "%.2f"|format(total_entrada_hoje) }}</div>
+                <div class="pf-kpi-footer">
+                    <i class="fas fa-clock"></i> Pendentes hoje
+                    <a href="{{ url_for('lancamentos') }}" class="ms-auto">Ver »</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-sm-6 col-lg-3">
+            <div class="pf-kpi-card">
+                <div class="pf-kpi-header">
+                    <div>
+                        <div class="pf-kpi-label">A Pagar Hoje</div>
+                    </div>
+                    <div class="pf-kpi-icon danger"><i class="fas fa-sign-out-alt"></i></div>
+                </div>
+                <div class="pf-kpi-value text-danger">R$ {{ "%.2f"|format(total_saida_hoje) }}</div>
+                <div class="pf-kpi-footer">
+                    <i class="fas fa-clock"></i> Pendentes hoje
+                    <a href="{{ url_for('lancamentos') }}" class="ms-auto">Ver »</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-sm-6 col-lg-3">
+            <div class="pf-kpi-card">
+                <div class="pf-kpi-header">
+                    <div>
+                        <div class="pf-kpi-label">A Receber no Mês</div>
+                    </div>
+                    <div class="pf-kpi-icon info"><i class="fas fa-calendar-plus"></i></div>
+                </div>
+                <div class="pf-kpi-value text-info">R$ {{ "%.2f"|format(total_entrada_mes) }}</div>
+                <div class="pf-kpi-footer">
+                    <i class="fas fa-calendar"></i> Período selecionado
+                    <a href="{{ url_for('lancamentos') }}" class="ms-auto">Ver »</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-sm-6 col-lg-3">
+            <div class="pf-kpi-card">
+                <div class="pf-kpi-header">
+                    <div>
+                        <div class="pf-kpi-label">A Pagar no Mês</div>
+                    </div>
+                    <div class="pf-kpi-icon warning"><i class="fas fa-calendar-minus"></i></div>
+                </div>
+                <div class="pf-kpi-value text-warning">R$ {{ "%.2f"|format(total_saida_mes) }}</div>
+                <div class="pf-kpi-footer">
+                    <i class="fas fa-calendar"></i> Período selecionado
+                    <a href="{{ url_for('lancamentos') }}" class="ms-auto">Ver »</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ======== STATUS FINANCEIRO ======== -->
+    <div class="pf-section-title mb-3">Status Financeiro</div>
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-4 col-lg-2">
+            <div class="pf-kpi-card">
+                <div class="pf-kpi-header">
+                    <div class="pf-kpi-label" style="font-size:0.7rem;">Realizado</div>
+                    <div class="pf-kpi-icon teal" style="width:34px;height:34px;font-size:0.9rem;"><i class="fas fa-check-circle"></i></div>
+                </div>
+                <div class="pf-kpi-value text-success" style="font-size:1.15rem;">R$ {{ "%.2f"|format(total_realizado) }}</div>
+                <div class="pf-kpi-footer"><i class="fas fa-check"></i> Confirmado</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-lg-2">
+            <div class="pf-kpi-card">
+                <div class="pf-kpi-header">
+                    <div class="pf-kpi-label" style="font-size:0.7rem;">A Vencer</div>
+                    <div class="pf-kpi-icon warning" style="width:34px;height:34px;font-size:0.9rem;"><i class="fas fa-hourglass-half"></i></div>
+                </div>
+                <div class="pf-kpi-value text-warning" style="font-size:1.15rem;">R$ {{ "%.2f"|format(total_a_vencer) }}</div>
+                <div class="pf-kpi-footer"><i class="fas fa-clock"></i> Próximos</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-lg-2">
+            <div class="pf-kpi-card">
+                <div class="pf-kpi-header">
+                    <div class="pf-kpi-label" style="font-size:0.7rem;">Vencido</div>
+                    <div class="pf-kpi-icon danger" style="width:34px;height:34px;font-size:0.9rem;"><i class="fas fa-exclamation-triangle"></i></div>
+                </div>
+                <div class="pf-kpi-value text-danger" style="font-size:1.15rem;">R$ {{ "%.2f"|format(total_vencido) }}</div>
+                <div class="pf-kpi-footer"><i class="fas fa-times-circle"></i> Em atraso</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-lg-2">
+            <div class="pf-kpi-card">
+                <div class="pf-kpi-header">
+                    <div class="pf-kpi-label" style="font-size:0.7rem;">Agendado</div>
+                    <div class="pf-kpi-icon info" style="width:34px;height:34px;font-size:0.9rem;"><i class="fas fa-calendar-check"></i></div>
+                </div>
+                <div class="pf-kpi-value text-info" style="font-size:1.15rem;">R$ {{ "%.2f"|format(total_agendado) }}</div>
+                <div class="pf-kpi-footer"><i class="fas fa-calendar-alt"></i> Programado</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-lg-2">
+            <div class="pf-kpi-card">
+                <div class="pf-kpi-header">
+                    <div class="pf-kpi-label" style="font-size:0.7rem;">Total Entradas</div>
+                    <div class="pf-kpi-icon success" style="width:34px;height:34px;font-size:0.9rem;"><i class="fas fa-arrow-down"></i></div>
+                </div>
+                <div class="pf-kpi-value text-success" style="font-size:1.15rem;">R$ {{ "%.2f"|format(total_entradas_periodo) }}</div>
+                <div class="pf-kpi-footer"><i class="fas fa-chart-line"></i> No período</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-lg-2">
+            <div class="pf-kpi-card">
+                <div class="pf-kpi-header">
+                    <div class="pf-kpi-label" style="font-size:0.7rem;">Total Saídas</div>
+                    <div class="pf-kpi-icon danger" style="width:34px;height:34px;font-size:0.9rem;"><i class="fas fa-arrow-up"></i></div>
+                </div>
+                <div class="pf-kpi-value text-danger" style="font-size:1.15rem;">R$ {{ "%.2f"|format(total_saidas_periodo) }}</div>
+                <div class="pf-kpi-footer"><i class="fas fa-chart-line"></i> No período</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ======== GRÁFICOS ======== -->
+    <div class="row g-3 mb-4">
+        <!-- Gráfico de Barras: Entradas x Saídas -->
+        <div class="col-md-8">
+            <div class="pf-card">
+                <div class="pf-card-header-primary">
+                    <h6 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Entradas x Saídas — Evolução Mensal</h6>
+                </div>
+                <div class="card-body pf-chart-container" style="padding: 16px 20px;">
+                    <div style="position:relative; height:220px;">
+                        <canvas id="chartEntradasSaidas"></canvas>
+                    </div>
+                    <div class="pf-chart-legend">
+                        <div class="pf-chart-legend-item">
+                            <div class="pf-chart-legend-dot" style="background:#43A047;"></div>Entradas
+                        </div>
+                        <div class="pf-chart-legend-item">
+                            <div class="pf-chart-legend-dot" style="background:#E53935;"></div>Saídas
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gráfico de Rosca: Distribuição -->
+        <div class="col-md-4">
+            <div class="pf-card">
+                <div class="pf-card-header-neutral">
+                    <h6 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Distribuição</h6>
+                </div>
+                <div class="card-body d-flex flex-column align-items-center justify-content-center" style="padding: 16px 20px;">
+                    <div style="position:relative; height:220px; width:100%;">
+                        <canvas id="chartDistribuicao"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ======== CONTAS A RECEBER / PAGAR ======== -->
+    <div class="pf-section-title mb-3">Contas do Período</div>
+    <div class="d-flex gap-3 mb-4" style="align-items:flex-start;">
+        <!-- Contas a Receber -->
+        <div style="flex:1;min-width:0;">
+            <div class="pf-card">
+                <div class="pf-card-header-success">
+                    <h6 class="mb-0"><i class="fas fa-arrow-circle-down me-2"></i>Contas a Receber</h6>
+                </div>
+                <div class="card-body p-0" style="max-height: 380px; overflow-y: auto;">
+                    {% if todas_contas_entrada %}
+                    <table class="pf-table">
+                        <thead>
+                            <tr>
+                                <th>Descrição</th>
+                                <th>Vencimento</th>
+                                <th>Valor</th>
+                                <th>Status</th>
+                                <th class="text-center">Ação</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for conta in todas_contas_entrada %}
+                            <tr>
+                                <td>
+                                    <span title="{{ conta.descricao }}">
+                                        {{ conta.descricao[:28] }}{% if conta.descricao|length > 28 %}…{% endif %}
+                                    </span>
+                                </td>
+                                <td style="white-space:nowrap;">{{ conta.data_prevista.strftime('%d/%m/%Y') }}</td>
+                                <td class="pf-money pf-money-pos" style="white-space:nowrap;">R$ {{ "%.2f"|format(conta.valor) }}</td>
+                                <td>
+                                    {% if conta.realizado %}
+                                    <span class="pf-badge pf-badge-success"><i class="fas fa-check"></i> Realizado</span>
+                                    {% elif conta.data_prevista < hoje %}
+                                    <span class="pf-badge pf-badge-danger"><i class="fas fa-times"></i> Vencido</span>
+                                    {% elif conta.data_realizada and conta.data_realizada > hoje %}
+                                    <span class="pf-badge pf-badge-info"><i class="fas fa-calendar"></i> Agendado</span>
+                                    {% else %}
+                                    <span class="pf-badge pf-badge-warning"><i class="fas fa-clock"></i> Pendente</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">
+                                    <button type="button"
+                                        class="pf-btn pf-btn-sm {{ 'pf-btn-outline' if conta.realizado else 'pf-btn-success' }}"
+                                        onclick="toggleLancamentoStatus({{ conta.id }}, {{ 'false' if conta.realizado else 'true' }})"
+                                        title="{{ 'Desfazer' if conta.realizado else 'Confirmar' }}"
+                                        style="{{ 'color:#666;' if conta.realizado else '' }}">
+                                        <i class="fas fa-{{ 'undo' if conta.realizado else 'check' }}"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% else %}
+                    <div class="text-center py-5" style="color: var(--pf-gray-400);">
+                        <i class="fas fa-inbox fa-2x mb-2 d-block"></i>
+                        <span style="font-size:0.85rem;">Nenhuma conta a receber no período</span>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="card-footer bg-transparent" style="border-top:1px solid var(--pf-gray-100); padding: 8px 16px;">
+                    <a href="{{ url_for('lancamentos') }}" class="pf-btn pf-btn-outline pf-btn-sm">
+                        <i class="fas fa-external-link-alt"></i> Ver todos em Lançamentos
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Contas a Pagar -->
+        <div style="flex:1;min-width:0;">
+            <div class="pf-card">
+                <div class="pf-card-header-danger">
+                    <h6 class="mb-0"><i class="fas fa-arrow-circle-up me-2"></i>Contas a Pagar</h6>
+                </div>
+                <div class="card-body p-0" style="max-height: 380px; overflow-y: auto;">
+                    {% if todas_contas_saida %}
+                    <table class="pf-table">
+                        <thead>
+                            <tr>
+                                <th>Descrição</th>
+                                <th>Vencimento</th>
+                                <th>Valor</th>
+                                <th>Status</th>
+                                <th class="text-center">Ação</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for conta in todas_contas_saida %}
+                            <tr>
+                                <td>
+                                    <span title="{{ conta.descricao }}">
+                                        {{ conta.descricao[:28] }}{% if conta.descricao|length > 28 %}…{% endif %}
+                                    </span>
+                                </td>
+                                <td style="white-space:nowrap;">{{ conta.data_prevista.strftime('%d/%m/%Y') }}</td>
+                                <td class="pf-money pf-money-neg" style="white-space:nowrap;">R$ {{ "%.2f"|format(conta.valor) }}</td>
+                                <td>
+                                    {% if conta.realizado %}
+                                    <span class="pf-badge pf-badge-success"><i class="fas fa-check"></i> Realizado</span>
+                                    {% elif conta.data_prevista < hoje %}
+                                    <span class="pf-badge pf-badge-danger"><i class="fas fa-times"></i> Vencido</span>
+                                    {% elif conta.data_realizada and conta.data_realizada > hoje %}
+                                    <span class="pf-badge pf-badge-info"><i class="fas fa-calendar"></i> Agendado</span>
+                                    {% else %}
+                                    <span class="pf-badge pf-badge-warning"><i class="fas fa-clock"></i> Pendente</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">
+                                    <button type="button"
+                                        class="pf-btn pf-btn-sm {{ 'pf-btn-outline' if conta.realizado else 'pf-btn-success' }}"
+                                        onclick="toggleLancamentoStatus({{ conta.id }}, {{ 'false' if conta.realizado else 'true' }})"
+                                        title="{{ 'Desfazer' if conta.realizado else 'Confirmar' }}"
+                                        style="{{ 'color:#666;' if conta.realizado else '' }}">
+                                        <i class="fas fa-{{ 'undo' if conta.realizado else 'check' }}"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% else %}
+                    <div class="text-center py-5" style="color: var(--pf-gray-400);">
+                        <i class="fas fa-inbox fa-2x mb-2 d-block"></i>
+                        <span style="font-size:0.85rem;">Nenhuma conta a pagar no período</span>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="card-footer bg-transparent" style="border-top:1px solid var(--pf-gray-100); padding: 8px 16px;">
+                    <a href="{{ url_for('lancamentos') }}" class="pf-btn pf-btn-outline pf-btn-sm">
+                        <i class="fas fa-external-link-alt"></i> Ver todos em Lançamentos
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ======== AÇÕES RÁPIDAS ======== -->
+    <div class="pf-section-title mb-3">Ações Rápidas</div>
+    <div class="row g-2 mb-4">
+        <div class="col-6 col-md-3">
+            <a href="{{ url_for('novo_lancamento') }}" class="pf-btn pf-btn-primary w-100 justify-content-center py-2">
+                <i class="fas fa-plus-circle"></i> Novo Lançamento
+            </a>
+        </div>
+        <div class="col-6 col-md-3">
+            <a href="{{ url_for('novo_cliente') }}" class="pf-btn pf-btn-success w-100 justify-content-center py-2">
+                <i class="fas fa-user-plus"></i> Novo Cliente
+            </a>
+        </div>
+        <div class="col-6 col-md-3">
+            <a href="{{ url_for('nova_venda') }}" class="pf-btn w-100 justify-content-center py-2"
+               style="background: linear-gradient(135deg,#1565C0,#1976D2); color:#fff;">
+                <i class="fas fa-shopping-cart"></i> Nova Venda
+            </a>
+        </div>
+        <div class="col-6 col-md-3">
+            <a href="{{ url_for('nova_compra') }}" class="pf-btn w-100 justify-content-center py-2"
+               style="background: linear-gradient(135deg,#6A1B9A,#7B1FA2); color:#fff;">
+                <i class="fas fa-shopping-bag"></i> Nova Compra
+            </a>
+        </div>
+    </div>
+
+</div>
+<!-- fim dashboard-content -->
 
 {% block scripts %}
-<style>
-    /* Remover scroll duplicado - só permitir no body */
-    body {
-        overflow-y: auto !important;
-        overflow-x: hidden !important;
-    }
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
-    /* Remover scroll do container principal para evitar duplicação */
-    .conteudo-row {
-        overflow-y: visible !important;
-        overflow-x: visible !important;
-        height: auto !important;
-    }
-
-    /* Garantir que o conteúdo do dashboard apareça sempre, mesmo quando há alertas */
-    .dashboard-content {
-        display: block !important;
-        visibility: visible !important;
-        opacity: 1 !important;
-        width: 100% !important;
-        position: relative !important;
-        z-index: 1 !important;
-        margin-top: 0 !important;
-        margin-bottom: 0 !important;
-        padding: 0 !important;
-        height: auto !important;
-        overflow: visible !important;
-        pointer-events: auto !important;
-    }
-
-    /* Garantir que card de alertas não tenha position absolute que "tampa" outros cards */
-    .card.border-warning {
-        position: relative !important;
-        z-index: auto !important;
-    }
-
-    /* Remover qualquer altura máxima ou limitação que possa esconder cards */
-    .all,
-    .conteudo-row,
-    main {
-        max-height: none !important;
-        height: auto !important;
-        overflow: visible !important;
-    }
-
-    /* IMPORTANTE: Garantir que conteudo fique acima do menu mas abaixo dos modals */
-    .conteudo {
-        max-height: none !important;
-        height: auto !important;
-        overflow: visible !important;
-        z-index: 1 !important;
-        position: relative !important;
-        pointer-events: auto !important;
-    }
-
-    /* Garantir que nenhum elemento pai esconda o conteúdo */
-    body>*,
-    .all>*,
-    .conteudo-row>* {
-        overflow: visible !important;
-    }
-
-    .dashboard-content .row {
-        display: flex !important;
-        flex-wrap: wrap !important;
-        margin-left: -15px !important;
-        margin-right: -15px !important;
-        visibility: visible !important;
-        opacity: 1 !important;
-    }
-
-    .dashboard-content .row>[class*="col-"] {
-        display: block !important;
-        visibility: visible !important;
-        opacity: 1 !important;
-    }
-
-    /* Garantir que cards dentro do dashboard-content apareçam */
-    .dashboard-content .card {
-        display: block !important;
-        visibility: visible !important;
-        opacity: 1 !important;
-    }
-
-    /* Garantir que o conteudo-row não esconda o dashboard-content */
-    .conteudo-row .dashboard-content {
-        display: block !important;
-        visibility: visible !important;
-        opacity: 1 !important;
-        flex: 1 1 auto !important;
-        width: 100% !important;
-    }
-
-    /* Garantir que todos os títulos dos cards sejam visíveis e não transparentes */
-    .dashboard-content .card-title,
-    .dashboard-content .card-header .card-title,
-    .dashboard-content h5.card-title,
-    .dashboard-content h6.card-title {
-        opacity: 1 !important;
-        visibility: visible !important;
-        display: flex !important;
-        align-items: center !important;
-        color: inherit !important;
-    }
-
-    /* Garantir que títulos em card-headers com cores específicas sejam visíveis */
-    .dashboard-content .card-header.bg-warning .card-title,
-    .dashboard-content .card-header.bg-warning .card-title.text-dark {
-        color: #000000 !important;
-        opacity: 1 !important;
-        visibility: visible !important;
-    }
-
-    .dashboard-content .card-header.bg-success .card-title,
-    .dashboard-content .card-header.bg-danger .card-title,
-    .dashboard-content .card-header.bg-info .card-title,
-    .dashboard-content .card-header.bg-primary .card-title {
-        color: #ffffff !important;
-        opacity: 1 !important;
-        visibility: visible !important;
-    }
-
-    .dashboard-content .card-header .card-title {
-        opacity: 1 !important;
-        visibility: visible !important;
-        display: flex !important;
-        align-items: center !important;
-    }
-</style>
-<script src="{{ url_for('static', filename='js/pages/dashboard-init.js') }}"></script>
 <script>
-    function toggleLancamentoStatus(lancamentoId, novoStatus) {
-        fetch(`/lancamentos/${lancamentoId}/toggle-status`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ realizado: novoStatus })
-        })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // Recarregar a página para atualizar os dados
-                    window.location.reload();
-                } else {
-                    alert('Erro ao atualizar status: ' + (data.message || 'Erro desconhecido'));
+// ---- Gráfico de Barras: Entradas x Saídas por mês ----
+(function() {
+    const ctx = document.getElementById('chartEntradasSaidas');
+    if (!ctx) return;
+
+    // Dados passados pelo backend (ou estimativa)
+    const meses = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+    const mesAtual = new Date().getMonth();
+    const labels = meses.slice(0, mesAtual + 1);
+
+    // Usa dados reais do período se disponíveis
+    const totalEnt = {{ total_entradas_periodo | default(0) }};
+    const totalSai = {{ total_saidas_periodo | default(0) }};
+
+    // Distribui proporcionalmente para visualização
+    const dataEnt = labels.map((_, i) => i === mesAtual ? totalEnt : 0);
+    const dataSai = labels.map((_, i) => i === mesAtual ? totalSai : 0);
+
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: 'Entradas',
+                    data: dataEnt,
+                    backgroundColor: 'rgba(67, 160, 71, 0.85)',
+                    borderColor: '#2E7D32',
+                    borderWidth: 1,
+                    borderRadius: 5,
+                    borderSkipped: false,
+                },
+                {
+                    label: 'Saídas',
+                    data: dataSai,
+                    backgroundColor: 'rgba(229, 57, 53, 0.85)',
+                    borderColor: '#C62828',
+                    borderWidth: 1,
+                    borderRadius: 5,
+                    borderSkipped: false,
                 }
-            })
-            .catch(error => {
-                console.error('Erro ao atualizar status:', error);
-                alert('Erro ao atualizar status do lançamento');
-            });
-    }
-</script>
-
-<!-- Script para garantir que o dashboard-content seja sempre visível -->
-<script>
-    // Executar imediatamente quando o DOM estiver pronto
-    document.addEventListener('DOMContentLoaded', function () {
-        // Forçar exibição do dashboard-content
-        const dashboardContent = document.querySelector('.dashboard-content');
-        if (dashboardContent) {
-            dashboardContent.style.display = 'block';
-            dashboardContent.style.visibility = 'visible';
-            dashboardContent.style.opacity = '1';
-            dashboardContent.style.position = 'relative';
-
-            console.log('✅ Dashboard content forçado a ser visível');
-
-            // Forçar exibição de todos os cards dentro do dashboard-content
-            const cards = dashboardContent.querySelectorAll('.card');
-            cards.forEach(card => {
-                card.style.display = 'block';
-                card.style.visibility = 'visible';
-                card.style.opacity = '1';
-            });
-
-            // Forçar exibição de todas as rows dentro do dashboard-content
-            const rows = dashboardContent.querySelectorAll('.row');
-            rows.forEach(row => {
-                row.style.display = 'flex';
-                row.style.visibility = 'visible';
-                row.style.opacity = '1';
-            });
-
-            console.log(`✅ ${cards.length} cards e ${rows.length} rows forçados a serem visíveis`);
-        } else {
-            console.error('❌ dashboard-content não encontrado!');
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: function(ctx) {
+                            return ctx.dataset.label + ': R$ ' + ctx.parsed.y.toLocaleString('pt-BR', {minimumFractionDigits:2});
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    grid: { display: false },
+                    ticks: { font: { size: 11 }, color: '#94A3B8' }
+                },
+                y: {
+                    grid: { color: '#F1F5F9' },
+                    ticks: {
+                        font: { size: 11 },
+                        color: '#94A3B8',
+                        callback: function(v) {
+                            if (v >= 1000) return 'R$' + (v/1000).toFixed(0) + 'k';
+                            return 'R$' + v;
+                        }
+                    }
+                }
+            }
         }
     });
+})();
 
-    // Executar também após um pequeno delay para garantir
-    setTimeout(function () {
-        const dashboardContent = document.querySelector('.dashboard-content');
-        if (dashboardContent) {
-            dashboardContent.style.display = 'block';
-            dashboardContent.style.visibility = 'visible';
-            dashboardContent.style.opacity = '1';
-            console.log('✅ Dashboard content verificado novamente após delay');
+// ---- Gráfico de Rosca: Distribuição ----
+(function() {
+    const ctx = document.getElementById('chartDistribuicao');
+    if (!ctx) return;
+
+    const totalEnt = {{ total_entradas_periodo | default(0) }};
+    const totalSai = {{ total_saidas_periodo | default(0) }};
+    const pendRec  = {{ total_entrada_mes | default(0) }};
+    const pendPag  = {{ total_saida_mes | default(0) }};
+
+    const total = totalEnt + totalSai + pendRec + pendPag;
+
+    if (total === 0) {
+        ctx.parentElement.innerHTML = '<div class="text-center py-4" style="color:#94A3B8;font-size:0.85rem;"><i class="fas fa-chart-pie fa-2x mb-2 d-block"></i>Sem dados no período</div>';
+        return;
+    }
+
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Entradas Realizadas', 'Saídas Realizadas', 'A Receber', 'A Pagar'],
+            datasets: [{
+                data: [totalEnt, totalSai, pendRec, pendPag],
+                backgroundColor: ['#43A047', '#E53935', '#0288D1', '#FB8C00'],
+                borderWidth: 2,
+                borderColor: '#fff',
+                hoverOffset: 6,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '65%',
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        padding: 10,
+                        font: { size: 11 },
+                        color: '#64748B',
+                        boxWidth: 10,
+                        boxHeight: 10,
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(ctx) {
+                            const val = ctx.parsed;
+                            const pct = total > 0 ? ((val / total) * 100).toFixed(1) : 0;
+                            return ctx.label + ': R$ ' + val.toLocaleString('pt-BR', {minimumFractionDigits:2}) + ' (' + pct + '%)';
+                        }
+                    }
+                }
+            }
         }
-    }, 100);
+    });
+})();
+
+// ---- Toggle status lançamento ----
+function toggleLancamentoStatus(lancamentoId, novoStatus) {
+    fetch(`/lancamentos/${lancamentoId}/toggle-status`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ realizado: novoStatus })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            window.location.reload();
+        } else {
+            alert('Erro ao atualizar: ' + (data.message || 'Tente novamente'));
+        }
+    })
+    .catch(() => alert('Erro de conexão'));
+}
 </script>
 
-<!-- Script para ocultar cards vazios -->
+<style>
+/* Garantir visibilidade do dashboard */
+.dashboard-content,
+.dashboard-content .row,
+.dashboard-content .pf-kpi-card,
+.dashboard-content .pf-card {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+.dashboard-content .row {
+    display: flex !important;
+}
+.conteudo-row, .conteudo, .all {
+    overflow: visible !important;
+    height: auto !important;
+    max-height: none !important;
+}
+body { overflow-y: auto !important; overflow-x: hidden !important; }
+</style>
+
+<script src="{{ url_for('static', filename='js/pages/dashboard-init.js') }}"></script>
 <script src="{{ url_for('static', filename='js/dashboard/hide-empty-cards.js') }}"></script>
 {% endblock %}
+
 {% endblock %}

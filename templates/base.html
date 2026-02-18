@@ -9,42 +9,55 @@
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=3.1">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/professional-enhancements.css') }}?v=4.2">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/layout-compacto.css') }}?v=1.1">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=3.2">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/professional-enhancements.css') }}?v=4.3">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/layout-compacto.css') }}?v=1.2">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/planifin-theme.css') }}?v=2.6">
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
 
     <style>
+        .company-subscription {
+            display: flex;
+            align-items: center;
+            margin-left: 10px;
+        }
+
         .subscription-badge {
             display: flex;
             flex-direction: column;
             align-items: center;
+            justify-content: center;
             gap: 0;
-            padding: 0.4rem 0.6rem;
-            background: #ffffff;
-            border-radius: 8px;
-            border-left: 4px solid #ffd700;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-            min-width: 90px;
+            padding: 4px 9px;
+            background: rgba(255,255,255,0.15);
+            border-radius: 7px;
+            border: 1px solid rgba(255,255,255,0.3);
+            min-width: 70px;
+            max-height: 44px;
+            text-align: center;
+            overflow: hidden;
         }
 
         .subscription-plan {
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 0.2rem;
+            gap: 3px;
             font-weight: 700;
-            font-size: 0.7rem;
-            color: #2c3e50;
-            margin-bottom: 2px;
-            width: 100%;
+            font-size: 0.58rem;
+            color: rgba(255,255,255,0.85);
+            white-space: nowrap;
+            text-transform: uppercase;
+            letter-spacing: 0.2px;
+            line-height: 1;
+            margin-bottom: 1px;
         }
 
         .subscription-plan i {
             color: #ffd700;
-            font-size: 0.65rem;
+            font-size: 0.52rem;
         }
 
         .plan-name {
@@ -59,16 +72,20 @@
         }
 
         .subscription-days {
-            font-weight: 800;
-            font-size: 1.2rem;
-            color: #3498db;
+            font-weight: 900;
+            font-size: 1.1rem;
+            color: #ffffff;
+            line-height: 1;
         }
 
         .subscription-text {
-            color: #95a5a6;
-            font-size: 0.6rem;
+            color: rgba(255,255,255,0.65);
+            font-size: 0.48rem;
             font-weight: 600;
-        }
+            text-transform: uppercase;
+            letter-spacing: 0.2px;
+            line-height: 1;
+            margin-top: 1px;
         }
 
         /* Cores utilitárias para relatórios */
@@ -155,22 +172,15 @@
                     </div>
                     {% if session.get('tipo_conta') and session.get('tipo_conta') != 'admin' and
                     session.get('dias_assinatura') is not none %}
-                    <div class="company-subscription">
-                        <div class="subscription-badge
-                            {% if session.get('dias_assinatura', 0) > 90 %}excellent
-                            {% elif session.get('dias_assinatura', 0) >= 30 %}good
-                            {% elif session.get('dias_assinatura', 0) >= 7 %}alert
-                            {% elif session.get('dias_assinatura', 0) > 0 %}critical
-                            {% else %}expired
-                            {% endif %}">
-                            <div class="subscription-plan">
-                                <i class="fas fa-star"></i>
-                                <span class="plan-name">Plano {{ (session.get('plano_nome') or 'Básico').split()[0]
-                                    }}</span>
+                    <div style="display:flex;align-items:center;margin-left:10px;">
+                        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:4px 10px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.35);border-radius:7px;min-width:72px;max-height:44px;text-align:center;overflow:hidden;gap:0;">
+                            <div style="display:flex;align-items:center;gap:3px;font-weight:700;font-size:0.58rem;color:rgba(255,255,255,0.9);text-transform:uppercase;letter-spacing:0.2px;line-height:1;margin-bottom:1px;white-space:nowrap;">
+                                <i class="fas fa-crown" style="color:#ffd700;font-size:0.52rem;"></i>
+                                <span>Plano {{ (session.get('plano_nome') or 'Básico').split()[0] }}</span>
                             </div>
-                            <div class="subscription-days-info">
-                                <span class="subscription-days">{{ session.get('dias_assinatura', 0) }}</span>
-                                <span class="subscription-text">dias</span>
+                            <div style="display:flex;flex-direction:column;align-items:center;line-height:1;">
+                                <span style="font-weight:900;font-size:1.15rem;color:#fff;line-height:1;">{{ session.get('dias_assinatura', 0) }}</span>
+                                <span style="color:rgba(255,255,255,0.65);font-size:0.48rem;font-weight:600;text-transform:uppercase;letter-spacing:0.2px;line-height:1;margin-top:1px;">dias restantes</span>
                             </div>
                         </div>
                     </div>
@@ -247,6 +257,12 @@
                         </a>
                     </li>
                     <li role="presentation">
+                        <a class="link-menu" href="{{ url_for('admin_painel_completo') }}">
+                            <span class="icon fa fa-list-alt"></span>
+                            <span class="aux-js">Painel Completo</span>
+                        </a>
+                    </li>
+                    <li role="presentation">
                         <a class="link-menu" href="{{ url_for('admin_usuarios') }}">
                             <span class="icon fa fa-users"></span>
                             <span class="aux-js">Gerenciar Usuários</span>
@@ -295,17 +311,17 @@
                     </li>
                     <li role="presentation">
                         <a class="link-menu" href="{{ url_for('lancamentos') }}">
-                            <span class="icon fa fa-money-bill"></span>
-                            <span class="aux-js">Financeiro</span>
+                            <span class="icon fa fa-money-bill-wave"></span>
+                            <span class="aux-js">Lançamentos</span>
                         </a>
                     </li>
-                    <li role="presentation" class="submenu-item">
+                    <li role="presentation">
                         <a class="link-menu" href="{{ url_for('vendas') }}">
                             <span class="icon fa fa-shopping-cart"></span>
                             <span class="aux-js">Vendas</span>
                         </a>
                     </li>
-                    <li role="presentation" class="submenu-item">
+                    <li role="presentation">
                         <a class="link-menu" href="{{ url_for('compras') }}">
                             <span class="icon fa fa-shopping-bag"></span>
                             <span class="aux-js">Compras</span>
@@ -313,13 +329,13 @@
                     </li>
                     <li role="presentation">
                         <a class="link-menu" href="{{ url_for('plano_contas') }}">
-                            <span class="icon fa fa-list"></span>
+                            <span class="icon fa fa-sitemap"></span>
                             <span class="aux-js">Plano de Contas</span>
                         </a>
                     </li>
                     <li role="presentation">
                         <a class="link-menu" href="{{ url_for('clientes') }}">
-                            <span class="icon fa fa-users"></span>
+                            <span class="icon fa fa-user-friends"></span>
                             <span class="aux-js">Clientes</span>
                         </a>
                     </li>
@@ -344,6 +360,12 @@
                         </a>
                     </li>
                     <li role="presentation">
+                        <a class="link-menu" href="{{ url_for('dre_visualizar') }}">
+                            <span class="icon fa fa-chart-line"></span>
+                            <span class="aux-js">DRE</span>
+                        </a>
+                    </li>
+                    <li role="presentation">
                         <a class="link-menu" href="{{ url_for('importacao') }}">
                             <span class="icon fa fa-file-import"></span>
                             <span class="aux-js">Importação</span>
@@ -357,9 +379,9 @@
                     </li>
                     {% if session.get('acesso_contador') %}
                     <li role="presentation">
-                        <a class="link-menu" href="{{ url_for('dashboard_contador') }}">
-                            <span class="icon fa fa-arrow-left"></span>
-                            <span class="aux-js">Voltar ao painel do Contador/BPO</span>
+                        <a class="link-menu" href="{{ url_for('dashboard_contador') }}" style="border-left-color: #ffc107 !important;">
+                            <span class="icon fa fa-arrow-left" style="color: #ffc107 !important;"></span>
+                            <span class="aux-js">Painel Contador/BPO</span>
                         </a>
                     </li>
                     {% endif %}

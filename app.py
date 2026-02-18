@@ -236,8 +236,24 @@ with app.app_context():
         else:
             print("Colunas de rastreamento de usuário já existem na tabela lancamento!")
 
+
     except Exception as e:
         print(f"⚠️ Aviso: Não foi possível verificar/adicionar colunas de rastreamento: {str(e)}")
+        db.session.rollback()
+
+    # Verificar e adicionar coluna 'ultimo_acesso' na tabela usuario se não existir
+    try:
+        from sqlalchemy import text
+        if not verificar_coluna_existe('usuario', 'ultimo_acesso'):
+            print("Adicionando coluna 'ultimo_acesso' na tabela usuario...")
+            db.session.execute(text("ALTER TABLE usuario ADD COLUMN ultimo_acesso DATETIME"))
+            db.session.commit()
+            print("Coluna 'ultimo_acesso' adicionada na tabela usuario!")
+        else:
+            print("Coluna 'ultimo_acesso' já existe na tabela usuario!")
+            
+    except Exception as e:
+        print(f"⚠️ Aviso: Não foi possível verificar/adicionar coluna 'ultimo_acesso': {str(e)}")
         db.session.rollback()
 
     # ============================================================================
@@ -466,6 +482,7 @@ class Usuario(db.Model):
     data_criacao = db.Column(db.DateTime, default=datetime.utcnow)
     empresa_id = db.Column(db.Integer, db.ForeignKey('empresa.id'), nullable=False)  # Relacionamento com empresa
     criado_por = db.Column(db.Integer, db.ForeignKey('usuario.id'), nullable=True)  # Quem criou este usuário
+    ultimo_acesso = db.Column(db.DateTime, nullable=True)  # Data e hora do último acesso
     
     # Relacionamentos
     usuarios_criados = db.relationship('Usuario', backref=db.backref('criador', remote_side=[id]))
@@ -1452,6 +1469,31 @@ def login():
     
     return render_template('login_novo.html')
 
+@app.before_request
+def atualizar_ultimo_acesso():
+    if 'usuario_id' in session:
+        try:
+            # Atualizar apenas se passou mais de 5 minutos desde a última atualização para não sobrecarregar
+            should_update = True
+            
+            # Se tivermos o timestamp na sessão, verifique
+            last_update = session.get('last_access_update')
+            if last_update:
+                last_update_time = datetime.fromtimestamp(last_update)
+                if datetime.now() - last_update_time < timedelta(minutes=5):
+                    should_update = False
+            
+            if should_update:
+                usuario = Usuario.query.get(session['usuario_id'])
+                if usuario:
+                    usuario.ultimo_acesso = datetime.now()
+                    db.session.commit()
+                    session['last_access_update'] = datetime.now().timestamp()
+        except Exception as e:
+            # Silenciar erros aqui para não interromper a requisição
+            app.logger.error(f"Erro ao atualizar último acesso: {str(e)}")
+            pass
+
 @app.route('/registro', methods=['GET', 'POST'])
 def registro():
     if request.method == 'POST':
@@ -2231,7 +2273,11 @@ def admin_usuarios():
             'inativas': len([e for e in empresas if not e.ativo])
         }
         
-        return render_template('admin_usuarios.html', usuario=usuario, empresas_com_usuarios=empresas_com_usuarios, stats=stats)
+        
+        # Buscar planos ativos para o modal de edição
+        planos = Plano.query.filter_by(ativo=True).order_by(Plano.valor).all()
+        
+        return render_template('admin_usuarios.html', usuario=usuario, empresas_com_usuarios=empresas_com_usuarios, stats=stats, planos=planos)
     except Exception as e:
         db.session.rollback()
         app.logger.error(f"Erro na rota admin_usuarios: {str(e)}")
@@ -17234,6 +17280,7 @@ def admin_editar_dias():
     try:
         conta_id = request.form.get('conta_id')
         dias_assinatura = request.form.get('dias_assinatura', type=int)
+        plano_id = request.form.get('plano_id', type=int)
         
         if not conta_id or dias_assinatura is None:
             flash('Dados inválidos.', 'error')
@@ -17253,13 +17300,17 @@ def admin_editar_dias():
         conta.dias_assinatura = dias_assinatura
         conta.data_inicio_assinatura = datetime.utcnow()  # Resetar contador
 
+        # Atualizar plano se fornecido
+        if plano_id:
+            conta.plano_id = plano_id
+
         # Se adicionou dias (maior que 0), reativar a conta automaticamente
         if dias_assinatura > 0 and not conta.ativo:
             conta.ativo = True
             flash(f'Dias de assinatura atualizados para {dias_assinatura} dias. Conta reativada com sucesso!', 'success')
             app.logger.info(f"✅ Conta {conta.razao_social} reativada pelo admin - {dias_assinatura} dias de assinatura")
         else:
-            flash(f'Dias de assinatura atualizados para {dias_assinatura} dias.', 'success')
+            flash(f'Assinatura atualizada com sucesso.', 'success')
 
         db.session.commit()
         # Redirecionar para admin_usuarios
@@ -17270,7 +17321,7 @@ def admin_editar_dias():
     
     except Exception as e:
         db.session.rollback()
-        flash(f'Erro ao atualizar dias de assinatura: {str(e)}', 'error')
+        flash(f'Erro ao atualizar assinatura: {str(e)}', 'error')
         return redirect(url_for('admin_usuarios'))
 
 @app.route('/admin/toggle-status/<int:conta_id>', methods=['POST'])
