@@ -12869,6 +12869,7 @@ def api_preview_importacao():
                     valor_total = None
                 
                 # Buscar ou criar categoria no plano de contas automaticamente
+                categoria_id = None  # Sempre inicializar para garantir vinculação plano_conta_id
                 if categoria_raw:
                     categoria_id = buscar_ou_criar_categoria_plano_contas(categoria_raw, tipo, usuario.id, empresa_id)
                     if categoria_id:
@@ -13361,6 +13362,7 @@ def api_importar_dados():
                     valor_total = None
                 
                 # Buscar ou criar categoria no plano de contas automaticamente
+                categoria_id = None  # Sempre inicializar para garantir vinculação plano_conta_id
                 if categoria_raw:
                     categoria_id = buscar_ou_criar_categoria_plano_contas(categoria_raw, tipo, usuario.id, empresa_id)
                     if categoria_id:
@@ -13510,6 +13512,7 @@ def api_importar_dados():
                             valor=valor_parcela,
                             tipo=tipo,
                             categoria=categoria,
+                            plano_conta_id=categoria_id,
                             data_prevista=data_parcela,
                             data_realizada=data_realizada if i == 0 and data_realizada else None,
                             realizado=realizado if i == 0 else False,
@@ -13617,6 +13620,7 @@ def api_importar_dados():
                         valor=valor,
                         tipo=tipo,
                         categoria=categoria,
+                        plano_conta_id=categoria_id,
                         data_prevista=data_prevista,
                         data_realizada=data_realizada,
                         realizado=realizado,
