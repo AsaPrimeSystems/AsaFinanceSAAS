@@ -12870,7 +12870,7 @@ def api_preview_importacao():
                 
                 # Buscar ou criar categoria no plano de contas automaticamente
                 if categoria_raw:
-                    categoria_id = buscar_ou_criar_categoria_plano_contas(categoria_raw, tipo, usuario.id, usuario.empresa_id)
+                    categoria_id = buscar_ou_criar_categoria_plano_contas(categoria_raw, tipo, usuario.id, empresa_id)
                     if categoria_id:
                         categoria = categoria_raw
                     else:
@@ -12920,7 +12920,7 @@ def api_preview_importacao():
                 
                 # Buscar ou criar conta caixa automaticamente
                 conta_caixa_input = dados.get('CONTA_CAIXA')
-                conta_caixa_id = buscar_ou_criar_conta_caixa(conta_caixa_input, contas_caixa_cache, usuario.id, usuario.empresa_id)
+                conta_caixa_id = buscar_ou_criar_conta_caixa(conta_caixa_input, contas_caixa_cache, usuario.id, empresa_id)
                 conta_caixa_nome = None
                 
                 # Debug: mostrar busca de conta caixa
@@ -13362,7 +13362,7 @@ def api_importar_dados():
                 
                 # Buscar ou criar categoria no plano de contas automaticamente
                 if categoria_raw:
-                    categoria_id = buscar_ou_criar_categoria_plano_contas(categoria_raw, tipo, usuario.id, usuario.empresa_id)
+                    categoria_id = buscar_ou_criar_categoria_plano_contas(categoria_raw, tipo, usuario.id, empresa_id)
                     if categoria_id:
                         categoria = categoria_raw
                     else:
@@ -13428,7 +13428,7 @@ def api_importar_dados():
                             novo_cliente = Cliente(
                                 nome=nome_cliente_fornecedor,
                                 usuario_id=usuario.id,
-                                empresa_id=usuario.empresa_id
+                                empresa_id=empresa_id
                             )
                             db.session.add(novo_cliente)
                             db.session.flush()
@@ -13444,7 +13444,7 @@ def api_importar_dados():
                             novo_fornecedor = Fornecedor(
                                 nome=nome_cliente_fornecedor,
                                 usuario_id=usuario.id,
-                                empresa_id=usuario.empresa_id
+                                empresa_id=empresa_id
                             )
                             db.session.add(novo_fornecedor)
                             db.session.flush()
@@ -13454,17 +13454,17 @@ def api_importar_dados():
                 else:
                     # Fallback para lógica antiga se não houver tipo específico
                     # Buscar ou criar conta caixa automaticamente
-                    conta_caixa_id = buscar_ou_criar_conta_caixa(row_data[6] if len(row_data) > 6 else None, contas_caixa_cache, usuario.id, usuario.empresa_id)
-                    
+                    conta_caixa_id = buscar_ou_criar_conta_caixa(row_data[6] if len(row_data) > 6 else None, contas_caixa_cache, usuario.id, empresa_id)
+
                     # Buscar cliente com busca inteligente
                     cliente_id = buscar_cliente(row_data[7] if len(row_data) > 7 else None, clientes_cache)
-                    
+
                     # Buscar fornecedor com busca inteligente
                     fornecedor_id = buscar_fornecedor(row_data[8] if len(row_data) > 8 else None, fornecedores_cache)
-                
+
                 # Buscar conta caixa (se não foi processada no fallback)
                 if 'conta_caixa_id' not in locals():
-                    conta_caixa_id = buscar_ou_criar_conta_caixa(dados.get('CONTA_CAIXA'), contas_caixa_cache, usuario.id, usuario.empresa_id)
+                    conta_caixa_id = buscar_ou_criar_conta_caixa(dados.get('CONTA_CAIXA'), contas_caixa_cache, usuario.id, empresa_id)
                 
                 # Calcular status automaticamente baseado na data de realização
                 hoje = datetime.now().date()
@@ -14157,6 +14157,7 @@ def criar_venda_automatica(lancamento, usuario_id, valor_total=None, quantidade=
             realizado=lancamento.realizado,
             observacoes=f'Venda criada automaticamente durante importação - Lançamento ID: {lancamento.id}',
             usuario_id=usuario_id,
+            empresa_id=lancamento.empresa_id,
             cliente_id=lancamento.cliente_id,
             numero_parcelas=numero_parcelas,
             valor_parcela=valor_parcela,
@@ -14206,6 +14207,7 @@ def criar_compra_automatica(lancamento, usuario_id, valor_total=None, quantidade
             realizado=lancamento.realizado,
             observacoes=f'Compra criada automaticamente durante importação - Lançamento ID: {lancamento.id}',
             usuario_id=usuario_id,
+            empresa_id=lancamento.empresa_id,
             fornecedor_id=lancamento.fornecedor_id,
             numero_parcelas=numero_parcelas,
             valor_parcela=valor_parcela,
