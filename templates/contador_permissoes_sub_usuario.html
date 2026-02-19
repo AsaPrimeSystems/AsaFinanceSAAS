@@ -20,17 +20,31 @@
         </div>
         <div class="card-body">
             <p class="text-muted">Selecione quais empresas este sub-usuário pode visualizar:</p>
-            
+
             <form method="POST" action="{{ url_for('contador_salvar_permissoes', sub_usuario_id=sub_usuario.id) }}">
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <label class="form-label">Categoria de Acesso</label>
+                        <select class="form-select" name="categoria_id">
+                            <option value="">Sem restrições (Acesso Total)</option>
+                            {% for categoria in categorias %}
+                            <option value="{{ categoria.id }}" {% if sub_usuario.categoria_id==categoria.id %}selected{%
+                                endif %}>{{ categoria.nome }}</option>
+                            {% endfor %}
+                        </select>
+                        <small class="text-muted">Define as permissões funcionais (o que pode fazer)</small>
+                    </div>
+                </div>
+
                 <div class="row">
                     {% for vinculo in empresas_disponiveis %}
                     <div class="col-md-6 mb-3">
                         <div class="card">
                             <div class="card-body">
                                 <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" name="empresas_autorizadas" 
-                                           value="{{ vinculo.empresa.id }}" id="empresa_{{ vinculo.empresa.id }}"
-                                           {% if vinculo.empresa.id in empresas_autorizadas %}checked{% endif %}>
+                                    <input class="form-check-input" type="checkbox" name="empresas_autorizadas"
+                                        value="{{ vinculo.empresa.id }}" id="empresa_{{ vinculo.empresa.id }}" {% if
+                                        vinculo.empresa.id in empresas_autorizadas %}checked{% endif %}>
                                     <label class="form-check-label" for="empresa_{{ vinculo.empresa.id }}">
                                         <strong>{{ vinculo.empresa.razao_social }}</strong>
                                         {% if vinculo.empresa.nome_fantasia %}
@@ -51,7 +65,7 @@
                     </div>
                     {% endfor %}
                 </div>
-                
+
                 <div class="mt-4">
                     <button type="submit" class="btn btn-primary">
                         <i class="fas fa-save me-2"></i>Salvar Permissões

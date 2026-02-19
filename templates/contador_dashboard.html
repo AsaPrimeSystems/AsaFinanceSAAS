@@ -9,9 +9,9 @@
     <div class="alert alert-info mb-4">
         <i class="fas fa-calendar-alt me-2"></i>
         <strong>Dias restantes de sua assinatura: {{ session.get('dias_assinatura', 0) }} dias</strong>
-        {% if session.get('dias_assinatura', 0) <= 7 %}
-        <span class="text-danger ms-3">⚠️ Sua assinatura está próxima do vencimento!</span>
-        {% endif %}
+        {% if session.get('dias_assinatura', 0) <= 7 %} <span class="text-danger ms-3">⚠️ Sua assinatura está próxima do
+            vencimento!</span>
+            {% endif %}
     </div>
     {% endif %}
 
@@ -30,18 +30,21 @@
             </a>
         </li>
         <li class="nav-item" role="presentation">
-            <a class="nav-link" data-bs-toggle="tab" href="#empresas-vinculadas" aria-selected="false" role="tab" tabindex="-1">
+            <a class="nav-link" data-bs-toggle="tab" href="#empresas-vinculadas" aria-selected="false" role="tab"
+                tabindex="-1">
                 <i class="fas fa-link me-2"></i>Empresas Vinculadas
             </a>
         </li>
         {% if session.get('usuario_tipo') != 'sub_contador' %}
         <li class="nav-item" role="presentation">
-            <a class="nav-link" data-bs-toggle="tab" href="#vincular-empresa" aria-selected="false" tabindex="-1" role="tab">
+            <a class="nav-link" data-bs-toggle="tab" href="#vincular-empresa" aria-selected="false" tabindex="-1"
+                role="tab">
                 <i class="fas fa-plus-circle me-2"></i>Vincular Empresa
             </a>
         </li>
         <li class="nav-item" role="presentation">
-            <a class="nav-link" data-bs-toggle="tab" href="#sub-usuarios" aria-selected="false" role="tab" tabindex="-1">
+            <a class="nav-link" data-bs-toggle="tab" href="#sub-usuarios" aria-selected="false" role="tab"
+                tabindex="-1">
                 <i class="fas fa-users me-2"></i>Sub-Usuários
             </a>
         </li>
@@ -83,7 +86,8 @@
                     <div class="card text-white" style="background-color: #28a745 !important;">
                         <div class="card-body">
                             <h5><i class="fas fa-info-circle me-2"></i>Você está acessando como Sub-Usuário</h5>
-                            <p class="mb-0">Você pode visualizar e acessar apenas as empresas vinculadas para as quais tem permissão.</p>
+                            <p class="mb-0">Você pode visualizar e acessar apenas as empresas vinculadas para as quais
+                                tem permissão.</p>
                         </div>
                     </div>
                 </div>
@@ -92,100 +96,104 @@
 
             <!-- Contas a Pagar e Receber Hoje (por empresa) -->
             <h4 class="mb-3">Contas de Hoje - Por Empresa</h4>
-            
+
             {% if empresas_com_lancamentos %}
-                {% for empresa_info in empresas_com_lancamentos %}
-                <div class="card mb-3">
-                    <div class="card-header bg-light">
-                        <h5 class="mb-0" style="color: #000000 !important;">
-                            <i class="fas fa-building me-2"></i>{{ empresa_info.empresa.razao_social }}
-                            {% if empresa_info.empresa.nome_fantasia %}
-                            <small class="text-muted">({{ empresa_info.empresa.nome_fantasia }})</small>
-                            {% endif %}
-                        </h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <h6 class="text-success"><i class="fas fa-arrow-up me-2"></i>Contas a Receber</h6>
-                                <div class="table-responsive">
-                                    <table class="table table-sm w-100">
-                                        <thead>
-                                            <tr>
-                                                <th style="width: 42%;">Descrição</th>
-                                                <th style="width: 20%;">Valor</th>
-                                                <th style="width: 20%;">Status</th>
-                                                <th style="width: 18%;" class="text-center">Ações</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {% for lanc in empresa_info.entradas %}
-                                            <tr>
-                                                <td>{{ lanc.descricao }}</td>
-                                                <td>R$ {{ "%.2f"|format(lanc.valor) }}</td>
-                                                <td>
-                                                    {% if lanc.realizado %}
-                                                    <span class="badge bg-success">Recebido</span>
-                                                    {% else %}
-                                                    <span class="badge bg-warning">Pendente</span>
-                                                    {% endif %}
-                                                </td>
-                                                <td class="text-center">
-                                                    <button type="button" class="btn btn-sm btn-{{ 'warning' if lanc.realizado else 'success' }}"
-                                                            onclick="toggleLancamentoStatus({{ lanc.id }}, {{ 'false' if lanc.realizado else 'true' }})"
-                                                            title="{{ 'Marcar como Pendente' if lanc.realizado else 'Marcar como Recebido' }}">
-                                                        <i class="fas fa-{{ 'undo' if lanc.realizado else 'check' }}"></i>
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                            {% endfor %}
-                                        </tbody>
-                                    </table>
-                                </div>
-                                <p class="mb-0"><strong>Total: R$ {{ "%.2f"|format(empresa_info.total_entradas) }}</strong></p>
+            {% for empresa_info in empresas_com_lancamentos %}
+            <div class="card mb-3">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0" style="color: #000000 !important;">
+                        <i class="fas fa-building me-2"></i>{{ empresa_info.empresa.razao_social }}
+                        {% if empresa_info.empresa.nome_fantasia %}
+                        <small class="text-muted">({{ empresa_info.empresa.nome_fantasia }})</small>
+                        {% endif %}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-success"><i class="fas fa-arrow-up me-2"></i>Contas a Receber</h6>
+                            <div class="table-responsive">
+                                <table class="table table-sm w-100">
+                                    <thead>
+                                        <tr>
+                                            <th style="width: 42%;">Descrição</th>
+                                            <th style="width: 20%;">Valor</th>
+                                            <th style="width: 20%;">Status</th>
+                                            <th style="width: 18%;" class="text-center">Ações</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for lanc in empresa_info.entradas %}
+                                        <tr>
+                                            <td>{{ lanc.descricao }}</td>
+                                            <td>R$ {{ "%.2f"|format(lanc.valor) }}</td>
+                                            <td>
+                                                {% if lanc.realizado %}
+                                                <span class="badge bg-success">Recebido</span>
+                                                {% else %}
+                                                <span class="badge bg-warning">Pendente</span>
+                                                {% endif %}
+                                            </td>
+                                            <td class="text-center">
+                                                <button type="button"
+                                                    class="btn btn-sm btn-{{ 'warning' if lanc.realizado else 'success' }}"
+                                                    onclick="toggleLancamentoStatus({{ lanc.id }}, {{ 'false' if lanc.realizado else 'true' }})"
+                                                    title="{{ 'Marcar como Pendente' if lanc.realizado else 'Marcar como Recebido' }}">
+                                                    <i class="fas fa-{{ 'undo' if lanc.realizado else 'check' }}"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
                             </div>
-                            <div class="col-md-6">
-                                <h6 class="text-danger"><i class="fas fa-arrow-down me-2"></i>Contas a Pagar</h6>
-                                <div class="table-responsive">
-                                    <table class="table table-sm w-100">
-                                        <thead>
-                                            <tr>
-                                                <th style="width: 42%;">Descrição</th>
-                                                <th style="width: 20%;">Valor</th>
-                                                <th style="width: 20%;">Status</th>
-                                                <th style="width: 18%;" class="text-center">Ações</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {% for lanc in empresa_info.saidas %}
-                                            <tr>
-                                                <td>{{ lanc.descricao }}</td>
-                                                <td>R$ {{ "%.2f"|format(lanc.valor) }}</td>
-                                                <td>
-                                                    {% if lanc.realizado %}
-                                                    <span class="badge bg-success">Pago</span>
-                                                    {% else %}
-                                                    <span class="badge bg-warning">Pendente</span>
-                                                    {% endif %}
-                                                </td>
-                                                <td class="text-center">
-                                                    <button type="button" class="btn btn-sm btn-{{ 'warning' if lanc.realizado else 'success' }}"
-                                                            onclick="toggleLancamentoStatus({{ lanc.id }}, {{ 'false' if lanc.realizado else 'true' }})"
-                                                            title="{{ 'Marcar como Pendente' if lanc.realizado else 'Marcar como Pago' }}">
-                                                        <i class="fas fa-{{ 'undo' if lanc.realizado else 'check' }}"></i>
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                            {% endfor %}
-                                        </tbody>
-                                    </table>
-                                </div>
-                                <p class="mb-0"><strong>Total: R$ {{ "%.2f"|format(empresa_info.total_saidas) }}</strong></p>
+                            <p class="mb-0"><strong>Total: R$ {{ "%.2f"|format(empresa_info.total_entradas) }}</strong>
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-danger"><i class="fas fa-arrow-down me-2"></i>Contas a Pagar</h6>
+                            <div class="table-responsive">
+                                <table class="table table-sm w-100">
+                                    <thead>
+                                        <tr>
+                                            <th style="width: 42%;">Descrição</th>
+                                            <th style="width: 20%;">Valor</th>
+                                            <th style="width: 20%;">Status</th>
+                                            <th style="width: 18%;" class="text-center">Ações</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for lanc in empresa_info.saidas %}
+                                        <tr>
+                                            <td>{{ lanc.descricao }}</td>
+                                            <td>R$ {{ "%.2f"|format(lanc.valor) }}</td>
+                                            <td>
+                                                {% if lanc.realizado %}
+                                                <span class="badge bg-success">Pago</span>
+                                                {% else %}
+                                                <span class="badge bg-warning">Pendente</span>
+                                                {% endif %}
+                                            </td>
+                                            <td class="text-center">
+                                                <button type="button"
+                                                    class="btn btn-sm btn-{{ 'warning' if lanc.realizado else 'success' }}"
+                                                    onclick="toggleLancamentoStatus({{ lanc.id }}, {{ 'false' if lanc.realizado else 'true' }})"
+                                                    title="{{ 'Marcar como Pendente' if lanc.realizado else 'Marcar como Pago' }}">
+                                                    <i class="fas fa-{{ 'undo' if lanc.realizado else 'check' }}"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
                             </div>
+                            <p class="mb-0"><strong>Total: R$ {{ "%.2f"|format(empresa_info.total_saidas) }}</strong>
+                            </p>
                         </div>
                     </div>
                 </div>
-                {% endfor %}
+            </div>
+            {% endfor %}
             {% else %}
             <div class="alert alert-info">
                 <i class="fas fa-info-circle me-2"></i>Nenhum lançamento para hoje nas empresas vinculadas.
@@ -199,17 +207,23 @@
                 <div class="col-md-12">
                     <div class="card">
                         <div class="card-header d-flex justify-content-between align-items-center">
-                            <h5 class="mb-0" style="color: #000000 !important;">Empresas e Pessoas Físicas Vinculadas</h5>
+                            <h5 class="mb-0" style="color: #000000 !important;">Empresas e Pessoas Físicas Vinculadas
+                            </h5>
                             <div>
-                                <span class="badge bg-success me-2">Autorizados: {{ vinculos|selectattr('status', 'equalto', 'autorizado')|list|length }}</span>
-                                <span class="badge bg-warning me-2">Pendentes: {{ vinculos|selectattr('status', 'equalto', 'pendente')|list|length }}</span>
-                                <span class="badge bg-danger">Rejeitados: {{ vinculos|selectattr('status', 'equalto', 'rejeitado')|list|length }}</span>
+                                <span class="badge bg-success me-2">Autorizados: {{ vinculos|selectattr('status',
+                                    'equalto', 'autorizado')|list|length }}</span>
+                                <span class="badge bg-warning me-2">Pendentes: {{ vinculos|selectattr('status',
+                                    'equalto', 'pendente')|list|length }}</span>
+                                <span class="badge bg-danger">Rejeitados: {{ vinculos|selectattr('status', 'equalto',
+                                    'rejeitado')|list|length }}</span>
                             </div>
                         </div>
                         <div class="card-body" style="padding: 1rem !important;">
                             {% if vinculos %}
-                            <div class="table-responsive" style="width: 100% !important; max-width: 100% !important; margin: 0 !important; padding: 0 !important;">
-                                <table class="table table-hover w-100" style="width: 100% !important; max-width: 100% !important; table-layout: fixed; margin: 0 !important;">
+                            <div class="table-responsive"
+                                style="width: 100% !important; max-width: 100% !important; margin: 0 !important; padding: 0 !important;">
+                                <table class="table table-hover w-100"
+                                    style="width: 100% !important; max-width: 100% !important; table-layout: fixed; margin: 0 !important;">
                                     <thead>
                                         <tr>
                                             <th style="width: 25%;">Nome</th>
@@ -226,7 +240,8 @@
                                             <td>
                                                 <strong>{{ vinculo.empresa.razao_social }}</strong>
                                                 {% if vinculo.empresa.nome_fantasia %}
-                                                <br><small class="text-muted">{{ vinculo.empresa.nome_fantasia }}</small>
+                                                <br><small class="text-muted">{{ vinculo.empresa.nome_fantasia
+                                                    }}</small>
                                                 {% endif %}
                                             </td>
                                             <td>
@@ -261,27 +276,33 @@
                                             <td>
                                                 <small>{{ vinculo.data_solicitacao.strftime('%d/%m/%Y') }}</small>
                                                 {% if vinculo.data_autorizacao %}
-                                                <br><small class="text-muted">Autorizado em: {{ vinculo.data_autorizacao.strftime('%d/%m/%Y') }}</small>
+                                                <br><small class="text-muted">Autorizado em: {{
+                                                    vinculo.data_autorizacao.strftime('%d/%m/%Y') }}</small>
                                                 {% endif %}
                                             </td>
                                             <td>
                                                 <div class="btn-group" role="group">
                                                     {% if vinculo.status == 'autorizado' %}
-                                                    <form method="POST" action="{{ url_for('contador_acessar_empresa') }}" style="display: inline;">
-                                                        <input type="hidden" name="empresa_id" value="{{ vinculo.empresa.id }}">
-                                                        <button type="submit" class="btn btn-sm btn-primary" title="Acessar">
+                                                    <form method="POST"
+                                                        action="{{ url_for('contador_acessar_empresa') }}"
+                                                        style="display: inline;">
+                                                        <input type="hidden" name="empresa_id"
+                                                            value="{{ vinculo.empresa.id }}">
+                                                        <button type="submit" class="btn btn-sm btn-primary"
+                                                            title="Acessar">
                                                             <i class="fas fa-sign-in-alt"></i>
                                                         </button>
                                                     </form>
                                                     {% elif vinculo.status == 'pendente' %}
-                                                    <span class="btn btn-sm btn-outline-secondary" disabled title="Aguardando autorização">
+                                                    <span class="btn btn-sm btn-outline-secondary" disabled
+                                                        title="Aguardando autorização">
                                                         <i class="fas fa-hourglass-half"></i>
                                                     </span>
                                                     {% endif %}
                                                     {% if session.get('usuario_tipo') != 'sub_contador' %}
-                                                    <button class="btn btn-sm btn-danger" 
-                                                            onclick="excluirVinculo({{ vinculo.id }}, '{{ vinculo.empresa.razao_social }}')" 
-                                                            title="Excluir vínculo">
+                                                    <button class="btn btn-sm btn-danger"
+                                                        onclick="excluirVinculo({{ vinculo.id }}, '{{ vinculo.empresa.razao_social }}')"
+                                                        title="Excluir vínculo">
                                                         <i class="fas fa-trash"></i>
                                                     </button>
                                                     {% endif %}
@@ -296,9 +317,11 @@
                             <div class="alert alert-info">
                                 <i class="fas fa-info-circle me-2"></i>
                                 {% if session.get('usuario_tipo') == 'sub_contador' %}
-                                Nenhuma empresa vinculada disponível no momento. Entre em contato com o administrador para obter permissões de acesso.
+                                Nenhuma empresa vinculada disponível no momento. Entre em contato com o administrador
+                                para obter permissões de acesso.
                                 {% else %}
-                                Nenhuma empresa vinculada no momento. Use a aba "Vincular Empresa" para solicitar novos vínculos.
+                                Nenhuma empresa vinculada no momento. Use a aba "Vincular Empresa" para solicitar novos
+                                vínculos.
                                 {% endif %}
                             </div>
                             {% endif %}
@@ -324,19 +347,19 @@
                                 <option value="cnpj">CNPJ (Empresa)</option>
                             </select>
                         </div>
-                        
+
                         <div class="mb-3" id="cpf_input" style="display: none;">
                             <label class="form-label">CPF</label>
-                            <input type="text" class="form-control" name="cpf" id="cpf_input_field" 
-                                   placeholder="000.000.000-00" autocomplete="off">
+                            <input type="text" class="form-control" name="cpf" id="cpf_input_field"
+                                placeholder="000.000.000-00" autocomplete="off">
                         </div>
-                        
+
                         <div class="mb-3" id="cnpj_input" style="display: none;">
                             <label class="form-label">CNPJ</label>
-                            <input type="text" class="form-control" name="cnpj" id="cnpj_input_field" 
-                                   placeholder="00.000.000/0000-00" autocomplete="off">
+                            <input type="text" class="form-control" name="cnpj" id="cnpj_input_field"
+                                placeholder="00.000.000/0000-00" autocomplete="off">
                         </div>
-                        
+
                         <!-- Pré-visualização da empresa -->
                         <div id="empresa_preview" style="display: none;" class="mb-3">
                             <div class="card border-info">
@@ -350,7 +373,7 @@
                                 </div>
                             </div>
                         </div>
-                        
+
                         <button type="submit" class="btn btn-primary" id="btnSolicitarVinculo" disabled>
                             <i class="fas fa-link me-2"></i>Solicitar Vínculo
                         </button>
@@ -370,16 +393,28 @@
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Nome Completo *</label>
-                                <input type="text" class="form-control" name="nome" placeholder="Nome e sobrenome" required>
+                                <input type="text" class="form-control" name="nome" placeholder="Nome e sobrenome"
+                                    required>
                                 <small class="text-muted">Nome completo da pessoa</small>
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Nome de Usuário *</label>
-                                <input type="text" class="form-control" name="usuario" placeholder="usuario_login" required>
+                                <input type="text" class="form-control" name="usuario" placeholder="usuario_login"
+                                    required>
                                 <small class="text-muted">Usado para fazer login no sistema</small>
                             </div>
                         </div>
                         <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Categoria de Acesso</label>
+                                <select class="form-select" name="categoria_id">
+                                    <option value="">Sem restrições (Acesso Total)</option>
+                                    {% for categoria in categorias %}
+                                    <option value="{{ categoria.id }}">{{ categoria.nome }}</option>
+                                    {% endfor %}
+                                </select>
+                                <small class="text-muted">Define as permissões do sub-usuário</small>
+                            </div>
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Email</label>
                                 <input type="email" class="form-control" name="email" placeholder="email@exemplo.com">
@@ -432,7 +467,8 @@
                                     </td>
                                     <td>{{ sub.permissoes_empresas|length }} empresa(s)</td>
                                     <td>
-                                        <button class="btn btn-sm btn-primary" onclick="gerenciarPermissoes({{ sub.id }})">
+                                        <button class="btn btn-sm btn-primary"
+                                            onclick="gerenciarPermissoes({{ sub.id }})">
                                             <i class="fas fa-key"></i> Permissões
                                         </button>
                                         <button class="btn btn-sm btn-danger" onclick="excluirSubUsuario({{ sub.id }})">
@@ -451,193 +487,193 @@
 </div>
 
 <style>
-/* Estilização das abas do contador dashboard */
-.contador-tabs {
-    border-bottom: 2px solid #dee2e6;
-    background-color: #f8f9fa;
-    padding: 0.5rem 1rem 0;
-    border-radius: 8px 8px 0 0;
-}
+    /* Estilização das abas do contador dashboard */
+    .contador-tabs {
+        border-bottom: 2px solid #dee2e6;
+        background-color: #f8f9fa;
+        padding: 0.5rem 1rem 0;
+        border-radius: 8px 8px 0 0;
+    }
 
-.contador-tabs .nav-item {
-    margin-right: 0.5rem;
-}
+    .contador-tabs .nav-item {
+        margin-right: 0.5rem;
+    }
 
-.contador-tabs .nav-link {
-    color: #6c757d !important;
-    background-color: transparent;
-    border: none;
-    border-bottom: 3px solid transparent;
-    padding: 0.75rem 1.25rem;
-    font-weight: 500;
-    transition: all 0.3s ease;
-    border-radius: 8px 8px 0 0;
-    margin-bottom: -2px;
-}
+    .contador-tabs .nav-link {
+        color: #6c757d !important;
+        background-color: transparent;
+        border: none;
+        border-bottom: 3px solid transparent;
+        padding: 0.75rem 1.25rem;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        border-radius: 8px 8px 0 0;
+        margin-bottom: -2px;
+    }
 
-.contador-tabs .nav-link:hover {
-    color: #0d6efd !important;
-    background-color: rgba(13, 110, 253, 0.1);
-    border-bottom-color: rgba(13, 110, 253, 0.5);
-}
+    .contador-tabs .nav-link:hover {
+        color: #0d6efd !important;
+        background-color: rgba(13, 110, 253, 0.1);
+        border-bottom-color: rgba(13, 110, 253, 0.5);
+    }
 
-.contador-tabs .nav-link.active {
-    color: #0d6efd !important;
-    background-color: #ffffff;
-    border-bottom: 3px solid #0d6efd;
-    font-weight: 600;
-}
+    .contador-tabs .nav-link.active {
+        color: #0d6efd !important;
+        background-color: #ffffff;
+        border-bottom: 3px solid #0d6efd;
+        font-weight: 600;
+    }
 
-.contador-tabs .nav-link.active:hover {
-    color: #0b5ed7 !important;
-    border-bottom-color: #0b5ed7;
-}
+    .contador-tabs .nav-link.active:hover {
+        color: #0b5ed7 !important;
+        border-bottom-color: #0b5ed7;
+    }
 
-.contador-tabs .nav-link i {
-    margin-right: 0.5rem;
-}
+    .contador-tabs .nav-link i {
+        margin-right: 0.5rem;
+    }
 
-/* Tabelas de Contas a Receber e Pagar - preencher todo o espaço */
-.contador-dashboard .table-responsive {
-    width: 100% !important;
-    max-width: 100% !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    overflow-x: auto;
-}
+    /* Tabelas de Contas a Receber e Pagar - preencher todo o espaço */
+    .contador-dashboard .table-responsive {
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow-x: auto;
+    }
 
-.contador-dashboard .table-responsive .table {
-    width: 100% !important;
-    max-width: 100% !important;
-    table-layout: fixed;
-    margin: 0 !important;
-}
+    .contador-dashboard .table-responsive .table {
+        width: 100% !important;
+        max-width: 100% !important;
+        table-layout: fixed;
+        margin: 0 !important;
+    }
 
-.contador-dashboard .table-responsive .table th,
-.contador-dashboard .table-responsive .table td {
-    word-wrap: break-word;
-    overflow-wrap: break-word;
-    padding: 0.5rem 0.75rem;
-}
+    .contador-dashboard .table-responsive .table th,
+    .contador-dashboard .table-responsive .table td {
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        padding: 0.5rem 0.75rem;
+    }
 
-.contador-dashboard .col-md-6 {
-    padding-left: 0.5rem;
-    padding-right: 0.5rem;
-}
+    .contador-dashboard .col-md-6 {
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+    }
 
-.contador-dashboard .row {
-    margin-left: 0 !important;
-    margin-right: 0 !important;
-}
+    .contador-dashboard .row {
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+    }
 
-.contador-dashboard .row > [class*="col-"] {
-    padding-left: 0.5rem;
-    padding-right: 0.5rem;
-}
+    .contador-dashboard .row>[class*="col-"] {
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+    }
 
-/* Tabela de Empresas Vinculadas - preencher todo o espaço */
-.contador-dashboard .table-hover {
-    width: 100% !important;
-    max-width: 100% !important;
-    table-layout: fixed;
-    margin: 0 !important;
-}
+    /* Tabela de Empresas Vinculadas - preencher todo o espaço */
+    .contador-dashboard .table-hover {
+        width: 100% !important;
+        max-width: 100% !important;
+        table-layout: fixed;
+        margin: 0 !important;
+    }
 
-.contador-dashboard .table-hover th,
-.contador-dashboard .table-hover td {
-    word-wrap: break-word;
-    overflow-wrap: break-word;
-    vertical-align: middle;
-    padding: 0.75rem;
-}
+    .contador-dashboard .table-hover th,
+    .contador-dashboard .table-hover td {
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        vertical-align: middle;
+        padding: 0.75rem;
+    }
 
-/* Garantir que o card-body não tenha padding excessivo */
-.contador-dashboard .card-body {
-    padding: 1rem !important;
-}
+    /* Garantir que o card-body não tenha padding excessivo */
+    .contador-dashboard .card-body {
+        padding: 1rem !important;
+    }
 
-.contador-dashboard .card-body .row {
-    margin-left: -0.5rem !important;
-    margin-right: -0.5rem !important;
-}
+    .contador-dashboard .card-body .row {
+        margin-left: -0.5rem !important;
+        margin-right: -0.5rem !important;
+    }
 
-/* Garantir que a tabela de empresas vinculadas ocupe todo o espaço */
-.contador-dashboard #empresas-vinculadas .table-responsive {
-    width: 100% !important;
-    max-width: 100% !important;
-    margin: 0 !important;
-    padding: 0 !important;
-}
+    /* Garantir que a tabela de empresas vinculadas ocupe todo o espaço */
+    .contador-dashboard #empresas-vinculadas .table-responsive {
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
 
-.contador-dashboard #empresas-vinculadas .card-body {
-    padding: 1rem !important;
-}
+    .contador-dashboard #empresas-vinculadas .card-body {
+        padding: 1rem !important;
+    }
 
-.contador-dashboard #empresas-vinculadas .card {
-    width: 100% !important;
-    max-width: 100% !important;
-}
+    .contador-dashboard #empresas-vinculadas .card {
+        width: 100% !important;
+        max-width: 100% !important;
+    }
 
-.contador-dashboard #empresas-vinculadas .col-md-12 {
-    padding-left: 0 !important;
-    padding-right: 0 !important;
-}
+    .contador-dashboard #empresas-vinculadas .col-md-12 {
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+    }
 
-.contador-dashboard #empresas-vinculadas .row {
-    margin-left: 0 !important;
-    margin-right: 0 !important;
-}
+    .contador-dashboard #empresas-vinculadas .row {
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+    }
 </style>
 
 <script>
-// Máscaras para CPF e CNPJ
-function aplicarMascaraCPF(input) {
-    let value = input.value.replace(/\D/g, '');
-    if (value.length <= 11) {
-        value = value.replace(/(\d{3})(\d)/, '$1.$2');
-        value = value.replace(/(\d{3})(\d)/, '$1.$2');
-        value = value.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
-    }
-    input.value = value;
-}
-
-function aplicarMascaraCNPJ(input) {
-    let value = input.value.replace(/\D/g, '');
-    if (value.length <= 14) {
-        value = value.replace(/^(\d{2})(\d)/, '$1.$2');
-        value = value.replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3');
-        value = value.replace(/\.(\d{3})(\d)/, '.$1/$2');
-        value = value.replace(/(\d{4})(\d)/, '$1-$2');
-    }
-    input.value = value;
-}
-
-// Buscar empresa ao digitar CPF/CNPJ
-let timeoutBusca;
-function buscarEmpresa() {
-    clearTimeout(timeoutBusca);
-    timeoutBusca = setTimeout(function() {
-        const tipoDocumento = document.getElementById('tipo_documento').value;
-        const cpfInput = document.getElementById('cpf_input_field');
-        const cnpjInput = document.getElementById('cnpj_input_field');
-        const previewDiv = document.getElementById('empresa_preview');
-        const empresaInfo = document.getElementById('empresa_info');
-        const btnSolicitar = document.getElementById('btnSolicitarVinculo');
-        
-        let documento = '';
-        if (tipoDocumento === 'cpf' && cpfInput) {
-            documento = cpfInput.value.replace(/\D/g, '');
-        } else if (tipoDocumento === 'cnpj' && cnpjInput) {
-            documento = cnpjInput.value.replace(/\D/g, '');
+    // Máscaras para CPF e CNPJ
+    function aplicarMascaraCPF(input) {
+        let value = input.value.replace(/\D/g, '');
+        if (value.length <= 11) {
+            value = value.replace(/(\d{3})(\d)/, '$1.$2');
+            value = value.replace(/(\d{3})(\d)/, '$1.$2');
+            value = value.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
         }
-        
-        if (documento.length === (tipoDocumento === 'cpf' ? 11 : 14)) {
-            fetch(`/api/buscar-empresa-por-documento?tipo=${tipoDocumento}&documento=${documento}`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        const empresa = data.empresa;
-                        empresaInfo.innerHTML = `
+        input.value = value;
+    }
+
+    function aplicarMascaraCNPJ(input) {
+        let value = input.value.replace(/\D/g, '');
+        if (value.length <= 14) {
+            value = value.replace(/^(\d{2})(\d)/, '$1.$2');
+            value = value.replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3');
+            value = value.replace(/\.(\d{3})(\d)/, '.$1/$2');
+            value = value.replace(/(\d{4})(\d)/, '$1-$2');
+        }
+        input.value = value;
+    }
+
+    // Buscar empresa ao digitar CPF/CNPJ
+    let timeoutBusca;
+    function buscarEmpresa() {
+        clearTimeout(timeoutBusca);
+        timeoutBusca = setTimeout(function () {
+            const tipoDocumento = document.getElementById('tipo_documento').value;
+            const cpfInput = document.getElementById('cpf_input_field');
+            const cnpjInput = document.getElementById('cnpj_input_field');
+            const previewDiv = document.getElementById('empresa_preview');
+            const empresaInfo = document.getElementById('empresa_info');
+            const btnSolicitar = document.getElementById('btnSolicitarVinculo');
+
+            let documento = '';
+            if (tipoDocumento === 'cpf' && cpfInput) {
+                documento = cpfInput.value.replace(/\D/g, '');
+            } else if (tipoDocumento === 'cnpj' && cnpjInput) {
+                documento = cnpjInput.value.replace(/\D/g, '');
+            }
+
+            if (documento.length === (tipoDocumento === 'cpf' ? 11 : 14)) {
+                fetch(`/api/buscar-empresa-por-documento?tipo=${tipoDocumento}&documento=${documento}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            const empresa = data.empresa;
+                            empresaInfo.innerHTML = `
                             <p class="mb-2"><strong>Razão Social:</strong> ${empresa.razao_social}</p>
                             ${empresa.nome_fantasia ? `<p class="mb-2"><strong>Nome Fantasia:</strong> ${empresa.nome_fantasia}</p>` : ''}
                             <p class="mb-0">
@@ -645,173 +681,173 @@ function buscarEmpresa() {
                                 ${empresa.tipo_pessoa === 'PF' ? '<span class="badge bg-success">Pessoa Física</span>' : '<span class="badge bg-primary">Empresa</span>'}
                             </p>
                         `;
-                        previewDiv.style.display = 'block';
-                        btnSolicitar.disabled = false;
-                    } else {
-                        empresaInfo.innerHTML = `<p class="text-danger mb-0"><i class="fas fa-exclamation-triangle me-2"></i>${data.message}</p>`;
-                        previewDiv.style.display = 'block';
+                            previewDiv.style.display = 'block';
+                            btnSolicitar.disabled = false;
+                        } else {
+                            empresaInfo.innerHTML = `<p class="text-danger mb-0"><i class="fas fa-exclamation-triangle me-2"></i>${data.message}</p>`;
+                            previewDiv.style.display = 'block';
+                            btnSolicitar.disabled = true;
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Erro ao buscar empresa:', error);
+                        previewDiv.style.display = 'none';
                         btnSolicitar.disabled = true;
+                    });
+            } else {
+                previewDiv.style.display = 'none';
+                btnSolicitar.disabled = true;
+            }
+        }, 500);
+    }
+
+    // Toggle campos CPF/CNPJ
+    document.addEventListener('DOMContentLoaded', function () {
+        const tipoDocumento = document.getElementById('tipo_documento');
+        const cpfInput = document.getElementById('cpf_input');
+        const cnpjInput = document.getElementById('cnpj_input');
+        const cpfField = document.getElementById('cpf_input_field');
+        const cnpjField = document.getElementById('cnpj_input_field');
+        const previewDiv = document.getElementById('empresa_preview');
+        const btnSolicitar = document.getElementById('btnSolicitarVinculo');
+
+        if (tipoDocumento) {
+            tipoDocumento.addEventListener('change', function () {
+                if (this.value === 'cpf') {
+                    cpfInput.style.display = 'block';
+                    cnpjInput.style.display = 'none';
+                    cnpjField.value = '';
+                } else if (this.value === 'cnpj') {
+                    cpfInput.style.display = 'none';
+                    cnpjInput.style.display = 'block';
+                    cpfField.value = '';
+                } else {
+                    cpfInput.style.display = 'none';
+                    cnpjInput.style.display = 'none';
+                    cpfField.value = '';
+                    cnpjField.value = '';
+                }
+                previewDiv.style.display = 'none';
+                btnSolicitar.disabled = true;
+            });
+        }
+
+        if (cpfField) {
+            cpfField.addEventListener('input', function () {
+                aplicarMascaraCPF(this);
+                buscarEmpresa();
+            });
+        }
+
+        if (cnpjField) {
+            cnpjField.addEventListener('input', function () {
+                aplicarMascaraCNPJ(this);
+                buscarEmpresa();
+            });
+        }
+    });
+
+    // Função para excluir vínculo
+    function excluirVinculo(vinculoId, nomeEmpresa) {
+        if (confirm(`Tem certeza que deseja excluir o vínculo com "${nomeEmpresa}"?\n\nEsta ação não pode ser desfeita.`)) {
+            fetch(`/contador/vincular/${vinculoId}/excluir`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Vínculo excluído com sucesso!');
+                        location.reload();
+                    } else {
+                        alert('Erro ao excluir vínculo: ' + data.message);
                     }
                 })
                 .catch(error => {
-                    console.error('Erro ao buscar empresa:', error);
-                    previewDiv.style.display = 'none';
-                    btnSolicitar.disabled = true;
+                    console.error('Erro:', error);
+                    alert('Erro ao excluir vínculo. Tente novamente.');
                 });
-        } else {
-            previewDiv.style.display = 'none';
-            btnSolicitar.disabled = true;
         }
-    }, 500);
-}
+    }
 
-// Toggle campos CPF/CNPJ
-document.addEventListener('DOMContentLoaded', function() {
-    const tipoDocumento = document.getElementById('tipo_documento');
-    const cpfInput = document.getElementById('cpf_input');
-    const cnpjInput = document.getElementById('cnpj_input');
-    const cpfField = document.getElementById('cpf_input_field');
-    const cnpjField = document.getElementById('cnpj_input_field');
-    const previewDiv = document.getElementById('empresa_preview');
-    const btnSolicitar = document.getElementById('btnSolicitarVinculo');
-    
-    if (tipoDocumento) {
-        tipoDocumento.addEventListener('change', function() {
-            if (this.value === 'cpf') {
-                cpfInput.style.display = 'block';
-                cnpjInput.style.display = 'none';
-                cnpjField.value = '';
-            } else if (this.value === 'cnpj') {
-                cpfInput.style.display = 'none';
-                cnpjInput.style.display = 'block';
-                cpfField.value = '';
-            } else {
-                cpfInput.style.display = 'none';
-                cnpjInput.style.display = 'none';
-                cpfField.value = '';
-                cnpjField.value = '';
+    // Atualizar estilos das abas ao clicar
+    document.addEventListener('DOMContentLoaded', function () {
+        const navLinks = document.querySelectorAll('.nav-tabs .nav-link');
+
+        // Verificar se há parâmetro na URL para abrir aba específica
+        const urlParams = new URLSearchParams(window.location.search);
+        const abaParam = urlParams.get('aba');
+
+        if (abaParam) {
+            // Encontrar a aba correspondente e ativá-la
+            const abaTarget = document.querySelector(`a[href="#${abaParam}"]`);
+            if (abaTarget) {
+                const tab = new bootstrap.Tab(abaTarget);
+                tab.show();
             }
-            previewDiv.style.display = 'none';
-            btnSolicitar.disabled = true;
-        });
-    }
-    
-    if (cpfField) {
-        cpfField.addEventListener('input', function() {
-            aplicarMascaraCPF(this);
-            buscarEmpresa();
-        });
-    }
-    
-    if (cnpjField) {
-        cnpjField.addEventListener('input', function() {
-            aplicarMascaraCNPJ(this);
-            buscarEmpresa();
-        });
-    }
-});
+        }
 
-// Função para excluir vínculo
-function excluirVinculo(vinculoId, nomeEmpresa) {
-    if (confirm(`Tem certeza que deseja excluir o vínculo com "${nomeEmpresa}"?\n\nEsta ação não pode ser desfeita.`)) {
-        fetch(`/contador/vincular/${vinculoId}/excluir`, {
+        // Os estilos CSS já cuidam da aparência, apenas garantir que a classe active seja aplicada corretamente
+        navLinks.forEach(link => {
+            link.addEventListener('shown.bs.tab', function (e) {
+                // Remover active de todos
+                navLinks.forEach(l => {
+                    l.classList.remove('active');
+                    l.setAttribute('aria-selected', 'false');
+                });
+
+                // Adicionar active ao clicado
+                const activeLink = e.target;
+                activeLink.classList.add('active');
+                activeLink.setAttribute('aria-selected', 'true');
+            });
+        });
+    });
+
+    function gerenciarPermissoes(subUsuarioId) {
+        window.location.href = '/contador/sub-usuario/' + subUsuarioId + '/permissoes';
+    }
+
+    function excluirSubUsuario(subUsuarioId) {
+        if (confirm('Tem certeza que deseja excluir este sub-usuário?')) {
+            fetch('/contador/sub-usuario/' + subUsuarioId + '/excluir', {
+                method: 'POST'
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert('Erro ao excluir: ' + data.message);
+                    }
+                });
+        }
+    }
+
+    // Função para alternar status de lançamento (realizado/pendente)
+    function toggleLancamentoStatus(lancamentoId, novoStatus) {
+        fetch(`/lancamentos/${lancamentoId}/toggle-status`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
-            }
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ realizado: novoStatus })
         })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert('Vínculo excluído com sucesso!');
-                location.reload();
-            } else {
-                alert('Erro ao excluir vínculo: ' + data.message);
-            }
-        })
-        .catch(error => {
-            console.error('Erro:', error);
-            alert('Erro ao excluir vínculo. Tente novamente.');
-        });
-    }
-}
-
-// Atualizar estilos das abas ao clicar
-document.addEventListener('DOMContentLoaded', function() {
-    const navLinks = document.querySelectorAll('.nav-tabs .nav-link');
-    
-    // Verificar se há parâmetro na URL para abrir aba específica
-    const urlParams = new URLSearchParams(window.location.search);
-    const abaParam = urlParams.get('aba');
-    
-    if (abaParam) {
-        // Encontrar a aba correspondente e ativá-la
-        const abaTarget = document.querySelector(`a[href="#${abaParam}"]`);
-        if (abaTarget) {
-            const tab = new bootstrap.Tab(abaTarget);
-            tab.show();
-        }
-    }
-    
-    // Os estilos CSS já cuidam da aparência, apenas garantir que a classe active seja aplicada corretamente
-    navLinks.forEach(link => {
-        link.addEventListener('shown.bs.tab', function(e) {
-            // Remover active de todos
-            navLinks.forEach(l => {
-                l.classList.remove('active');
-                l.setAttribute('aria-selected', 'false');
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Recarregar a página para atualizar os dados
+                    window.location.reload();
+                } else {
+                    alert('Erro ao atualizar status: ' + (data.message || 'Erro desconhecido'));
+                }
+            })
+            .catch(error => {
+                console.error('Erro ao atualizar status:', error);
+                alert('Erro ao atualizar status do lançamento');
             });
-            
-            // Adicionar active ao clicado
-            const activeLink = e.target;
-            activeLink.classList.add('active');
-            activeLink.setAttribute('aria-selected', 'true');
-        });
-    });
-});
-
-function gerenciarPermissoes(subUsuarioId) {
-    window.location.href = '/contador/sub-usuario/' + subUsuarioId + '/permissoes';
-}
-
-function excluirSubUsuario(subUsuarioId) {
-    if (confirm('Tem certeza que deseja excluir este sub-usuário?')) {
-        fetch('/contador/sub-usuario/' + subUsuarioId + '/excluir', {
-            method: 'POST'
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                location.reload();
-            } else {
-                alert('Erro ao excluir: ' + data.message);
-            }
-        });
     }
-}
-
-// Função para alternar status de lançamento (realizado/pendente)
-function toggleLancamentoStatus(lancamentoId, novoStatus) {
-    fetch(`/lancamentos/${lancamentoId}/toggle-status`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ realizado: novoStatus })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            // Recarregar a página para atualizar os dados
-            window.location.reload();
-        } else {
-            alert('Erro ao atualizar status: ' + (data.message || 'Erro desconhecido'));
-        }
-    })
-    .catch(error => {
-        console.error('Erro ao atualizar status:', error);
-        alert('Erro ao atualizar status do lançamento');
-    });
-}
 </script>
 {% endblock %}

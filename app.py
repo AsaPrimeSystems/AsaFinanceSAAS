@@ -144,9 +144,18 @@ with app.app_context():
             print("Registros atualizados!")
         else:
             print("Coluna 'usuario' já existe na tabela sub_usuario_contador!")
+
+        # Verificar e adicionar coluna 'categoria_id' na tabela sub_usuario_contador
+        if not verificar_coluna_existe('sub_usuario_contador', 'categoria_id'):
+            print("Adicionando coluna 'categoria_id' na tabela sub_usuario_contador...")
+            db.session.execute(text("ALTER TABLE sub_usuario_contador ADD COLUMN categoria_id INTEGER"))
+            db.session.commit()
+            print("Coluna 'categoria_id' adicionada!")
+        else:
+            print("Coluna 'categoria_id' já existe na tabela sub_usuario_contador!")
             
     except Exception as e:
-        print(f"⚠️ Aviso: Não foi possível verificar/adicionar coluna 'usuario': {str(e)}")
+        print(f"⚠️ Aviso: Não foi possível verificar/adicionar colunas em sub_usuario_contador: {str(e)}")
         db.session.rollback()
     
     # Verificar e adicionar coluna 'data_inicio_assinatura' na tabela empresa se não existir
@@ -838,6 +847,7 @@ class SubUsuarioContador(db.Model):
     usuario = db.Column(db.String(50), nullable=True)  # Nome de usuário para login (nullable temporariamente para migração)
     email = db.Column(db.String(120), nullable=True)  # Email opcional
     senha = db.Column(db.String(200), nullable=False)
+    categoria_id = db.Column(db.Integer, db.ForeignKey('categoria_usuario.id'), nullable=True)  # Categoria personalizada
     ativo = db.Column(db.Boolean, default=True)
     data_criacao = db.Column(db.DateTime, default=datetime.utcnow)
     
@@ -7505,7 +7515,10 @@ def dre_visualizar():
 
     # Calcular valores das linhas
     linhas_dre = []
-    valores_acumulados = []  # Para calcular subtotais
+    
+    # Variáveis para controle de totais
+    resultado_acumulado = 0  # Acumula o resultado total (Receitas - Despesas)
+    valores_bloco = []       # Acumula valores apenas do bloco atual (entre subtotais)
 
     for linha_config in linhas_config:
         valor = 0
@@ -7528,14 +7541,25 @@ def dre_visualizar():
                 else:
                     valor -= lanc.valor
 
-            # Adicionar aos valores acumulados para cálculo de subtotais
-            valores_acumulados.append(valor)
+            # Adicionar aos acumuladores
+            resultado_acumulado += valor
+            valores_bloco.append(valor)
 
         elif linha_config.tipo_linha in ['subtotal', 'total']:
-            # Calcular subtotal somando todos os valores acumulados desde o último subtotal
-            valor = sum(valores_acumulados)
-            # Limpar valores acumulados após calcular subtotal
-            valores_acumulados = []
+            # Lógica para exibir o valor correto do subtotal/total
+            if linha_config.operacao == '=':
+                # Se for igualdade (ex: Lucro Líquido), mostra o acumulado total até agora
+                valor = resultado_acumulado
+                # NÃO limpa valores_bloco pois pode ser um subtotal intermediário que compõe um maior? 
+                # Na verdade, para DRE simples, geralmente resetamos o bloco para contar o próximo grupo
+                # Mas para Resultado, queremos o total global.
+                # Vamos manter valores_bloco limpo para iniciar novo grupo de contas se houver
+                valores_bloco = [] 
+            else:
+                # Se for soma/subtração (ex: Total Receitas), mostra apenas o total do bloco anterior
+                valor = sum(valores_bloco)
+                # Limpar valores do bloco para iniciar o próximo grupo
+                valores_bloco = []
 
         linhas_dre.append({
             'codigo': linha_config.codigo,
@@ -9837,11 +9861,39 @@ def editar_usuario_empresa(user_id):
         if request.form.get('nova_senha'):
             usuario.senha = generate_password_hash(request.form['nova_senha'])
         
+        # Atualizar Categoria Personalizada e Permissões
+        nova_categoria_id = request.form.get('categoria_id')
+        if usuario.tipo == 'categoria_personalizada':
+            if nova_categoria_id:
+                # Se mudou a categoria ou não tinha nenhuma
+                if str(usuario.categoria_id) != str(nova_categoria_id):
+                    usuario.categoria_id = nova_categoria_id
+                    
+                    # Regenerar permissões baseadas na nova categoria
+                    Permissao.query.filter_by(usuario_id=usuario.id).delete()
+                    criar_permissoes_por_categoria(usuario.id, nova_categoria_id)
+            else:
+                # Se removeu a categoria (mas manteve tipo categoria_personalizada - inválido, força 'usuario')
+                usuario.tipo = 'usuario'
+                usuario.categoria_id = None
+                # Regenerar permissões padrão
+                Permissao.query.filter_by(usuario_id=usuario.id).delete()
+                criar_permissoes_padrao(usuario.id)
+        elif usuario.tipo == 'usuario':
+            # Se for usuário padrão, remove categoria e reseta permissões padrão
+             if usuario.categoria_id:
+                usuario.categoria_id = None
+                Permissao.query.filter_by(usuario_id=usuario.id).delete()
+                criar_permissoes_padrao(usuario.id)
+        
         db.session.commit()
         flash('Usuário atualizado com sucesso!', 'success')
         return redirect(url_for('empresa_usuarios'))
     
-    return render_template('editar_usuario_empresa.html', usuario=usuario)
+    # Buscar categorias ativas para o dropdown
+    categorias = CategoriaUsuario.query.filter_by(empresa_id=usuario_atual.empresa_id, ativo=True).all()
+    
+    return render_template('editar_usuario_empresa.html', usuario=usuario, categorias=categorias)
 
 @app.route('/empresa/usuarios/<int:user_id>/toggle_status')
 def toggle_usuario_empresa_status(user_id):
@@ -9993,11 +10045,28 @@ def verificar_permissao(usuario_id, modulo, acao):
     if not usuario:
         return False
     
-    # Usuários principais e admins têm todas as permissões
+        # Usuários principais e admins têm todas as permissões
     if usuario.tipo in ['usuario_principal', 'admin']:
         return True
     
-    # Verificar permissão específica
+    # CRÍTICO: Se estiver logado como Sub-Contador, verificar permissões DELE, e não do usuário impersonado
+    if session.get('usuario_tipo') == 'sub_contador':
+        sub_usuario_id = session.get('sub_usuario_id')
+        if sub_usuario_id:
+            sub_usuario = db.session.get(SubUsuarioContador, sub_usuario_id)
+            if sub_usuario and sub_usuario.categoria_id:
+                # Verificar na categoria do sub-usuário
+                permissao_cat = PermissaoCategoria.query.filter_by(
+                    categoria_id=sub_usuario.categoria_id,
+                    modulo=modulo,
+                    acao=acao,
+                    ativo=True
+                ).first()
+                return permissao_cat is not None
+            # Se não tiver categoria, assume sem permissão (ou poderia ter padrão, mas por segurança melhor negar)
+            return False
+
+    # Verificar permissão específica do usuário normal
     permissao = Permissao.query.filter_by(
         usuario_id=usuario_id,
         modulo=modulo,
@@ -10257,7 +10326,18 @@ def editar_categoria_usuario(categoria_id):
                     db.session.add(permissao)
         
         db.session.commit()
-        flash('Categoria atualizada com sucesso!', 'success')
+        
+        # Sincronizar permissões para todos os usuários desta categoria
+        usuarios_afetados = Usuario.query.filter_by(categoria_id=categoria.id).all()
+        for usuario in usuarios_afetados:
+            # Remover permissões antigas
+            Permissao.query.filter_by(usuario_id=usuario.id).delete()
+            # Criar novas baseadas na categoria atualizada
+            criar_permissoes_por_categoria(usuario.id, categoria.id)
+            
+        db.session.commit()
+        
+        flash(f'Categoria atualizada e permissões sincronizadas para {len(usuarios_afetados)} usuários!', 'success')
         return redirect(url_for('categorias_usuarios'))
     
     # Obter permissões atuais da categoria
@@ -18094,6 +18174,9 @@ def dashboard_contador():
 
         # Buscar sub-usuários
         sub_usuarios = SubUsuarioContador.query.filter_by(contador_id=empresa_id).all()
+        
+        # Buscar categorias de usuário do contador (para sub-usuários)
+        categorias = CategoriaUsuario.query.filter_by(empresa_id=empresa_id, ativo=True).all()
 
     # Estatísticas
     stats = {
@@ -18150,7 +18233,8 @@ def dashboard_contador():
                          vinculos=vinculos,
                          sub_usuarios=sub_usuarios,
                          stats=stats,
-                         empresas_com_lancamentos=empresas_com_lancamentos)
+                         empresas_com_lancamentos=empresas_com_lancamentos,
+                         categorias=categorias if 'categorias' in locals() else [])
 
 @app.route('/contador/vincular-empresa', methods=['POST'])
 def contador_vincular_empresa():
@@ -18337,6 +18421,7 @@ def contador_criar_sub_usuario():
     usuario = request.form.get('usuario', '').strip()
     email = request.form.get('email', '').strip()  # Email opcional
     senha = request.form.get('senha')
+    categoria_id = request.form.get('categoria_id')
     
     # Validações
     if not nome:
@@ -18369,7 +18454,8 @@ def contador_criar_sub_usuario():
         nome=nome,
         usuario=usuario,
         email=email if email else None,
-        senha=senha_hash
+        senha=senha_hash,
+        categoria_id=categoria_id if categoria_id else None
     )
     
     db.session.add(novo_sub)
@@ -18410,6 +18496,9 @@ def contador_gerenciar_permissoes(sub_usuario_id):
         status='autorizado'
     ).all()
     
+    # Buscar categorias de usuário do contador (para sub-usuários)
+    categorias = CategoriaUsuario.query.filter_by(empresa_id=contador_id, ativo=True).all()
+    
     # Buscar empresas já autorizadas para este sub-usuário
     permissoes = PermissaoSubUsuario.query.filter_by(sub_usuario_id=sub_usuario_id).all()
     empresas_autorizadas = [p.empresa_id for p in permissoes]
@@ -18417,7 +18506,8 @@ def contador_gerenciar_permissoes(sub_usuario_id):
     return render_template('contador_permissoes_sub_usuario.html',
                          sub_usuario=sub_usuario,
                          empresas_disponiveis=empresas_disponiveis,
-                         empresas_autorizadas=empresas_autorizadas)
+                         empresas_autorizadas=empresas_autorizadas,
+                         categorias=categorias)
 
 @app.route('/contador/sub-usuario/<int:sub_usuario_id>/salvar-permissoes', methods=['POST'])
 def contador_salvar_permissoes(sub_usuario_id):
@@ -18445,6 +18535,14 @@ def contador_salvar_permissoes(sub_usuario_id):
         flash('Sub-usuário não encontrado.', 'error')
         return redirect(url_for('dashboard_contador'))
     
+    
+    # Atualizar categoria do sub-usuário
+    categoria_id = request.form.get('categoria_id')
+    if categoria_id:
+        sub_usuario.categoria_id = categoria_id
+    else:
+        sub_usuario.categoria_id = None
+        
     # Remover permissões antigas
     PermissaoSubUsuario.query.filter_by(sub_usuario_id=sub_usuario_id).delete()
     
