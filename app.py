@@ -1940,20 +1940,23 @@ def dashboard():
     total_saida_mes = sum(l.valor for l in saida_mes)
     
     # Calcular entradas e saidas realizadas no período - todos os usuários da empresa correta
+    # Transferências entre contas são excluídas (não representam receita/despesa real)
     entradas_periodo = Lancamento.query.filter(
         Lancamento.empresa_id == empresa_id_correta,
         Lancamento.tipo == 'entrada',
         Lancamento.realizado == True,
         Lancamento.data_realizada >= inicio_periodo,
-        Lancamento.data_realizada <= fim_periodo
+        Lancamento.data_realizada <= fim_periodo,
+        db.or_(Lancamento.eh_transferencia == False, Lancamento.eh_transferencia.is_(None))
     ).all()
-    
+
     saidas_periodo = Lancamento.query.filter(
         Lancamento.empresa_id == empresa_id_correta,
         Lancamento.tipo == 'saida',
         Lancamento.realizado == True,
         Lancamento.data_realizada >= inicio_periodo,
-        Lancamento.data_realizada <= fim_periodo
+        Lancamento.data_realizada <= fim_periodo,
+        db.or_(Lancamento.eh_transferencia == False, Lancamento.eh_transferencia.is_(None))
     ).all()
     
     # Calcular totais apenas com lançamentos financeiros realizados no período
@@ -1976,7 +1979,8 @@ def dashboard():
         Lancamento.realizado == False,
         Lancamento.data_prevista > hoje,
         Lancamento.data_prevista >= inicio_periodo,
-        Lancamento.data_prevista <= fim_periodo
+        Lancamento.data_prevista <= fim_periodo,
+        db.or_(Lancamento.eh_transferencia == False, Lancamento.eh_transferencia.is_(None))
     ).all()
     a_vencer_saidas = Lancamento.query.filter(
         Lancamento.empresa_id == empresa_id_correta,
@@ -1984,7 +1988,8 @@ def dashboard():
         Lancamento.realizado == False,
         Lancamento.data_prevista > hoje,
         Lancamento.data_prevista >= inicio_periodo,
-        Lancamento.data_prevista <= fim_periodo
+        Lancamento.data_prevista <= fim_periodo,
+        db.or_(Lancamento.eh_transferencia == False, Lancamento.eh_transferencia.is_(None))
     ).all()
     total_a_vencer = sum(l.valor for l in a_vencer_entradas) - sum(l.valor for l in a_vencer_saidas)
 
@@ -1995,7 +2000,8 @@ def dashboard():
         Lancamento.realizado == False,
         Lancamento.data_prevista < hoje,
         Lancamento.data_prevista >= inicio_periodo,
-        Lancamento.data_prevista <= fim_periodo
+        Lancamento.data_prevista <= fim_periodo,
+        db.or_(Lancamento.eh_transferencia == False, Lancamento.eh_transferencia.is_(None))
     ).all()
     vencido_saidas = Lancamento.query.filter(
         Lancamento.empresa_id == empresa_id_correta,
@@ -2003,7 +2009,8 @@ def dashboard():
         Lancamento.realizado == False,
         Lancamento.data_prevista < hoje,
         Lancamento.data_prevista >= inicio_periodo,
-        Lancamento.data_prevista <= fim_periodo
+        Lancamento.data_prevista <= fim_periodo,
+        db.or_(Lancamento.eh_transferencia == False, Lancamento.eh_transferencia.is_(None))
     ).all()
     total_vencido = sum(l.valor for l in vencido_entradas) - sum(l.valor for l in vencido_saidas)
 
@@ -2015,7 +2022,8 @@ def dashboard():
         Lancamento.data_realizada.isnot(None),
         Lancamento.data_realizada > hoje,
         Lancamento.data_realizada >= inicio_periodo,
-        Lancamento.data_realizada <= fim_periodo
+        Lancamento.data_realizada <= fim_periodo,
+        db.or_(Lancamento.eh_transferencia == False, Lancamento.eh_transferencia.is_(None))
     ).all()
     agendado_saidas = Lancamento.query.filter(
         Lancamento.empresa_id == empresa_id_correta,
@@ -2024,7 +2032,8 @@ def dashboard():
         Lancamento.data_realizada.isnot(None),
         Lancamento.data_realizada > hoje,
         Lancamento.data_realizada >= inicio_periodo,
-        Lancamento.data_realizada <= fim_periodo
+        Lancamento.data_realizada <= fim_periodo,
+        db.or_(Lancamento.eh_transferencia == False, Lancamento.eh_transferencia.is_(None))
     ).all()
     total_agendado = sum(l.valor for l in agendado_entradas) - sum(l.valor for l in agendado_saidas)
 
@@ -2680,26 +2689,30 @@ def lancamentos():
     hoje = datetime.now().date()
 
     # Calcular totais financeiros dinâmicos baseados nos filtros aplicados
-    entradas_totais = sum([l.valor for l in lancamentos if l.tipo == 'entrada'])
-    saidas_totais = sum([l.valor for l in lancamentos if l.tipo == 'saida'])
+    # Transferências entre contas são excluídas dos totais (não representam receita/despesa real)
+    def nao_transferencia(l):
+        return not l.eh_transferencia
+
+    entradas_totais = sum([l.valor for l in lancamentos if l.tipo == 'entrada' and nao_transferencia(l)])
+    saidas_totais = sum([l.valor for l in lancamentos if l.tipo == 'saida' and nao_transferencia(l)])
     # Saldo atual considera apenas entradas e saidas REALIZADAS
-    entradas_totais_realizadas = sum([l.valor for l in lancamentos if l.tipo == 'entrada' and ((l.data_realizada and l.data_realizada <= hoje) or (l.realizado and not l.data_realizada))])
-    saidas_totais_realizadas = sum([l.valor for l in lancamentos if l.tipo == 'saida' and ((l.data_realizada and l.data_realizada <= hoje) or (l.realizado and not l.data_realizada))])
+    entradas_totais_realizadas = sum([l.valor for l in lancamentos if l.tipo == 'entrada' and nao_transferencia(l) and ((l.data_realizada and l.data_realizada <= hoje) or (l.realizado and not l.data_realizada))])
+    saidas_totais_realizadas = sum([l.valor for l in lancamentos if l.tipo == 'saida' and nao_transferencia(l) and ((l.data_realizada and l.data_realizada <= hoje) or (l.realizado and not l.data_realizada))])
     saldo_atual = entradas_totais_realizadas - saidas_totais_realizadas
-    
+
     # Totais por status (baseado na nova lógica)
     # Realizado: tem data_realizada <= hoje OU (realizado=True sem data_realizada)
-    entradas_realizadas = sum([l.valor for l in lancamentos if l.tipo == 'entrada' and ((l.data_realizada and l.data_realizada <= hoje) or (l.realizado and not l.data_realizada))])
-    saidas_realizadas = sum([l.valor for l in lancamentos if l.tipo == 'saida' and ((l.data_realizada and l.data_realizada <= hoje) or (l.realizado and not l.data_realizada))])
+    entradas_realizadas = sum([l.valor for l in lancamentos if l.tipo == 'entrada' and nao_transferencia(l) and ((l.data_realizada and l.data_realizada <= hoje) or (l.realizado and not l.data_realizada))])
+    saidas_realizadas = sum([l.valor for l in lancamentos if l.tipo == 'saida' and nao_transferencia(l) and ((l.data_realizada and l.data_realizada <= hoje) or (l.realizado and not l.data_realizada))])
     # Agendado: tem data_realizada futura (data_realizada > hoje)
-    entradas_agendadas = sum([l.valor for l in lancamentos if l.tipo == 'entrada' and l.data_realizada and l.data_realizada > hoje])
-    saidas_agendadas = sum([l.valor for l in lancamentos if l.tipo == 'saida' and l.data_realizada and l.data_realizada > hoje])
+    entradas_agendadas = sum([l.valor for l in lancamentos if l.tipo == 'entrada' and nao_transferencia(l) and l.data_realizada and l.data_realizada > hoje])
+    saidas_agendadas = sum([l.valor for l in lancamentos if l.tipo == 'saida' and nao_transferencia(l) and l.data_realizada and l.data_realizada > hoje])
     # A vencer: não realizado, sem data_realizada E data_prevista >= hoje
-    entradas_a_vencer = sum([l.valor for l in lancamentos if l.tipo == 'entrada' and not l.realizado and not l.data_realizada and l.data_prevista >= hoje])
-    saidas_a_vencer = sum([l.valor for l in lancamentos if l.tipo == 'saida' and not l.realizado and not l.data_realizada and l.data_prevista >= hoje])
+    entradas_a_vencer = sum([l.valor for l in lancamentos if l.tipo == 'entrada' and nao_transferencia(l) and not l.realizado and not l.data_realizada and l.data_prevista >= hoje])
+    saidas_a_vencer = sum([l.valor for l in lancamentos if l.tipo == 'saida' and nao_transferencia(l) and not l.realizado and not l.data_realizada and l.data_prevista >= hoje])
     # Vencido: não realizado, sem data_realizada E data_prevista < hoje
-    entradas_vencidas = sum([l.valor for l in lancamentos if l.tipo == 'entrada' and not l.realizado and not l.data_realizada and l.data_prevista < hoje])
-    saidas_vencidas = sum([l.valor for l in lancamentos if l.tipo == 'saida' and not l.realizado and not l.data_realizada and l.data_prevista < hoje])
+    entradas_vencidas = sum([l.valor for l in lancamentos if l.tipo == 'entrada' and nao_transferencia(l) and not l.realizado and not l.data_realizada and l.data_prevista < hoje])
+    saidas_vencidas = sum([l.valor for l in lancamentos if l.tipo == 'saida' and nao_transferencia(l) and not l.realizado and not l.data_realizada and l.data_prevista < hoje])
 
     # Saldos por status
     saldo_realizado = entradas_realizadas - saidas_realizadas
@@ -7491,11 +7504,17 @@ def calcular_dre(empresa_id, data_inicio, data_fim):
         valor = 0
 
         if linha_config.tipo_linha == 'conta' and linha_config.plano_conta_id:
+            # Modo híbrido (regime de caixa para realizados):
+            # - Lançamentos REALIZADOS: filtra por data_realizada (quando de fato entrou/saiu o dinheiro)
+            # - Lançamentos PENDENTES:  filtra por data_prevista  (competência, projeção futura)
             lancamentos = Lancamento.query.filter(
                 Lancamento.plano_conta_id == linha_config.plano_conta_id,
                 Lancamento.empresa_id == empresa_id,
-                Lancamento.data_prevista.between(data_inicio, data_fim),
-                db.or_(Lancamento.eh_transferencia == False, Lancamento.eh_transferencia.is_(None))
+                db.or_(Lancamento.eh_transferencia == False, Lancamento.eh_transferencia.is_(None)),
+                db.or_(
+                    db.and_(Lancamento.realizado == True,  Lancamento.data_realizada.between(data_inicio, data_fim)),
+                    db.and_(Lancamento.realizado == False, Lancamento.data_prevista.between(data_inicio, data_fim))
+                )
             ).all()
 
             for lanc in lancamentos:

@@ -5,147 +5,146 @@
 {% block page_title %}Relatórios{% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-md-12">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
-                    <i class="fas fa-chart-bar me-2"></i>Relatórios Disponíveis
-                </h5>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <!-- Relatório de Saldos -->
-                    <div class="col-md-6 col-lg-4 mb-4">
-                        <div class="card h-100 border-primary">
-                            <div class="card-body text-center">
-                                <i class="fas fa-balance-scale fa-3x text-primary mb-3"></i>
-                                <h5 class="card-title">Relatório de Saldos</h5>
-                                <p class="card-text">Visualize entradas, saidas e saldo geral organizados por
-                                    categoria.</p>
-                                <a href="{{ url_for('relatorio_saldos') }}" class="btn btn-primary">
-                                    <i class="fas fa-eye me-2"></i>Visualizar
-                                </a>
-                            </div>
-                        </div>
-                    </div>
+<div class="modern-panel">
+    <!-- Cabeçalho -->
+    <div class="modern-panel-header">
+        <h5 class="modern-panel-title">
+            <i class="fas fa-chart-bar"></i> Relatórios
+        </h5>
+    </div>
 
-                    <!-- Relatório de Lançamentos -->
-                    <div class="col-md-6 col-lg-4 mb-4">
-                        <div class="card h-100 border-info">
-                            <div class="card-body text-center">
-                                <i class="fas fa-money-bill-wave fa-3x text-info mb-3"></i>
-                                <h5 class="card-title">Relatório de Lançamentos</h5>
-                                <p class="card-text">Filtre e analise todos os lançamentos financeiros com opções
-                                    avançadas.</p>
-                                <a href="{{ url_for('relatorio_lancamentos') }}" class="btn btn-info">
-                                    <i class="fas fa-filter me-2"></i>Visualizar
-                                </a>
-                            </div>
-                        </div>
-                    </div>
+    <!-- Cards de relatórios -->
+    <div class="card-body" style="background:#fff; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 10px 10px; padding: 24px;">
+        <div class="row g-4">
 
-                    <!-- Relatório de Clientes -->
-                    <div class="col-md-6 col-lg-4 mb-4">
-                        <div class="card h-100 border-success">
-                            <div class="card-body text-center">
-                                <i class="fas fa-users fa-3x text-success mb-3"></i>
-                                <h5 class="card-title">Relatório de Clientes</h5>
-                                <p class="card-text">Analise o histórico de vendas e saldos de todos os clientes.</p>
-                                <a href="{{ url_for('relatorio_clientes') }}" class="btn btn-success">
-                                    <i class="fas fa-chart-line me-2"></i>Visualizar
-                                </a>
-                            </div>
+            <!-- Relatório de Saldos -->
+            <div class="col-md-6 col-lg-4">
+                <div class="card h-100" style="border: 1px solid #e2e8f0; border-top: 3px solid #667eea;">
+                    <div class="card-body text-center p-4">
+                        <div style="width:60px;height:60px;border-radius:14px;background:#ede9fe;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">
+                            <i class="fas fa-balance-scale fa-xl" style="color:#667eea;"></i>
                         </div>
+                        <h5 class="fw-700 mb-2" style="font-size:1rem;color:#334155;">Relatório de Saldos</h5>
+                        <p class="text-muted mb-4" style="font-size:0.85rem;">Visualize entradas, saídas e saldo geral organizados por categoria.</p>
+                        <a href="{{ url_for('relatorio_saldos') }}" class="btn btn-primary w-100">
+                            <i class="fas fa-eye me-2"></i>Visualizar
+                        </a>
                     </div>
-
-                    <!-- Relatório de Fornecedores -->
-                    <div class="col-md-6 col-lg-4 mb-4">
-                        <div class="card h-100 border-warning">
-                            <div class="card-body text-center">
-                                <i class="fas fa-truck fa-3x text-warning mb-3"></i>
-                                <h5 class="card-title">Relatório de Fornecedores</h5>
-                                <p class="card-text">Visualize o histórico de compras e gastos com fornecedores.</p>
-                                <a href="{{ url_for('relatorio_fornecedores') }}" class="btn btn-warning">
-                                    <i class="fas fa-chart-pie me-2"></i>Visualizar
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- DRE - Demonstração do Resultado do Exercício -->
-                    <div class="col-md-6 col-lg-4 mb-4">
-                        <div class="card h-100 border-purple">
-                            <div class="card-body text-center">
-                                <i class="fas fa-file-invoice-dollar fa-3x text-purple mb-3"></i>
-                                <h5 class="card-title">DRE - Resultado do Exercício</h5>
-                                <p class="card-text">Demonstração do resultado: entradas, saidas e lucro líquido do
-                                    período.</p>
-                                <div class="d-flex gap-2 justify-content-center mt-3">
-                                    <a href="{{ url_for('dre_visualizar') }}" class="btn btn-purple">
-                                        <i class="fas fa-eye me-2"></i>Visualizar
-                                    </a>
-                                    <a href="{{ url_for('dre_configurar') }}" class="btn btn-outline-secondary">
-                                        <i class="fas fa-cog me-2"></i>Configurar
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Relatório de Produtos (apenas para comércio/indústria) -->
-                    {% if usuario and usuario.empresa and usuario.empresa.tipo_empresa in ['comercio', 'industria'] %}
-                    <div class="col-md-6 col-lg-4 mb-4">
-                        <div class="card h-100 border-danger">
-                            <div class="card-body text-center">
-                                <i class="fas fa-box fa-3x text-danger mb-3"></i>
-                                <h5 class="card-title">Relatório de Produtos</h5>
-                                <p class="card-text">Descubra os produtos mais vendidos e sua performance.</p>
-                                <a href="{{ url_for('relatorio_produtos') }}" class="btn btn-danger">
-                                    <i class="fas fa-trophy me-2"></i>Visualizar
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Relatório de Estoque (apenas para comércio/indústria) -->
-                    <div class="col-md-6 col-lg-4 mb-4">
-                        <div class="card h-100 border-secondary">
-                            <div class="card-body text-center">
-                                <i class="fas fa-warehouse fa-3x text-secondary mb-3"></i>
-                                <h5 class="card-title">Relatório de Estoque</h5>
-                                <p class="card-text">Visualize estoque atual ou em data específica (temporal). Analise
-                                    níveis e margens.</p>
-                                <a href="{{ url_for('relatorio_estoque') }}" class="btn btn-secondary">
-                                    <i class="fas fa-clipboard-list me-2"></i>Visualizar
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                    {% endif %}
                 </div>
+            </div>
 
-                <!-- Informações Adicionais -->
-                <div class="row mt-4">
-                    <div class="col-md-12">
-                        <div class="alert alert-info">
-                            <h6><i class="fas fa-info-circle me-2"></i>Dicas para Relatórios</h6>
-                            <ul class="mb-0">
-                                <li>Use os filtros nos relatórios para obter informações mais específicas</li>
-                                <li>Os relatórios são atualizados em tempo real com os dados do sistema</li>
-                                <li>Você pode exportar os dados para análise externa</li>
-                                <li>Relatórios de saldos mostram apenas transações realizadas</li>
-                                {% if usuario and usuario.empresa and usuario.empresa.tipo_empresa not in ['comercio',
-                                'industria'] %}
-                                <li><strong>Relatórios de produtos e estoque estão disponíveis apenas para empresas de
-                                        comércio ou indústria</strong></li>
-                                {% endif %}
-                            </ul>
+            <!-- Relatório de Lançamentos -->
+            <div class="col-md-6 col-lg-4">
+                <div class="card h-100" style="border: 1px solid #e2e8f0; border-top: 3px solid #667eea;">
+                    <div class="card-body text-center p-4">
+                        <div style="width:60px;height:60px;border-radius:14px;background:#ede9fe;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">
+                            <i class="fas fa-money-bill-wave fa-xl" style="color:#667eea;"></i>
+                        </div>
+                        <h5 class="fw-700 mb-2" style="font-size:1rem;color:#334155;">Relatório de Lançamentos</h5>
+                        <p class="text-muted mb-4" style="font-size:0.85rem;">Filtre e analise todos os lançamentos financeiros com opções avançadas.</p>
+                        <a href="{{ url_for('relatorio_lancamentos') }}" class="btn btn-primary w-100">
+                            <i class="fas fa-filter me-2"></i>Visualizar
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Relatório de Clientes -->
+            <div class="col-md-6 col-lg-4">
+                <div class="card h-100" style="border: 1px solid #e2e8f0; border-top: 3px solid #667eea;">
+                    <div class="card-body text-center p-4">
+                        <div style="width:60px;height:60px;border-radius:14px;background:#ede9fe;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">
+                            <i class="fas fa-users fa-xl" style="color:#667eea;"></i>
+                        </div>
+                        <h5 class="fw-700 mb-2" style="font-size:1rem;color:#334155;">Relatório de Clientes</h5>
+                        <p class="text-muted mb-4" style="font-size:0.85rem;">Analise o histórico de vendas e saldos de todos os clientes.</p>
+                        <a href="{{ url_for('relatorio_clientes') }}" class="btn btn-primary w-100">
+                            <i class="fas fa-chart-line me-2"></i>Visualizar
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Relatório de Fornecedores -->
+            <div class="col-md-6 col-lg-4">
+                <div class="card h-100" style="border: 1px solid #e2e8f0; border-top: 3px solid #667eea;">
+                    <div class="card-body text-center p-4">
+                        <div style="width:60px;height:60px;border-radius:14px;background:#ede9fe;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">
+                            <i class="fas fa-truck fa-xl" style="color:#667eea;"></i>
+                        </div>
+                        <h5 class="fw-700 mb-2" style="font-size:1rem;color:#334155;">Relatório de Fornecedores</h5>
+                        <p class="text-muted mb-4" style="font-size:0.85rem;">Visualize o histórico de compras e gastos com fornecedores.</p>
+                        <a href="{{ url_for('relatorio_fornecedores') }}" class="btn btn-primary w-100">
+                            <i class="fas fa-chart-pie me-2"></i>Visualizar
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- DRE -->
+            <div class="col-md-6 col-lg-4">
+                <div class="card h-100" style="border: 1px solid #e2e8f0; border-top: 3px solid #667eea;">
+                    <div class="card-body text-center p-4">
+                        <div style="width:60px;height:60px;border-radius:14px;background:#ede9fe;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">
+                            <i class="fas fa-file-invoice-dollar fa-xl" style="color:#667eea;"></i>
+                        </div>
+                        <h5 class="fw-700 mb-2" style="font-size:1rem;color:#334155;">DRE - Resultado do Exercício</h5>
+                        <p class="text-muted mb-4" style="font-size:0.85rem;">Demonstração do resultado: entradas, saídas e lucro líquido do período.</p>
+                        <div class="d-flex gap-2">
+                            <a href="{{ url_for('dre_visualizar') }}" class="btn btn-primary flex-grow-1">
+                                <i class="fas fa-eye me-1"></i>Visualizar
+                            </a>
+                            <a href="{{ url_for('dre_configurar') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-cog"></i>
+                            </a>
                         </div>
                     </div>
                 </div>
             </div>
+
+            <!-- Relatório de Produtos (apenas comércio/indústria) -->
+            {% if usuario and usuario.empresa and usuario.empresa.tipo_empresa in ['comercio', 'industria'] %}
+            <div class="col-md-6 col-lg-4">
+                <div class="card h-100" style="border: 1px solid #e2e8f0; border-top: 3px solid #667eea;">
+                    <div class="card-body text-center p-4">
+                        <div style="width:60px;height:60px;border-radius:14px;background:#ede9fe;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">
+                            <i class="fas fa-box fa-xl" style="color:#667eea;"></i>
+                        </div>
+                        <h5 class="fw-700 mb-2" style="font-size:1rem;color:#334155;">Relatório de Produtos</h5>
+                        <p class="text-muted mb-4" style="font-size:0.85rem;">Descubra os produtos mais vendidos e sua performance.</p>
+                        <a href="{{ url_for('relatorio_produtos') }}" class="btn btn-primary w-100">
+                            <i class="fas fa-trophy me-2"></i>Visualizar
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Relatório de Estoque -->
+            <div class="col-md-6 col-lg-4">
+                <div class="card h-100" style="border: 1px solid #e2e8f0; border-top: 3px solid #667eea;">
+                    <div class="card-body text-center p-4">
+                        <div style="width:60px;height:60px;border-radius:14px;background:#ede9fe;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">
+                            <i class="fas fa-warehouse fa-xl" style="color:#667eea;"></i>
+                        </div>
+                        <h5 class="fw-700 mb-2" style="font-size:1rem;color:#334155;">Relatório de Estoque</h5>
+                        <p class="text-muted mb-4" style="font-size:0.85rem;">Visualize estoque atual ou em data específica. Analise níveis e margens.</p>
+                        <a href="{{ url_for('relatorio_estoque') }}" class="btn btn-primary w-100">
+                            <i class="fas fa-clipboard-list me-2"></i>Visualizar
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
         </div>
+
+        <!-- Dicas -->
+        {% if usuario and usuario.empresa and usuario.empresa.tipo_empresa not in ['comercio', 'industria'] %}
+        <div class="alert alert-info mt-4" style="font-size:0.85rem;">
+            <i class="fas fa-info-circle me-2"></i>
+            <strong>Dica:</strong> Relatórios de produtos e estoque estão disponíveis apenas para empresas de comércio ou indústria.
+        </div>
+        {% endif %}
     </div>
 </div>
 {% endblock %}

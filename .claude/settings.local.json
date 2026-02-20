@@ -41,7 +41,8 @@
       "Bash(open:*)",
       "Bash(git reset:*)",
       "Bash(cd:*)",
-      "Bash(textutil:*)"
+      "Bash(textutil:*)",
+      "Bash(sort:*)"
     ],
     "deny": [],
     "ask": []
