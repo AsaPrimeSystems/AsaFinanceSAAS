@@ -7472,61 +7472,25 @@ def relatorios():
     
     return render_template('relatorios.html', usuario=usuario)
 
-@app.route('/dre/visualizar')
-def dre_visualizar():
-    """Visualizar DRE - Demonstração do Resultado do Exercício"""
-    if 'usuario_id' not in session:
-        return redirect(url_for('login'))
-
-    usuario = db.session.get(Usuario, session['usuario_id'])
-    empresa_id = obter_empresa_id_sessao(session, usuario)
-
-    # Buscar configuração da DRE
+def calcular_dre(empresa_id, data_inicio, data_fim):
+    """
+    Helper que calcula os valores das linhas da DRE para um período.
+    Retorna lista de dicts com a estrutura de cada linha.
+    Usa regime de competência (data_prevista) e exclui transferências.
+    """
     linhas_config = DreConfiguracao.query.filter_by(
         empresa_id=empresa_id,
         ativo=True
     ).order_by(DreConfiguracao.ordem).all()
 
-    # Obter período do filtro (padrão: mês atual)
-    data_fim = datetime.now().date()
-    data_inicio = data_fim.replace(day=1)  # Primeiro dia do mês
-
-    if request.args.get('data_inicio'):
-        try:
-            # Tentar formato dd/mm/aaaa primeiro
-            data_inicio = datetime.strptime(request.args.get('data_inicio'), '%d/%m/%Y').date()
-        except ValueError:
-            # Fallback para formato AAAA-MM-DD
-            try:
-                data_inicio = datetime.strptime(request.args.get('data_inicio'), '%Y-%m-%d').date()
-            except ValueError:
-                pass  # Manter data padrão
-
-    if request.args.get('data_fim'):
-        try:
-            # Tentar formato dd/mm/aaaa primeiro
-            data_fim = datetime.strptime(request.args.get('data_fim'), '%d/%m/%Y').date()
-        except ValueError:
-            # Fallback para formato AAAA-MM-DD
-            try:
-                data_fim = datetime.strptime(request.args.get('data_fim'), '%Y-%m-%d').date()
-            except ValueError:
-                pass  # Manter data padrão
-
-    # Calcular valores das linhas
     linhas_dre = []
-    
-    # Variáveis para controle de totais
-    resultado_acumulado = 0  # Acumula o resultado total (Receitas - Despesas)
-    valores_bloco = []       # Acumula valores apenas do bloco atual (entre subtotais)
+    resultado_acumulado = 0
+    valores_bloco = []
 
     for linha_config in linhas_config:
         valor = 0
 
         if linha_config.tipo_linha == 'conta' and linha_config.plano_conta_id:
-            # Buscar lançamentos da conta (REGIME DE COMPETÊNCIA - usa data_prevista)
-            # Não filtra por 'realizado' pois regime de competência considera independente do pagamento
-            # Exclui transferências, pois não representam entradas/saidas reais
             lancamentos = Lancamento.query.filter(
                 Lancamento.plano_conta_id == linha_config.plano_conta_id,
                 Lancamento.empresa_id == empresa_id,
@@ -7534,31 +7498,21 @@ def dre_visualizar():
                 db.or_(Lancamento.eh_transferencia == False, Lancamento.eh_transferencia.is_(None))
             ).all()
 
-            # Somar valores (entradas positivas, saidas negativas)
             for lanc in lancamentos:
                 if lanc.tipo == 'entrada':
                     valor += lanc.valor
                 else:
                     valor -= lanc.valor
 
-            # Adicionar aos acumuladores
             resultado_acumulado += valor
             valores_bloco.append(valor)
 
         elif linha_config.tipo_linha in ['subtotal', 'total']:
-            # Lógica para exibir o valor correto do subtotal/total
             if linha_config.operacao == '=':
-                # Se for igualdade (ex: Lucro Líquido), mostra o acumulado total até agora
                 valor = resultado_acumulado
-                # NÃO limpa valores_bloco pois pode ser um subtotal intermediário que compõe um maior? 
-                # Na verdade, para DRE simples, geralmente resetamos o bloco para contar o próximo grupo
-                # Mas para Resultado, queremos o total global.
-                # Vamos manter valores_bloco limpo para iniciar novo grupo de contas se houver
-                valores_bloco = [] 
+                valores_bloco = []
             else:
-                # Se for soma/subtração (ex: Total Receitas), mostra apenas o total do bloco anterior
                 valor = sum(valores_bloco)
-                # Limpar valores do bloco para iniciar o próximo grupo
                 valores_bloco = []
 
         linhas_dre.append({
@@ -7573,8 +7527,85 @@ def dre_visualizar():
             'linha_abaixo': linha_config.linha_abaixo if hasattr(linha_config, 'linha_abaixo') else False
         })
 
+    return linhas_dre
+
+
+@app.route('/dre/api/dados')
+def dre_api_dados():
+    """API JSON: retorna dados de uma DRE para um período específico"""
+    if 'usuario_id' not in session:
+        return jsonify({'erro': 'Não autenticado'}), 401
+
+    usuario = db.session.get(Usuario, session['usuario_id'])
+    empresa_id = obter_empresa_id_sessao(session, usuario)
+
+    # Parsear datas
+    data_fim = datetime.now().date()
+    data_inicio = data_fim.replace(day=1)
+
+    for param, default, attr in [
+        ('data_inicio', data_inicio, 'data_inicio'),
+        ('data_fim', data_fim, 'data_fim'),
+    ]:
+        val = request.args.get(param)
+        if val:
+            for fmt in ('%d/%m/%Y', '%Y-%m-%d'):
+                try:
+                    parsed = datetime.strptime(val, fmt).date()
+                    if attr == 'data_inicio':
+                        data_inicio = parsed
+                    else:
+                        data_fim = parsed
+                    break
+                except ValueError:
+                    continue
+
+    linhas = calcular_dre(empresa_id, data_inicio, data_fim)
+    return jsonify({
+        'data_inicio': data_inicio.strftime('%d/%m/%Y'),
+        'data_fim': data_fim.strftime('%d/%m/%Y'),
+        'linhas': linhas
+    })
+
+
+@app.route('/dre/visualizar')
+def dre_visualizar():
+    """Visualizar DRE - Demonstração do Resultado do Exercício com múltiplos períodos"""
+    if 'usuario_id' not in session:
+        return redirect(url_for('login'))
+
+    usuario = db.session.get(Usuario, session['usuario_id'])
+    empresa_id = obter_empresa_id_sessao(session, usuario)
+
+    # Período inicial padrão: mês atual
+    data_fim = datetime.now().date()
+    data_inicio = data_fim.replace(day=1)
+
+    if request.args.get('data_inicio'):
+        for fmt in ('%d/%m/%Y', '%Y-%m-%d'):
+            try:
+                data_inicio = datetime.strptime(request.args.get('data_inicio'), fmt).date()
+                break
+            except ValueError:
+                continue
+
+    if request.args.get('data_fim'):
+        for fmt in ('%d/%m/%Y', '%Y-%m-%d'):
+            try:
+                data_fim = datetime.strptime(request.args.get('data_fim'), fmt).date()
+                break
+            except ValueError:
+                continue
+
+    # Calcular período inicial para o template
+    linhas_dre = calcular_dre(empresa_id, data_inicio, data_fim)
+
+    # Verificar se há configuração
+    tem_config = DreConfiguracao.query.filter_by(empresa_id=empresa_id, ativo=True).first() is not None
+
     return render_template('dre_visualizar.html',
                          linhas_dre=linhas_dre,
+                         tem_config=tem_config,
                          data_inicio=data_inicio.strftime('%d/%m/%Y'),
                          data_fim=data_fim.strftime('%d/%m/%Y'))
 

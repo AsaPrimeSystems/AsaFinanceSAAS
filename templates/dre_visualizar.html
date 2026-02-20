@@ -6,44 +6,43 @@
 <style>
     .dre-container {
         background: #fff;
-        padding: 2rem;
         border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-
-    .dre-header {
-        text-align: center;
-        border-bottom: 3px double #000;
-        padding-bottom: 1rem;
-        margin-bottom: 2rem;
-    }
-
-    .dre-header h2 {
-        font-size: 1.5rem;
-        font-weight: 700;
-        margin: 0;
-        color: #000;
-    }
-
-    .dre-periodo {
-        font-size: 0.9rem;
-        color: #666;
-        margin-top: 0.5rem;
+        overflow-x: auto;
     }
 
     .dre-table {
         width: 100%;
         border-collapse: collapse;
         font-family: Arial, sans-serif;
-        font-size: 0.9rem;
+        font-size: 0.88rem;
+        min-width: 600px;
+    }
+
+    .dre-table thead th {
+        background: #2d3748;
+        color: #fff;
+        padding: 0.6rem 0.75rem;
+        font-weight: 600;
+        white-space: nowrap;
+        vertical-align: middle;
+    }
+
+    .dre-table thead th.th-periodo {
+        min-width: 160px;
+        text-align: right;
+    }
+
+    .dre-table thead th.th-estrutura {
+        background: #1a202c;
     }
 
     .dre-table tbody tr {
-        border-bottom: 1px solid #e0e0e0;
+        border-bottom: 1px solid #e8e8e8;
+        transition: background 0.1s;
     }
 
-    .dre-table tbody tr:last-child {
-        border-bottom: none;
+    .dre-table tbody tr:hover {
+        background: #f9f9f9 !important;
     }
 
     .dre-linha {
@@ -51,178 +50,207 @@
     }
 
     /* Níveis de indentação */
-    .dre-linha.nivel-1 { padding-left: 1rem; }
-    .dre-linha.nivel-2 { padding-left: 2.5rem; }
-    .dre-linha.nivel-3 { padding-left: 4rem; }
+    td.dre-descricao.nivel-1 { padding-left: 1rem; }
+    td.dre-descricao.nivel-2 { padding-left: 2.5rem; }
+    td.dre-descricao.nivel-3 { padding-left: 4rem; }
 
     /* Tipos de linha */
-    .dre-linha.tipo-conta {
-        font-weight: 400;
-    }
+    .tipo-conta td { font-weight: 400; }
 
-    .dre-linha.tipo-subtotal {
-        font-weight: 600;
-        background: #f9f9f9;
-    }
-
-    .dre-linha.tipo-total {
-        font-weight: 700;
-        background: #f5f5f5;
-        border-top: 1px solid #000;
-        border-bottom: 1px solid #000;
-    }
-
-    /* Linhas sintéticas (subtotais) */
-    .dre-linha.linha-negrito,
-    .dre-linha.tipo-subtotal {
+    .tipo-subtotal td {
         font-weight: 700;
         background: #f0f8ff;
         border-top: 1px solid #007bff;
         border-bottom: 1px solid #007bff;
     }
 
-    .dre-linha.tipo-subtotal .dre-descricao {
+    .tipo-subtotal td.dre-descricao {
         text-transform: uppercase;
-        font-size: 0.95rem;
+        font-size: 0.9rem;
     }
 
-    .dre-linha.linha-acima {
-        border-top: 1px solid #ccc;
+    .tipo-total td {
+        font-weight: 700;
+        background: #f5f5f5;
+        border-top: 2px solid #333;
+        border-bottom: 2px solid #333;
     }
 
-    .dre-linha.linha-abaixo {
-        border-bottom: 1px solid #ccc;
-    }
+    .linha-negrito td { font-weight: 700; }
+    .linha-acima td  { border-top: 1px solid #aaa !important; }
+    .linha-abaixo td { border-bottom: 1px solid #aaa !important; }
 
-    .dre-codigo {
-        width: 10%;
+    /* Colunas estruturais */
+    td.dre-codigo {
+        width: 80px;
         font-family: 'Courier New', monospace;
-        color: #666;
+        color: #888;
+        padding: 0.4rem 0.5rem;
+        white-space: nowrap;
     }
-
-    .dre-operacao {
-        width: 5%;
+    td.dre-operacao {
+        width: 36px;
         text-align: center;
-        color: #999;
+        color: #aaa;
+        padding: 0.4rem 0.25rem;
     }
-
-    .dre-descricao {
-        width: 55%;
-    }
-
-    .dre-valor {
-        width: 30%;
-        text-align: right;
-        font-family: 'Courier New', monospace;
+    td.dre-descricao {
+        padding: 0.4rem 0.75rem;
         white-space: nowrap;
     }
 
-    .valor-positivo {
-        color: #2e7d32;
+    /* Colunas de valor (períodos) */
+    td.dre-valor {
+        min-width: 150px;
+        text-align: right;
+        font-family: 'Courier New', monospace;
+        white-space: nowrap;
+        padding: 0.4rem 0.75rem;
     }
 
-    .valor-negativo {
-        color: #c62828;
-    }
+    .valor-positivo { color: #2e7d32; }
+    .valor-negativo { color: #c62828; }
+    .valor-neutro   { color: #000; }
 
-    .valor-neutro {
-        color: #000;
+    /* Cabeçalho de período */
+    .periodo-header {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 2px;
     }
+    .periodo-label {
+        font-size: 0.8rem;
+        font-weight: 600;
+        line-height: 1.2;
+    }
+    .btn-remover-periodo {
+        background: rgba(255,255,255,0.15);
+        border: none;
+        color: #fff;
+        font-size: 0.7rem;
+        padding: 1px 6px;
+        border-radius: 3px;
+        cursor: pointer;
+        line-height: 1.4;
+        transition: background 0.2s;
+    }
+    .btn-remover-periodo:hover { background: rgba(220,53,69,0.8); }
 
-    .btn-config {
-        margin-top: 1rem;
+    /* Painel adicionar período */
+    .add-periodo-panel {
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        padding: 1rem 1.25rem;
+        margin-bottom: 1.25rem;
     }
+    .add-periodo-panel .form-label { font-size: 0.82rem; margin-bottom: 2px; }
+    .add-periodo-panel .form-control { font-size: 0.88rem; }
 
     .sem-configuracao {
         text-align: center;
         padding: 3rem;
         color: #666;
     }
+    .sem-configuracao i { font-size: 3rem; color: #ddd; margin-bottom: 1rem; }
 
-    .sem-configuracao i {
-        font-size: 3rem;
-        color: #ddd;
-        margin-bottom: 1rem;
+    #loading-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.3);
+        z-index: 9999;
+        align-items: center;
+        justify-content: center;
+    }
+    #loading-overlay.show { display: flex; }
+
+    @media print {
+        .add-periodo-panel, .card-header .btn, #btn-imprimir { display: none !important; }
+        .dre-container { overflow: visible; }
+        .dre-table { font-size: 0.8rem; }
+        .btn-remover-periodo { display: none !important; }
     }
 </style>
+
+<!-- Loading overlay -->
+<div id="loading-overlay">
+    <div class="spinner-border text-light" role="status">
+        <span class="visually-hidden">Carregando...</span>
+    </div>
+</div>
 
 <div class="container-fluid">
     <div class="card shadow-sm">
         <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
             <h4 class="mb-0"><i class="fas fa-file-invoice me-2"></i>DRE - Demonstração do Resultado do Exercício</h4>
             <div>
-                <a href="{{ url_for('dre_configurar') }}" class="btn btn-primary btn-sm">
+                <a href="{{ url_for('dre_configurar') }}" class="btn btn-primary btn-sm me-1">
                     <i class="fas fa-cog"></i> Configurar DRE
                 </a>
-                <button onclick="window.print()" class="btn btn-outline-light btn-sm">
+                <button id="btn-imprimir" onclick="window.print()" class="btn btn-outline-light btn-sm">
                     <i class="fas fa-print"></i> Imprimir
                 </button>
             </div>
         </div>
 
         <div class="card-body">
-            <!-- Filtros de Período -->
-            <div class="row mb-4">
-                <div class="col-md-12">
-                    <div class="card bg-light">
-                        <div class="card-body">
-                            <form method="GET" class="row g-3 align-items-end">
-                                <div class="col-md-5">
-                                    <label for="data_inicio" class="form-label">
-                                        <i class="fas fa-calendar-alt me-1"></i>Data Inicial
-                                    </label>
-                                    <input type="text" class="form-control" id="data_inicio" name="data_inicio"
-                                           placeholder="dd/mm/aaaa" pattern="\d{2}/\d{2}/\d{4}"
-                                           value="{{ data_inicio }}" required>
-                                </div>
-                                <div class="col-md-5">
-                                    <label for="data_fim" class="form-label">
-                                        <i class="fas fa-calendar-alt me-1"></i>Data Final
-                                    </label>
-                                    <input type="text" class="form-control" id="data_fim" name="data_fim"
-                                           placeholder="dd/mm/aaaa" pattern="\d{2}/\d{2}/\d{4}"
-                                           value="{{ data_fim }}" required>
-                                </div>
-                                <div class="col-md-2">
-                                    <button type="submit" class="btn btn-primary w-100">
-                                        <i class="fas fa-filter"></i>
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
+
+            {% if tem_config %}
+
+            <!-- Painel: Adicionar Período -->
+            <div class="add-periodo-panel">
+                <div class="row g-2 align-items-end">
+                    <div class="col-auto">
+                        <label class="form-label fw-semibold">
+                            <i class="fas fa-plus-circle text-primary me-1"></i>Adicionar Período à DRE
+                        </label>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Data Inicial</label>
+                        <input type="text" id="novo-inicio" class="form-control form-control-sm"
+                               placeholder="dd/mm/aaaa" maxlength="10">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Data Final</label>
+                        <input type="text" id="novo-fim" class="form-control form-control-sm"
+                               placeholder="dd/mm/aaaa" maxlength="10">
+                    </div>
+                    <div class="col-auto">
+                        <button id="btn-add-periodo" class="btn btn-primary btn-sm" onclick="adicionarPeriodo()">
+                            <i class="fas fa-plus me-1"></i>Adicionar
+                        </button>
+                    </div>
+                    <div class="col-auto ms-auto text-muted" style="font-size:0.8rem;">
+                        <span id="info-periodos">0 período(s)</span>
                     </div>
                 </div>
+                <div id="erro-periodo" class="text-danger mt-1" style="font-size:0.82rem;display:none;"></div>
             </div>
 
-            {% if linhas_dre %}
+            <!-- Tabela DRE -->
             <div class="dre-container">
-                <div class="dre-header">
-                    <h2>{{ session.empresa_nome }}</h2>
-                    <div class="dre-periodo">
-                        Demonstração do Resultado do Exercício<br>
-                        Período: {{ data_inicio }} a {{ data_fim }}
-                    </div>
-                </div>
-
-                <table class="dre-table">
-                    <tbody>
-                        {% for linha in linhas_dre %}
-                        <tr class="dre-linha tipo-{{ linha.tipo_linha }} nivel-{{ linha.nivel }} {% if linha.negrito %}linha-negrito{% endif %} {% if linha.linha_acima %}linha-acima{% endif %} {% if linha.linha_abaixo %}linha-abaixo{% endif %}">
-                            <td class="dre-codigo">{{ linha.codigo if linha.tipo_linha == 'conta' else '' }}</td>
-                            <td class="dre-operacao">{{ linha.operacao or '' }}</td>
-                            <td class="dre-descricao">{{ linha.descricao }}</td>
-                            <td class="dre-valor
-                                {% if linha.valor > 0 %}valor-positivo
-                                {% elif linha.valor < 0 %}valor-negativo
-                                {% else %}valor-neutro
-                                {% endif %}">
-                                {{ "%.2f"|format(linha.valor|abs) }}
-                            </td>
+                <table class="dre-table" id="dre-table">
+                    <thead id="dre-thead">
+                        <tr>
+                            <th class="th-estrutura">Código</th>
+                            <th class="th-estrutura">Op</th>
+                            <th class="th-estrutura" style="min-width:220px;">Descrição</th>
+                            <!-- Cabeçalhos de períodos inseridos via JS -->
                         </tr>
-                        {% endfor %}
+                    </thead>
+                    <tbody id="dre-tbody">
+                        <!-- Linhas renderizadas via JS -->
                     </tbody>
                 </table>
             </div>
+
+            <div id="sem-periodos" class="text-center text-muted py-5" style="display:none;">
+                <i class="fas fa-calendar-plus fa-3x mb-3 d-block" style="color:#ddd;"></i>
+                <p>Adicione um período acima para visualizar a DRE.</p>
+            </div>
+
             {% else %}
             <div class="sem-configuracao">
                 <div><i class="fas fa-file-invoice"></i></div>
@@ -233,6 +261,7 @@
                 </a>
             </div>
             {% endif %}
+
         </div>
     </div>
 </div>
@@ -240,28 +269,195 @@
 
 {% block scripts %}
 <script>
-// Máscara de data para os campos
-function aplicarMascaraData(input) {
-    input.addEventListener('input', function(e) {
-        let value = e.target.value.replace(/\D/g, ''); // Remove tudo que não é número
+// ─── Estado global ───────────────────────────────────────────────────────────
+const periodos = [];  // [{inicio, fim, label, linhas: []}]
 
-        if (value.length >= 2) {
-            value = value.substring(0, 2) + '/' + value.substring(2);
-        }
-        if (value.length >= 5) {
-            value = value.substring(0, 5) + '/' + value.substring(5, 9);
-        }
+// Dados do período inicial (pré-carregados pelo servidor)
+const dadosIniciais = {{ linhas_dre | tojson }};
+const dataInicioInicial = "{{ data_inicio }}";
+const dataFimInicial   = "{{ data_fim }}";
 
-        e.target.value = value;
+// ─── Utilitários ─────────────────────────────────────────────────────────────
+function formatarValor(v) {
+    const abs = Math.abs(v);
+    return 'R$ ' + abs.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+}
+
+function aplicarMascaraData(el) {
+    el.addEventListener('input', function() {
+        let v = this.value.replace(/\D/g, '');
+        if (v.length >= 2) v = v.slice(0,2) + '/' + v.slice(2);
+        if (v.length >= 5) v = v.slice(0,5) + '/' + v.slice(5,9);
+        this.value = v;
     });
 }
 
-document.addEventListener('DOMContentLoaded', function() {
-    const dataInicio = document.getElementById('data_inicio');
-    const dataFim = document.getElementById('data_fim');
+function labelPeriodo(inicio, fim) {
+    // Se o intervalo é o mês completo, exibe "Mmm/AAAA"
+    const meses = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+    const [di, mi, ai] = inicio.split('/').map(Number);
+    const [df, mf, af] = fim.split('/').map(Number);
+    const ultimoDia = new Date(af, mf, 0).getDate();
+    if (di === 1 && df === ultimoDia && mi === mf && ai === af) {
+        return meses[mi-1] + '/' + af;
+    }
+    return inicio + '\na ' + fim;
+}
 
-    if (dataInicio) aplicarMascaraData(dataInicio);
-    if (dataFim) aplicarMascaraData(dataFim);
+function mostrarErro(msg) {
+    const el = document.getElementById('erro-periodo');
+    el.textContent = msg;
+    el.style.display = msg ? 'block' : 'none';
+}
+
+function setLoading(v) {
+    document.getElementById('loading-overlay').classList.toggle('show', v);
+}
+
+// ─── Renderização da tabela ───────────────────────────────────────────────────
+function renderizar() {
+    const thead = document.getElementById('dre-thead').querySelector('tr');
+    const tbody = document.getElementById('dre-tbody');
+    const semPeriodos = document.getElementById('sem-periodos');
+    const tabela = document.getElementById('dre-table');
+
+    // Remover colunas de períodos anteriores do header
+    thead.querySelectorAll('.th-periodo').forEach(el => el.remove());
+
+    if (periodos.length === 0) {
+        tabela.style.display = 'none';
+        semPeriodos.style.display = 'block';
+        document.getElementById('info-periodos').textContent = '0 período(s)';
+        return;
+    }
+
+    tabela.style.display = '';
+    semPeriodos.style.display = 'none';
+    document.getElementById('info-periodos').textContent = periodos.length + ' período(s)';
+
+    // Adicionar cabeçalhos de período
+    periodos.forEach((p, idx) => {
+        const th = document.createElement('th');
+        th.className = 'th-periodo';
+        const label = labelPeriodo(p.inicio, p.fim).replace('\n', '<br>');
+        th.innerHTML = `
+            <div class="periodo-header">
+                <span class="periodo-label">${label}</span>
+                <button class="btn-remover-periodo" onclick="removerPeriodo(${idx})" title="Remover período">
+                    ✕ remover
+                </button>
+            </div>`;
+        thead.appendChild(th);
+    });
+
+    // Renderizar linhas — usa estrutura do primeiro período
+    const estrutura = periodos[0].linhas;
+    tbody.innerHTML = '';
+
+    estrutura.forEach((linha, iLinha) => {
+        const tr = document.createElement('tr');
+        const classes = ['tipo-' + linha.tipo_linha];
+        if (linha.negrito) classes.push('linha-negrito');
+        if (linha.linha_acima) classes.push('linha-acima');
+        if (linha.linha_abaixo) classes.push('linha-abaixo');
+        tr.className = classes.join(' ');
+
+        // Colunas estruturais
+        tr.innerHTML = `
+            <td class="dre-codigo">${linha.tipo_linha === 'conta' ? (linha.codigo || '') : ''}</td>
+            <td class="dre-operacao">${linha.operacao || ''}</td>
+            <td class="dre-descricao nivel-${linha.nivel}">${linha.descricao}</td>`;
+
+        // Colunas de valor (um por período)
+        periodos.forEach(p => {
+            const v = p.linhas[iLinha] ? p.linhas[iLinha].valor : 0;
+            const cls = v > 0 ? 'valor-positivo' : (v < 0 ? 'valor-negativo' : 'valor-neutro');
+            const td = document.createElement('td');
+            td.className = 'dre-valor ' + cls;
+            td.textContent = formatarValor(v);
+            tr.appendChild(td);
+        });
+
+        tbody.appendChild(tr);
+    });
+}
+
+// ─── Adicionar período ────────────────────────────────────────────────────────
+async function adicionarPeriodo() {
+    mostrarErro('');
+    const inicio = document.getElementById('novo-inicio').value.trim();
+    const fim    = document.getElementById('novo-fim').value.trim();
+
+    if (!inicio || !fim) {
+        mostrarErro('Informe Data Inicial e Data Final.');
+        return;
+    }
+    const reData = /^\d{2}\/\d{2}\/\d{4}$/;
+    if (!reData.test(inicio) || !reData.test(fim)) {
+        mostrarErro('Use o formato dd/mm/aaaa.');
+        return;
+    }
+
+    // Verificar duplicata
+    const jaExiste = periodos.find(p => p.inicio === inicio && p.fim === fim);
+    if (jaExiste) {
+        mostrarErro('Esse período já está na DRE.');
+        return;
+    }
+
+    setLoading(true);
+    try {
+        const resp = await fetch(`/dre/api/dados?data_inicio=${encodeURIComponent(inicio)}&data_fim=${encodeURIComponent(fim)}`);
+        if (!resp.ok) throw new Error('Erro ao buscar dados.');
+        const dados = await resp.json();
+
+        periodos.push({ inicio: dados.data_inicio, fim: dados.data_fim, linhas: dados.linhas });
+        renderizar();
+
+        // Limpar inputs
+        document.getElementById('novo-inicio').value = '';
+        document.getElementById('novo-fim').value = '';
+
+    } catch (e) {
+        mostrarErro('Não foi possível carregar os dados. Tente novamente.');
+    } finally {
+        setLoading(false);
+    }
+}
+
+// ─── Remover período ──────────────────────────────────────────────────────────
+function removerPeriodo(idx) {
+    periodos.splice(idx, 1);
+    renderizar();
+}
+
+// ─── Inicialização ────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', function() {
+    // Máscara de data
+    aplicarMascaraData(document.getElementById('novo-inicio'));
+    aplicarMascaraData(document.getElementById('novo-fim'));
+
+    // Enter nos campos de data aciona o botão
+    ['novo-inicio','novo-fim'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('keydown', e => { if (e.key === 'Enter') adicionarPeriodo(); });
+    });
+
+    // Carregar período inicial pré-calculado pelo servidor (sem AJAX)
+    {% if linhas_dre %}
+    periodos.push({
+        inicio: dataInicioInicial,
+        fim: dataFimInicial,
+        linhas: dadosIniciais
+    });
+    renderizar();
+    {% else %}
+    renderizar();
+    {% endif %}
+
+    // Pré-preencher inputs com o período padrão para facilitar ajuste
+    document.getElementById('novo-inicio').value = dataInicioInicial;
+    document.getElementById('novo-fim').value = dataFimInicial;
 });
 </script>
 {% endblock %}
