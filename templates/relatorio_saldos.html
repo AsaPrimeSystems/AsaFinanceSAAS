@@ -22,6 +22,11 @@
         width: 100% !important;
         min-width: 100% !important;
     }
+
+    .table-fixed {
+        table-layout: fixed;
+        width: 100% !important;
+    }
 </style>
 <!-- Filtros de Período -->
 <div class="row mb-4">
@@ -199,8 +204,8 @@ data_referencia %}
                 </h5>
             </div>
             <div class="card-body p-0">
-                <div class="table-responsive w-100">
-                    <table class="table table-hover mb-0 w-100-important">
+                <div class="w-100">
+                    <table class="table table-hover mb-0 table-fixed">
                         <thead class="table-dark">
                             <tr>
                                 <th class="text-center" style="width:25%">Status</th>
@@ -283,8 +288,8 @@ data_referencia %}
                         <div class="p-3 bg-light border-bottom">
                             <h6 class="mb-0 text-success"><i class="fas fa-arrow-up me-2"></i>Contas de Receita</h6>
                         </div>
-                        <div class="table-responsive">
-                            <table class="table table-sm table-hover align-middle mb-0" style="width:100%;">
+                        <div class="w-100">
+                            <table class="table table-sm table-hover align-middle mb-0 table-fixed">
                                 <thead class="bg-light text-muted text-uppercase" style="font-size: 0.75rem;">
                                     <tr>
                                         <th style="width:30%">Conta</th>
@@ -342,8 +347,8 @@ data_referencia %}
                         <div class="p-3 bg-light border-bottom">
                             <h6 class="mb-0 text-danger"><i class="fas fa-arrow-down me-2"></i>Contas de Despesa</h6>
                         </div>
-                        <div class="table-responsive">
-                            <table class="table table-sm table-hover align-middle mb-0" style="width:100%;">
+                        <div class="w-100">
+                            <table class="table table-sm table-hover align-middle mb-0 table-fixed">
                                 <thead class="bg-light text-muted text-uppercase" style="font-size: 0.75rem;">
                                     <tr>
                                         <th style="width:30%">Conta</th>
@@ -420,8 +425,8 @@ data_referencia %}
             </div>
             <div class="card-body p-0">
                 {% if contas_caixa_detalhadas %}
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0">
+                <div class="w-100">
+                    <table class="table table-hover align-middle mb-0 table-fixed">
                         <thead class="bg-light text-muted text-uppercase small">
                             <tr>
                                 <th class="ps-4">Conta / Banco</th>
@@ -512,8 +517,8 @@ data_referencia %}
                 </h5>
             </div>
             <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0">
+                <div class="w-100">
+                    <table class="table table-hover align-middle mb-0 table-fixed">
                         <thead class="bg-light text-muted text-uppercase small">
                             <tr>
                                 <th class="ps-4">Categoria / Código</th>
@@ -590,8 +595,8 @@ data_referencia %}
             </div>
             <div class="card-body p-0">
                 {% if categorias_entradas %}
-                <div class="table-responsive">
-                    <table class="table table-striped mb-0">
+                <div class="w-100">
+                    <table class="table table-striped mb-0 table-fixed">
                         <thead>
                             <tr>
                                 <th>Categoria</th>
@@ -635,8 +640,8 @@ data_referencia %}
             </div>
             <div class="card-body p-0">
                 {% if categorias_saidas %}
-                <div class="table-responsive">
-                    <table class="table table-striped mb-0">
+                <div class="w-100">
+                    <table class="table table-striped mb-0 table-fixed">
                         <thead>
                             <tr>
                                 <th>Categoria</th>
@@ -711,11 +716,13 @@ data_referencia %}
 <!-- Botões de Ação -->
 <div class="row">
     <div class="col-md-12">
-        <div class="d-flex justify-content-between">
-            <a href="{{ url_for('relatorios') }}" class="btn btn-secondary">
-                <i class="fas fa-arrow-left me-2"></i>Voltar aos Relatórios
-            </a>
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
             <div>
+                <a href="{{ url_for('relatorios') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>Voltar aos Relatórios
+                </a>
+            </div>
+            <div class="d-flex flex-wrap gap-2">
                 <button onclick="window.print()" class="btn btn-primary">
                     <i class="fas fa-print me-2"></i>Imprimir
                 </button>

@@ -90,12 +90,14 @@
                     <th class="modern-checkbox-col">
                         <input type="checkbox" id="select-all" class="modern-checkbox">
                     </th>
+                    <th class="modern-id-col" style="width: 60px;">ID</th>
                     <th class="modern-date-col">Data</th>
                     <th class="modern-data-col">Fornecedor</th>
                     <th class="modern-data-col">Produto/Serviço</th>
                     <th class="modern-data-col">NF</th>
                     <th class="modern-value-col">Valor</th>
                     <th class="modern-status-col">Financeiro</th>
+                    <th class="modern-status-col text-center" style="font-size: 0.8em;">Lançamento(s) Vinculado(s)</th>
                     <th class="modern-actions-col">Ações</th>
                 </tr>
             </thead>
@@ -105,6 +107,9 @@
                 <tr data-compra-id="{{ compra.id }}">
                     <td class="modern-checkbox-col">
                         <input type="checkbox" class="modern-checkbox compra-checkbox" value="{{ compra.id }}">
+                    </td>
+                    <td class="modern-id-col text-muted" style="font-size: 0.85em; font-weight: 500;">
+                        #{{ compra.id }}
                     </td>
                     <td class="modern-date-col">
                         {{ compra.data_prevista.strftime('%d/%m/%y') if compra.data_prevista else '-' }}
@@ -137,6 +142,23 @@
                         <span class="modern-status-badge {{ 'completed' if todas_realizadas else 'pending' }}">
                             {{ realizados }} / {{ total }}
                         </span>
+                    </td>
+                    <td class="modern-status-col text-center">
+                        {% if compra.lancamento_financeiro %}
+                        <a href="{{ url_for('lancamentos', busca=compra.lancamento_financeiro.id) }}"
+                            class="badge bg-light text-dark border" title="Ir para lançamento vinculado"
+                            target="_blank">#{{ compra.lancamento_financeiro.id }}</a>
+                        {% elif compra.lancamentos and compra.lancamentos|length > 0 %}
+                        <div class="d-flex flex-wrap gap-1 justify-content-center">
+                            {% for lanc in compra.lancamentos %}
+                            <a href="{{ url_for('lancamentos', busca=lanc.id) }}"
+                                class="badge bg-light text-dark border" title="Ir para lançamento vinculado"
+                                target="_blank">#{{ lanc.id }}</a>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <span class="text-muted" style="font-size: 0.8em;">-</span>
+                        {% endif %}
                     </td>
                     <td class="modern-actions-col">
                         <button class="modern-action-btn edit" onclick="editarCompra({{ compra.id }})" title="Editar">

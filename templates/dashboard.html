@@ -467,12 +467,63 @@
                     </div>
                     {% endif %}
                 </div>
-                <div class="card-footer bg-transparent" style="border-top:1px solid var(--pf-gray-100); padding: 8px 16px;">
-                    <a href="{{ url_for('lancamentos') }}" class="pf-btn pf-btn-outline pf-btn-sm">
+                <div class="card-footer" style="background-color: #fff; border-top:1px solid var(--pf-gray-100); padding: 12px 16px; position: relative; z-index: 10;">
+                    <a href="{{ url_for('lancamentos') }}" class="pf-btn pf-btn-outline pf-btn-sm w-100 justify-content-center">
                         <i class="fas fa-external-link-alt"></i> Ver todos em Lançamentos
                     </a>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- ======== SALDOS POR CONTA-CAIXA ======== -->
+    <div class="pf-section-title mb-3">Saldos por Conta-Caixa</div>
+    <div class="pf-card mb-4" style="overflow: hidden;">
+        <div class="pf-card-header-primary">
+            <h6 class="mb-0"><i class="fas fa-wallet me-2"></i>Saldos Consolidados (Apenas Realizados)</h6>
+        </div>
+        <div class="card-body p-0">
+            {% if contas_caixa_resumo %}
+            <table class="pf-table mb-0">
+                <thead>
+                    <tr>
+                        <th style="width: 50%;">Conta / Banco</th>
+                        <th style="width: 25%;">Tipo</th>
+                        <th style="width: 25%; text-align: right;">Saldo Disponível</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for conta in contas_caixa_resumo %}
+                    <tr>
+                        <td>
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="pf-kpi-icon info" style="width: 32px; height: 32px; font-size: 0.8rem;">
+                                    <i class="fas fa-university"></i>
+                                </div>
+                                <div>
+                                    <div class="fw-bold text-dark">{{ conta.nome }}</div>
+                                    <div class="small text-muted" style="font-size: 0.75rem;">{{ conta.banco or 'Não informado' }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="pf-badge pf-badge-info" style="font-size: 0.75rem;">{{ conta.tipo|replace('_', ' ')|title }}</span>
+                        </td>
+                        <td class="text-end">
+                            <span class="pf-money fs-6 {{ 'pf-money-pos' if conta.saldo >= 0 else 'pf-money-neg' }}">
+                                R$ {{ "%.2f"|format(conta.saldo) }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="text-center py-5" style="color: var(--pf-gray-400);">
+                <i class="fas fa-wallet fa-2x mb-2 d-block"></i>
+                <span style="font-size:0.85rem;">Nenhuma conta-caixa encontrada.</span>
+            </div>
+            {% endif %}
         </div>
     </div>
 

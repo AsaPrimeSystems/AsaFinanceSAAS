@@ -14,14 +14,20 @@
                         Editar Venda
                         <span class="badge bg-success ms-2">ID: {{ venda.id }}</span>
                     </span>
-                    {% if lancamentos_vinculados_ids and lancamentos_vinculados_ids|length > 0 %}
-                    <span class="badge bg-primary">
-                        <i class="fas fa-link me-1"></i>Lançamentos Vinculados:
-                        {% for lanc_id in lancamentos_vinculados_ids %}
-                        {{ lanc_id }}{% if not loop.last %}, {% endif %}
-                        {% endfor %}
-                    </span>
-                    {% endif %}
+                    <div class="d-flex align-items-center gap-2 mt-2 mt-md-0">
+                        <a href="{{ url_for('gerar_os_pdf', venda_id=venda.id) }}" target="_blank"
+                            class="btn btn-sm btn-outline-primary" title="Gerar Ordem de Serviço em PDF">
+                            <i class="fas fa-file-pdf me-1"></i> Baixar O.S.
+                        </a>
+                        {% if lancamentos_vinculados_ids and lancamentos_vinculados_ids|length > 0 %}
+                        <span class="badge bg-primary">
+                            <i class="fas fa-link me-1"></i>Lançamentos Vinculados:
+                            {% for lanc_id in lancamentos_vinculados_ids %}
+                            {{ lanc_id }}{% if not loop.last %}, {% endif %}
+                            {% endfor %}
+                        </span>
+                        {% endif %}
+                    </div>
                 </h5>
             </div>
             <div class="card-body">
@@ -506,8 +512,9 @@
         // Dados da venda existente para preencher o carrinho
         var vendaData = {
             produto: '{{ venda.produto|e }}',
-            valor: {{ venda.valor }},
-            quantidade: {{ venda.quantidade or 1 }},
+            valor: {{ venda.valor }
+    },
+        quantidade: {{ venda.quantidade or 1 }},
         tipo_venda: '{{ venda.tipo_venda }}',
         desconto: {{ venda.desconto or 0.0 }},
         valor_final: {{ venda.valor_final or venda.valor }}

@@ -90,12 +90,14 @@
                     <th class="modern-checkbox-col">
                         <input type="checkbox" id="select-all" class="modern-checkbox">
                     </th>
+                    <th class="modern-id-col" style="width: 60px;">ID</th>
                     <th class="modern-date-col">Data</th>
                     <th class="modern-data-col">Cliente</th>
                     <th class="modern-data-col">Produto/Serviço</th>
                     <th class="modern-data-col">NF</th>
                     <th class="modern-value-col">Valor</th>
                     <th class="modern-status-col">Financeiro</th>
+                    <th class="modern-status-col text-center" style="font-size: 0.8em;">Lançamento(s) Vinculado(s)</th>
                     <th class="modern-actions-col">Ações</th>
                 </tr>
             </thead>
@@ -105,6 +107,9 @@
                 <tr data-venda-id="{{ venda.id }}">
                     <td class="modern-checkbox-col">
                         <input type="checkbox" class="modern-checkbox venda-checkbox" value="{{ venda.id }}">
+                    </td>
+                    <td class="modern-id-col text-muted" style="font-size: 0.85em; font-weight: 500;">
+                        #{{ venda.id }}
                     </td>
                     <td class="modern-date-col">
                         {{ venda.data_prevista.strftime('%d/%m/%y') if venda.data_prevista else '-' }}
@@ -133,11 +138,33 @@
                             {{ realizados }} / {{ total }}
                         </span>
                     </td>
+                    <td class="modern-status-col text-center">
+                        {% if venda.lancamento_financeiro %}
+                        <a href="{{ url_for('lancamentos', busca=venda.lancamento_financeiro.id) }}"
+                            class="badge bg-light text-dark border" title="Ir para lançamento vinculado"
+                            target="_blank">#{{ venda.lancamento_financeiro.id }}</a>
+                        {% elif venda.lancamentos and venda.lancamentos|length > 0 %}
+                        <div class="d-flex flex-wrap gap-1 justify-content-center">
+                            {% for lanc in venda.lancamentos %}
+                            <a href="{{ url_for('lancamentos', busca=lanc.id) }}"
+                                class="badge bg-light text-dark border" title="Ir para lançamento vinculado"
+                                target="_blank">#{{ lanc.id }}</a>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <span class="text-muted" style="font-size: 0.8em;">-</span>
+                        {% endif %}
+                    </td>
                     <td class="modern-actions-col">
-                        <button class="modern-action-btn edit" onclick="editarVenda({{ venda.id }})" title="Editar">
+                        <button class="modern-action-btn" style="color: #0d6efd;" onclick="gerarOS('{{ venda.id }}')"
+                            title="Gerar Ordem de Serviço (PDF)">
+                            <i class="fas fa-file-pdf"></i>
+                        </button>
+                        <button class="modern-action-btn edit" onclick="editarVenda('{{ venda.id }}')" title="Editar">
                             <i class="fas fa-edit"></i>
                         </button>
-                        <button class="modern-action-btn delete" onclick="excluirVenda({{ venda.id }})" title="Excluir">
+                        <button class="modern-action-btn delete" onclick="excluirVenda('{{ venda.id }}')"
+                            title="Excluir">
                             <i class="fas fa-trash"></i>
                         </button>
                     </td>
@@ -394,6 +421,10 @@
     });
 
     // Funções de ação
+    function gerarOS(id) {
+        window.open(`/venda/${id}/pdf_os`, '_blank');
+    }
+
     function editarVenda(id) {
         window.location.href = `/vendas/${id}/editar`;
     }

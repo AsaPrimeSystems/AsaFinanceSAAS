@@ -4310,6 +4310,7 @@ table.table-striped tbody tr:nth-child(odd) td:last-child {
     max-width: 100% !important;
     display: flex !important;
     flex-direction: column !important;
+    flex-wrap: nowrap !important;
     min-height: 0 !important;
     box-sizing: border-box !important;
 }
@@ -5736,5 +5737,33 @@ html {
     .modern-totals {
         flex-direction: column !important;
         gap: 16px !important;
+    }
+}
+
+/* ===== FIX: CONCILIAÇÃO BANCÁRIA GRID LAYOUT =====
+   The generic .conteudo-row .row rule was removing Bootstrap's negative margins
+   (used for gutter alignment), pushing the OFX panel grid off-screen to x~1973px.
+   This block restores proper Bootstrap grid behavior for the side-by-side panels. */
+.conteudo-row .row.g-4 {
+    margin-left: calc(-0.5 * var(--bs-gutter-x, 1.5rem)) !important;
+    margin-right: calc(-0.5 * var(--bs-gutter-x, 1.5rem)) !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+}
+
+/* Restore proper column widths — do NOT force 100% on OFX panel columns */
+.conteudo-row .row.g-4>.col-lg-6 {
+    max-width: 50% !important;
+    flex: 0 0 50% !important;
+    padding-left: calc(0.5 * var(--bs-gutter-x, 1.5rem)) !important;
+    padding-right: calc(0.5 * var(--bs-gutter-x, 1.5rem)) !important;
+}
+
+@media (max-width: 991px) {
+
+    /* On small screens, stack columns full width */
+    .conteudo-row .row.g-4>.col-lg-6 {
+        max-width: 100% !important;
+        flex: 0 0 100% !important;
     }
 }

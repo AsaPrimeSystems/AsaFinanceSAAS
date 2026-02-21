@@ -31,9 +31,9 @@
             justify-content: center;
             gap: 0;
             padding: 4px 9px;
-            background: rgba(255,255,255,0.15);
+            background: rgba(255, 255, 255, 0.15);
             border-radius: 7px;
-            border: 1px solid rgba(255,255,255,0.3);
+            border: 1px solid rgba(255, 255, 255, 0.3);
             min-width: 70px;
             max-height: 44px;
             text-align: center;
@@ -47,7 +47,7 @@
             gap: 3px;
             font-weight: 700;
             font-size: 0.58rem;
-            color: rgba(255,255,255,0.85);
+            color: rgba(255, 255, 255, 0.85);
             white-space: nowrap;
             text-transform: uppercase;
             letter-spacing: 0.2px;
@@ -79,7 +79,7 @@
         }
 
         .subscription-text {
-            color: rgba(255,255,255,0.65);
+            color: rgba(255, 255, 255, 0.65);
             font-size: 0.48rem;
             font-weight: 600;
             text-transform: uppercase;
@@ -173,14 +173,19 @@
                     {% if session.get('tipo_conta') and session.get('tipo_conta') != 'admin' and
                     session.get('dias_assinatura') is not none %}
                     <div style="display:flex;align-items:center;margin-left:10px;">
-                        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:4px 10px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.35);border-radius:7px;min-width:72px;max-height:44px;text-align:center;overflow:hidden;gap:0;">
-                            <div style="display:flex;align-items:center;gap:3px;font-weight:700;font-size:0.58rem;color:rgba(255,255,255,0.9);text-transform:uppercase;letter-spacing:0.2px;line-height:1;margin-bottom:1px;white-space:nowrap;">
+                        <div
+                            style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:4px 10px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.35);border-radius:7px;min-width:72px;max-height:44px;text-align:center;overflow:hidden;gap:0;">
+                            <div
+                                style="display:flex;align-items:center;gap:3px;font-weight:700;font-size:0.58rem;color:rgba(255,255,255,0.9);text-transform:uppercase;letter-spacing:0.2px;line-height:1;margin-bottom:1px;white-space:nowrap;">
                                 <i class="fas fa-crown" style="color:#ffd700;font-size:0.52rem;"></i>
                                 <span>Plano {{ (session.get('plano_nome') or 'Básico').split()[0] }}</span>
                             </div>
                             <div style="display:flex;flex-direction:column;align-items:center;line-height:1;">
-                                <span style="font-weight:900;font-size:1.15rem;color:#fff;line-height:1;">{{ session.get('dias_assinatura', 0) }}</span>
-                                <span style="color:rgba(255,255,255,0.65);font-size:0.48rem;font-weight:600;text-transform:uppercase;letter-spacing:0.2px;line-height:1;margin-top:1px;">dias restantes</span>
+                                <span style="font-weight:900;font-size:1.15rem;color:#fff;line-height:1;">{{
+                                    session.get('dias_assinatura', 0) }}</span>
+                                <span
+                                    style="color:rgba(255,255,255,0.65);font-size:0.48rem;font-weight:600;text-transform:uppercase;letter-spacing:0.2px;line-height:1;margin-top:1px;">dias
+                                    restantes</span>
                             </div>
                         </div>
                     </div>
@@ -328,6 +333,12 @@
                         </a>
                     </li>
                     <li role="presentation">
+                        <a class="link-menu" href="{{ url_for('conciliacao') }}">
+                            <span class="icon fa fa-handshake"></span>
+                            <span class="aux-js">Conciliação Bancária</span>
+                        </a>
+                    </li>
+                    <li role="presentation">
                         <a class="link-menu" href="{{ url_for('plano_contas') }}">
                             <span class="icon fa fa-sitemap"></span>
                             <span class="aux-js">Plano de Contas</span>
@@ -379,7 +390,8 @@
                     </li>
                     {% if session.get('acesso_contador') %}
                     <li role="presentation">
-                        <a class="link-menu" href="{{ url_for('dashboard_contador') }}" style="border-left-color: #ffc107 !important;">
+                        <a class="link-menu" href="{{ url_for('dashboard_contador') }}"
+                            style="border-left-color: #ffc107 !important;">
                             <span class="icon fa fa-arrow-left" style="color: #ffc107 !important;"></span>
                             <span class="aux-js">Painel Contador/BPO</span>
                         </a>

@@ -210,6 +210,7 @@
                     <th class="modern-checkbox-col">
                         <input type="checkbox" id="select-all" class="modern-checkbox">
                     </th>
+                    <th class="modern-id-col" style="width: 60px;">ID</th>
                     <th class="modern-date-col">Vencimento</th>
                     <th class="modern-date-col">Data Realizada</th>
                     <th class="modern-data-col">Descrição</th>
@@ -218,6 +219,8 @@
                     <th class="modern-data-col">NF</th>
                     <th class="modern-value-col">Valor</th>
                     <th class="modern-status-col">Status</th>
+                    <th class="modern-status-col text-center" style="font-size: 0.8em;"
+                        title="Venda ou Compra Vinculada">Origem</th>
                     <th class="modern-data-col">Cliente/Fornecedor</th>
                     <th class="modern-data-col">Usuário</th>
                     <th class="modern-actions-col">Ações</th>
@@ -226,9 +229,13 @@
             <tbody>
                 {% if lancamentos %}
                 {% for lancamento in lancamentos %}
-                <tr data-lancamento-id="{{ lancamento.id }}" class="{{ 'transferencia-row' if lancamento.eh_transferencia else '' }}">
+                <tr data-lancamento-id="{{ lancamento.id }}"
+                    class="{{ 'transferencia-row' if lancamento.eh_transferencia else '' }}">
                     <td class="modern-checkbox-col">
                         <input type="checkbox" class="modern-checkbox lancamento-checkbox" value="{{ lancamento.id }}">
+                    </td>
+                    <td class="modern-id-col text-muted" style="font-size: 0.85em; font-weight: 500;">
+                        #{{ lancamento.id }}
                     </td>
                     <td class="modern-date-col">
                         {{ lancamento.data_prevista.strftime('%d/%m/%y') if lancamento.data_prevista else '-' }}
@@ -265,6 +272,19 @@
                             {% else %}
                             <span class="modern-status-badge pending">A vencer</span>
                             {% endif %}
+                    </td>
+                    <td class="modern-status-col text-center">
+                        {% if lancamento.venda_id %}
+                        <a href="{{ url_for('editar_venda', venda_id=lancamento.venda_id) }}"
+                            class="badge bg-light text-dark border border-success" title="Ir para venda vinculada">Venda
+                            #{{ lancamento.venda_id }}</a>
+                        {% elif lancamento.compra_id %}
+                        <a href="{{ url_for('editar_compra', compra_id=lancamento.compra_id) }}"
+                            class="badge bg-light text-dark border border-danger"
+                            title="Ir para compra vinculada">Compra #{{ lancamento.compra_id }}</a>
+                        {% else %}
+                        <span class="text-muted" style="font-size: 0.8em;">-</span>
+                        {% endif %}
                     </td>
                     <td class="modern-data-col">
                         {% if lancamento.cliente %}
@@ -378,25 +398,26 @@
     /* Destaque suave para lançamentos de transferência entre contas */
     tr.transferencia-row {
         background: linear-gradient(to right,
-            rgba(13, 110, 253, 0.03) 0%,
-            rgba(13, 110, 253, 0.05) 50%,
-            rgba(13, 110, 253, 0.03) 100%) !important;
+                rgba(13, 110, 253, 0.03) 0%,
+                rgba(13, 110, 253, 0.05) 50%,
+                rgba(13, 110, 253, 0.03) 100%) !important;
         border-left: 3px solid rgba(13, 110, 253, 0.4) !important;
         transition: all 0.2s ease;
     }
 
     tr.transferencia-row:hover {
         background: linear-gradient(to right,
-            rgba(13, 110, 253, 0.06) 0%,
-            rgba(13, 110, 253, 0.08) 50%,
-            rgba(13, 110, 253, 0.06) 100%) !important;
+                rgba(13, 110, 253, 0.06) 0%,
+                rgba(13, 110, 253, 0.08) 50%,
+                rgba(13, 110, 253, 0.06) 100%) !important;
         border-left-color: rgba(13, 110, 253, 0.6) !important;
         box-shadow: 0 2px 8px rgba(13, 110, 253, 0.12);
     }
 
     /* Ícone de transferência opcional */
     tr.transferencia-row td.modern-data-col:first-of-type::before {
-        content: '\f0ec'; /* Font Awesome exchange-alt icon */
+        content: '\f0ec';
+        /* Font Awesome exchange-alt icon */
         font-family: 'Font Awesome 5 Free';
         font-weight: 900;
         color: rgba(13, 110, 253, 0.5);

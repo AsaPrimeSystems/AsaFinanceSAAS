@@ -26,6 +26,10 @@ from io import BytesIO
 import hashlib
 import json
 from decimal import Decimal
+try:
+    from ofxparse import OfxParser
+except ImportError:
+    OfxParser = None
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 import atexit
@@ -569,6 +573,56 @@ class Fornecedor(db.Model):
 
     # Relacionamentos
     lancamentos = db.relationship('Lancamento', backref='fornecedor', lazy=True)
+
+class ConciliacaoRegra(db.Model):
+    """
+    Stores per-empresa OFX reconciliation memory rules.
+    When a user assigns a category/client/supplier to an OFX transaction,
+    a rule is saved so future transactions with similar memos are pre-filled.
+    Scoped strictly to empresa_id — no cross-company data sharing.
+    """
+    __tablename__ = 'conciliacao_regra'
+    id = db.Column(db.Integer, primary_key=True)
+    empresa_id = db.Column(db.Integer, db.ForeignKey('empresa.id'), nullable=False, index=True)
+    # Keywords extracted from OFX memo (lowercase, comma-separated)
+    memo_keywords = db.Column(db.Text, nullable=False)
+    # The original memo text (for display / debugging)
+    memo_original = db.Column(db.String(500))
+    # What to pre-fill in the modal
+    tipo = db.Column(db.String(10), nullable=False)  # 'entrada' or 'saida'
+    categoria_id = db.Column(db.Integer, db.ForeignKey('plano_conta.id'), nullable=True)
+    cliente_id = db.Column(db.Integer, db.ForeignKey('cliente.id'), nullable=True)
+    fornecedor_id = db.Column(db.Integer, db.ForeignKey('fornecedor.id'), nullable=True)
+    # Usage tracking
+    uso_count = db.Column(db.Integer, default=1)
+    ultimo_uso = db.Column(db.DateTime, default=datetime.utcnow)
+    criado_em = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def get_keywords_set(self):
+        """Return keywords as a Python set."""
+        return set(k.strip() for k in self.memo_keywords.split(',') if k.strip())
+
+    def score_match(self, memo_text):
+        """Score how well this rule matches a given OFX memo. Returns 0-100."""
+        if not memo_text:
+            return 0
+        memo_words = set(w.lower() for w in memo_text.split() if len(w) > 3)
+        rule_words = self.get_keywords_set()
+        if not rule_words:
+            return 0
+        common = memo_words & rule_words
+        if not common:
+            return 0
+        return int(100 * len(common) / max(len(memo_words), len(rule_words)))
+
+    @staticmethod
+    def keywords_from_memo(memo_text):
+        """Extract meaningful keywords from an OFX memo string."""
+        if not memo_text:
+            return ''
+        words = [w.lower() for w in memo_text.split() if len(w) > 3]
+        return ','.join(words[:10])  # store up to 10 keywords
+
 
 class Produto(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -1507,6 +1561,84 @@ def atualizar_ultimo_acesso():
             app.logger.error(f"Erro ao atualizar último acesso: {str(e)}")
             pass
 
+@app.before_request
+def check_subscription_status():
+    """Verifica se a conta do usuário está com os dias esgotados (pausada).
+    Se estiver, força o redirecionamento para a página de assinatura bloqueada.
+    """
+    if 'usuario_id' in session and session.get('tipo_conta') != 'admin':
+        # Rotas ignoradas do bloqueio (estáticas, de saída e a própria página de bloqueio/renovação)
+        endpoint = request.endpoint
+        if not endpoint or endpoint.startswith('static') or endpoint in ('login', 'logout', 'assinatura_suspensa', 'gateway_webhook', 'registro'):
+            return
+            
+        empresa_id = session.get('empresa_id')
+        if empresa_id:
+            empresa = db.session.get(Empresa, empresa_id)
+            if empresa and empresa.dias_assinatura is not None and empresa.dias_assinatura <= 0:
+                return redirect(url_for('assinatura_suspensa'))
+
+@app.route('/assinatura_suspensa')
+def assinatura_suspensa():
+    if 'usuario_id' not in session:
+        return redirect(url_for('login'))
+        
+    usuario = db.session.get(Usuario, session['usuario_id'])
+    if not usuario:
+        return redirect(url_for('login'))
+        
+    empresa = db.session.get(Empresa, session['empresa_id'])
+    
+    # Se os dias voltaram a ficar > 0, manda pro dashboard de volta
+    if empresa and empresa.dias_assinatura > 0:
+        return redirect(url_for('dashboard'))
+        
+    return render_template('assinatura_suspensa.html', empresa=empresa)
+
+@app.route('/api/webhooks/gateway_pagamento', methods=['POST'])
+def gateway_webhook():
+    """
+    Simulação (Mock) de um Webhook do Gateway de Pagamentos.
+    Este endpoint representa a comunicação do sistema transacional informando 
+    que um pacote de dias/plano foi pago.
+    Payload esperado (JSON):
+    {
+       "empresa_id": 1,
+       "status": "paid",
+       "dias_creditados": 30
+    }
+    """
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'success': False, 'message': 'Invalid JSON'}), 400
+            
+        empresa_id = data.get('empresa_id')
+        status = data.get('status')
+        dias_creditados = int(data.get('dias_creditados', 0))
+        
+        if not empresa_id or status != 'paid' or dias_creditados <= 0:
+            return jsonify({'success': False, 'message': 'Invalid parameter data'}), 400
+            
+        empresa = db.session.get(Empresa, empresa_id)
+        if not empresa:
+            return jsonify({'success': False, 'message': 'Empresa not found'}), 404
+            
+        # Adicionar dias e reativar conta
+        dias_atuais = empresa.dias_assinatura if empresa.dias_assinatura else 0
+        empresa.dias_assinatura = dias_atuais + dias_creditados
+        empresa.data_inicio_assinatura = datetime.utcnow() # Resetar contador de cobrança diária
+        empresa.ativo = True # Despausar caso tenha sido pausada manualmente ou sistemicamente
+        
+        db.session.commit()
+        app.logger.info(f"✅ Webhook (Mock): {dias_creditados} dias creditados para '{empresa.razao_social}'. Conta Desbloqueada/Reativada!")
+        
+        return jsonify({'success': True, 'dias_atuais': empresa.dias_assinatura, 'message': 'Account reactivated successfully'}), 200
+        
+    except Exception as e:
+        app.logger.error(f"Erro no webhook mock: {str(e)}")
+        return jsonify({'success': False, 'message': 'Internal Error'}), 500
+
 @app.route('/registro', methods=['GET', 'POST'])
 def registro():
     if request.method == 'POST':
@@ -2149,6 +2281,38 @@ def dashboard():
                 'total_saida_pendente': total_pagar_vinculada
             })
     
+    # Calcular saldo por ContaCaixa
+    contas_caixa_resumo = []
+    
+    # Obter todas as contas caixa ativas da empresa
+    contas_caixa = ContaCaixa.query.filter_by(
+        ativo=True,
+    ).join(Usuario).filter(Usuario.empresa_id == empresa_id_correta).all()
+    
+    # Para cada conta, calcular o saldo considerando apenas os lançamentos realizados
+    # Para manter coerência com o saldo do banco, precisamos considerar TODOS os lançamentos
+    # realizados *até* o 'fim_periodo' (ou seja, saldo_inicial + (entradas até fim_periodo) - (saídas até fim_periodo))
+    for conta in contas_caixa:
+        lancamentos_conta = Lancamento.query.filter(
+            Lancamento.conta_caixa_id == conta.id,
+            Lancamento.realizado == True,
+            Lancamento.data_realizada <= fim_periodo, # Só considera o que foi realizado até o fim do período filtrado
+            db.or_(Lancamento.eh_transferencia == False, Lancamento.eh_transferencia.is_(None))
+        ).all()
+        
+        entradas_conta = sum(l.valor for l in lancamentos_conta if l.tipo == 'entrada')
+        saidas_conta = sum(l.valor for l in lancamentos_conta if l.tipo == 'saida')
+        
+        saldo_conta = conta.saldo_inicial + entradas_conta - saidas_conta
+        
+        contas_caixa_resumo.append({
+            'id': conta.id,
+            'nome': conta.nome,
+            'tipo': conta.tipo,
+            'banco': conta.banco,
+            'saldo': saldo_conta
+        })
+        
     # Variáveis para os filtros
     anos_disponiveis = list(range(datetime.now().year - 5, datetime.now().year + 2))
     meses = [
@@ -2187,6 +2351,7 @@ def dashboard():
                          total_agendado=total_agendado,
                          todas_contas_entrada=todas_contas_entrada,
                          todas_contas_saida=todas_contas_saida,
+                         contas_caixa_resumo=contas_caixa_resumo,
                          hoje=hoje)
 
 @app.route('/admin/dashboard')
@@ -2836,6 +3001,383 @@ def excluir_lancamentos_lote():
         return jsonify({'success': False, 'message': f'Erro ao excluir: {str(e)}'}), 500
 
 # Rota removida - duplicada. Ver linha 11611 para a implementação completa
+
+@app.route('/conciliacao', methods=['GET', 'POST'])
+def conciliacao():
+    valido, session_user, tipo_usuario = validar_sessao_ativa()
+    if not valido:
+        return redirect(url_for('login'))
+
+    empresa_id = obter_empresa_id_sessao(session, session_user)
+    transactions = []
+
+    if request.method == 'POST':
+        if 'arquivo_ofx' not in request.files:
+            flash('Nenhum arquivo enviado.', 'error')
+            return redirect(request.url)
+            
+        file = request.files['arquivo_ofx']
+        if file.filename == '':
+            flash('Nenhum arquivo selecionado.', 'error')
+            return redirect(request.url)
+            
+        if not file.filename.lower().endswith('.ofx'):
+            flash('Por favor, envie um arquivo no formato .ofx', 'error')
+            return redirect(request.url)
+            
+        if OfxParser is None:
+            flash('Erro no sistema: biblioteca ofxparse não está instalada.', 'error')
+            return redirect(request.url)
+
+        try:
+            # Parse OFX file
+            ofx = OfxParser.parse(file)
+            account = ofx.account
+            statement = account.statement
+            
+            # ===== EXTRAIR INFO DA CONTA BANCÁRIA DO OFX =====
+            ofx_account_info = None
+            conta_caixa_detectada = None
+            try:
+                ofx_account_num = str(getattr(account, 'account_id', '') or '').strip()
+                ofx_banco = str(getattr(getattr(account, 'institution', None), 'fid', '') or '').strip()
+                ofx_agencia = str(getattr(account, 'branch_id', '') or '').strip()
+                
+                if ofx_account_num or ofx_banco:
+                    ofx_account_info = {
+                        'conta': ofx_account_num,
+                        'banco': ofx_banco or 'N/D',
+                        'agencia': ofx_agencia or 'N/D'
+                    }
+                    # Try to auto-match with a ContaCaixa from this empresa
+                    _uids_det = [u.id for u in Usuario.query.filter_by(empresa_id=empresa_id).all()]
+                    contas_todas = ContaCaixa.query.filter(
+                        ContaCaixa.usuario_id.in_(_uids_det), ContaCaixa.ativo == True
+                    ).all()
+                    for cc in contas_todas:
+                        cc_conta = str(cc.conta or '').strip().replace('-', '').replace('.', '')
+                        ofx_num_clean = ofx_account_num.replace('-', '').replace('.', '')
+                        if ofx_num_clean and cc_conta and ofx_num_clean in cc_conta or cc_conta in ofx_num_clean:
+                            conta_caixa_detectada = cc
+                            break
+            except Exception as det_err:
+                app.logger.warning(f'[OFX] Falha ao detectar conta bancária: {det_err}')
+            
+            # Conta selecionada pelo usuário no formulário (tem precedência sobre auto-detecção)
+            conta_caixa_id_selecionada = request.form.get('conta_caixa_id', type=int)
+            conta_caixa_selecionada = None
+            if conta_caixa_id_selecionada:
+                conta_caixa_selecionada = ContaCaixa.query.filter_by(
+                    id=conta_caixa_id_selecionada
+                ).first()
+            # Use selected if available, else detected
+            conta_caixa_ativa = conta_caixa_selecionada or conta_caixa_detectada
+            
+            # Definir range de datas baseado no OFX
+            dates = []
+            for tx in statement.transactions:
+                dt = tx.date.date() if hasattr(tx.date, 'date') else tx.date
+                if isinstance(dt, datetime):
+                    dt = dt.date()
+                dates.append(dt)
+                
+            if dates:
+                min_date = min(dates) - timedelta(days=10)
+                max_date = max(dates) + timedelta(days=10)
+            else:
+                hoje = datetime.utcnow().date()
+                min_date = hoje - timedelta(days=30)
+                max_date = hoje + timedelta(days=30)
+            
+            # Buscar todos os lançamentos da empresa nesse período
+            system_transactions = Lancamento.query.filter(
+                Lancamento.empresa_id == empresa_id,
+                Lancamento.data_prevista >= min_date,
+                Lancamento.data_prevista <= max_date
+            ).order_by(Lancamento.data_prevista).all()
+            
+            # Listas para matching (priorizar os não realizados)
+            disponiveis = [l for l in system_transactions if not l.realizado]
+            disponiveis_realizados = [l for l in system_transactions if l.realizado]
+            
+            ofx_transactions = []
+            
+            def _score_match(tx, lanc):
+                """
+                Score a potencial match between an OFX transaction and a system lancamento.
+                Returns a score >= 0. Higher is better. Returns -1 if mandatory criteria fail.
+                """
+                tx_amount = float(tx.amount)
+                tx_abs_amount = abs(tx_amount)
+                
+                # Mandatory: same type (entrada/saída)
+                if tx_amount >= 0 and lanc.tipo != 'entrada':
+                    return -1
+                if tx_amount < 0 and lanc.tipo != 'saida':
+                    return -1
+                
+                # Mandatory: value must match within 1% or R$0.05 tolerance
+                if abs(float(lanc.valor) - tx_abs_amount) > max(0.05, tx_abs_amount * 0.01):
+                    return -1
+                
+                # Score: date proximity (within 15 days)
+                data_banco = tx.date.date() if hasattr(tx.date, 'date') else tx.date
+                if isinstance(data_banco, datetime):
+                    data_banco = data_banco.date()
+                
+                # Compare against data_prevista and data_realizada (if exists)
+                dates_to_check = [lanc.data_prevista]
+                if hasattr(lanc, 'data_realizada') and lanc.data_realizada:
+                    dates_to_check.append(lanc.data_realizada)
+                
+                min_diff_dias = min(abs((d - data_banco).days) for d in dates_to_check)
+                
+                if min_diff_dias > 15:
+                    return -1  # Too far apart in time
+                
+                # Date score: closer = better (max 40 points)
+                date_score = max(0, 40 - min_diff_dias * 2)
+                
+                # Score: description/memo similarity (max 30 points)
+                desc_score = 0
+                try:
+                    memo_words = set(w.lower() for w in tx.memo.split() if len(w) > 3)
+                    desc_words = set(w.lower() for w in lanc.descricao.split() if len(w) > 3)
+                    if memo_words and desc_words:
+                        common = memo_words & desc_words
+                        desc_score = int(30 * len(common) / max(len(memo_words), len(desc_words)))
+                except Exception:
+                    pass
+                
+                # Base value match score: 30 points
+                value_diff = abs(float(lanc.valor) - tx_abs_amount)
+                value_score = max(0, 30 - int(value_diff * 100))
+                
+                return date_score + desc_score + value_score
+            
+            for tx in statement.transactions:
+                best_match = None
+                best_score = -1
+                best_is_realizado = False
+                
+                # Check pendings first (priority), then realizados
+                for candidate_list, is_realizado in [(disponiveis, False), (disponiveis_realizados, True)]:
+                    for lanc in candidate_list:
+                        score = _score_match(tx, lanc)
+                        if score > best_score:
+                            best_score = score
+                            best_match = lanc
+                            best_is_realizado = is_realizado
+                    
+                    # If we found a good match in pendings, don't bother checking realizados
+                    if best_score >= 30:
+                        break
+                
+                ofx_item = {'tx': tx, 'match': best_match, 'score': best_score, 'regra': None}
+                ofx_transactions.append(ofx_item)
+                
+                if best_match:
+                    # Inject OFX match info onto lancamento for use in right panel template
+                    best_match.ofx_match = tx
+                    best_match.ofx_score = best_score
+                    if not best_is_realizado and best_match in disponiveis:
+                        disponiveis.remove(best_match)
+                    elif best_is_realizado and best_match in disponiveis_realizados:
+                        disponiveis_realizados.remove(best_match)
+            
+            # ===== CARREGAR REGRAS DE CONCILIAÇÃO (Memória por Empresa) =====
+            # Load saved rules for this empresa and attach best match to each unmatched OFX transaction
+            try:
+                regras_empresa = ConciliacaoRegra.query.filter_by(empresa_id=empresa_id).all()
+                if regras_empresa:
+                    for ofx_item in ofx_transactions:
+                        if ofx_item['match'] is None:  # Only for unmatched transactions
+                            tx = ofx_item['tx']
+                            best_regra = None
+                            best_regra_score = 0
+                            for regra in regras_empresa:
+                                s = regra.score_match(tx.memo)
+                                if s > best_regra_score:
+                                    best_regra_score = s
+                                    best_regra = regra
+                            if best_regra and best_regra_score >= 30:  # 30% keyword overlap minimum
+                                ofx_item['regra'] = best_regra
+            except Exception as regra_err:
+                app.logger.error(f'[OFX] Erro ao carregar regras de conciliação: {str(regra_err)}')
+
+            matched_count = sum(1 for item in ofx_transactions if item['match'] is not None)
+            flash(f'Arquivo OFX processado: {len(ofx_transactions)} transações — {matched_count} já conciliadas, {len(ofx_transactions) - matched_count} pendentes.', 'success')
+            
+            # Fetch data for the modal dropdowns — fallback to empty if queries fail
+            categorias, clientes, fornecedores = [], [], []
+            try:
+                categorias = PlanoConta.query.filter_by(empresa_id=empresa_id, ativo=True, natureza='analitica').order_by(PlanoConta.nome).all()
+                clientes = Cliente.query.filter_by(empresa_id=empresa_id).order_by(Cliente.nome).all()
+                fornecedores = Fornecedor.query.filter_by(empresa_id=empresa_id).order_by(Fornecedor.nome).all()
+            except Exception as modal_err:
+                app.logger.error(f'Erro ao buscar dados do modal OFX (não crítico): {str(modal_err)}')
+            
+            return render_template('conciliacao.html',
+                                  ofx_transactions=ofx_transactions,
+                                  system_transactions=system_transactions,
+                                  categorias=categorias,
+                                  clientes=clientes,
+                                  fornecedores=fornecedores,
+                                  contas_caixa=ContaCaixa.query.filter(
+                                      ContaCaixa.usuario_id.in_([u.id for u in Usuario.query.filter_by(empresa_id=empresa_id).all()]),
+                                      ContaCaixa.ativo == True
+                                  ).order_by(ContaCaixa.nome).all(),
+                                  conta_caixa_detectada=conta_caixa_detectada,
+                                  conta_caixa_selecionada_id=conta_caixa_id_selecionada,
+                                  conta_caixa_ativa=conta_caixa_ativa,
+                                  ofx_account_info=ofx_account_info)
+            
+        except Exception as e:
+            import traceback
+            app.logger.error(f'Erro ao processar OFX: {str(e)}\n{traceback.format_exc()}')
+            flash(f'Erro ao ler arquivo OFX: {str(e)}', 'error')
+
+    # GET request: load contas_caixa for the form dropdown
+    contas_caixa_get = []
+    try:
+        valido_get, session_user_get, _ = validar_sessao_ativa()
+        if valido_get:
+            empresa_id_get = obter_empresa_id_sessao(session, session_user_get)
+            if empresa_id_get:
+                uids_get = [u.id for u in Usuario.query.filter_by(empresa_id=empresa_id_get).all()]
+                contas_caixa_get = ContaCaixa.query.filter(
+                    ContaCaixa.usuario_id.in_(uids_get), ContaCaixa.ativo == True
+                ).order_by(ContaCaixa.nome).all()
+    except Exception:
+        pass
+    return render_template('conciliacao.html', ofx_transactions=None, system_transactions=[],
+                           contas_caixa=contas_caixa_get, conta_caixa_detectada=None,
+                           conta_caixa_selecionada_id=None, conta_caixa_ativa=None, ofx_account_info=None)
+
+@app.route('/conciliacao/gerar_lancamento', methods=['POST'])
+def conciliar_gerar_lancamento():
+    valido, session_user, _ = validar_sessao_ativa()
+    if not valido:
+        return jsonify({'success': False, 'message': 'Sessão inválida'}), 401
+
+    empresa_id = obter_empresa_id_sessao(session, session_user)
+    
+    try:
+        data = request.get_json()
+        descricao = data.get('descricao')
+        valor = float(data.get('valor', 0))
+        tipo = data.get('tipo')
+        data_str = data.get('data')
+        categoria_id = data.get('categoria_id')
+        cliente_fornecedor_id = data.get('cliente_fornecedor_id')
+        memo_original = data.get('memo_original', descricao)  # OFX memo for rule saving
+        conta_caixa_id = data.get('conta_caixa_id')  # Bank account link
+        
+        if not descricao or valor <= 0 or not tipo or not data_str or not categoria_id:
+            return jsonify({'success': False, 'message': 'Dados incompletos'}), 400
+            
+        dt = datetime.strptime(data_str, '%Y-%m-%d')
+        
+        # Look up the PlanoConta to get its name for the text `categoria` field
+        plano = PlanoConta.query.filter_by(id=int(categoria_id), empresa_id=empresa_id).first()
+        categoria_nome = plano.nome if plano else 'Conciliação OFX'
+        
+        novo_lanc = Lancamento(
+            usuario_id=session_user.id,      # required NOT NULL field
+            empresa_id=empresa_id,
+            descricao=descricao,
+            tipo=tipo,
+            valor=valor,
+            data_prevista=dt.date(),
+            realizado=True,
+            data_realizada=dt.date(),
+            categoria=categoria_nome,        # text field
+            plano_conta_id=int(categoria_id),  # FK to PlanoConta
+            conta_caixa_id=int(conta_caixa_id) if conta_caixa_id else None  # FK to ContaCaixa
+        )
+        
+        if tipo == 'entrada' and cliente_fornecedor_id:
+            novo_lanc.cliente_id = cliente_fornecedor_id
+        elif tipo == 'saida' and cliente_fornecedor_id:
+            novo_lanc.fornecedor_id = cliente_fornecedor_id
+
+        db.session.add(novo_lanc)
+        
+        # ===== SALVAR/ATUALIZAR REGRA DE CONCILIAÇÃO (Memória) =====
+        # Scoped strictly to this empresa — never shared with others
+        try:
+            keywords = ConciliacaoRegra.keywords_from_memo(memo_original or descricao)
+            if keywords:
+                # Check if a rule with the same keywords+tipo already exists for this empresa
+                regra_existente = ConciliacaoRegra.query.filter_by(
+                    empresa_id=empresa_id,
+                    tipo=tipo,
+                    memo_keywords=keywords
+                ).first()
+                
+                if regra_existente:
+                    # Update usage stats and re-apply category/client/supplier
+                    regra_existente.uso_count = (regra_existente.uso_count or 0) + 1
+                    regra_existente.ultimo_uso = datetime.utcnow()
+                    regra_existente.categoria_id = int(categoria_id)
+                    if tipo == 'entrada' and cliente_fornecedor_id:
+                        regra_existente.cliente_id = int(cliente_fornecedor_id)
+                    elif tipo == 'saida' and cliente_fornecedor_id:
+                        regra_existente.fornecedor_id = int(cliente_fornecedor_id)
+                else:
+                    # Create new rule
+                    nova_regra = ConciliacaoRegra(
+                        empresa_id=empresa_id,
+                        memo_keywords=keywords,
+                        memo_original=memo_original[:500] if memo_original else descricao[:500],
+                        tipo=tipo,
+                        categoria_id=int(categoria_id),
+                        cliente_id=int(cliente_fornecedor_id) if tipo == 'entrada' and cliente_fornecedor_id else None,
+                        fornecedor_id=int(cliente_fornecedor_id) if tipo == 'saida' and cliente_fornecedor_id else None
+                    )
+                    db.session.add(nova_regra)
+                    app.logger.info(f'[OFX] Nova regra de conciliação criada para empresa {empresa_id}: {keywords}')
+        except Exception as rule_err:
+            app.logger.error(f'[OFX] Erro ao salvar regra de conciliação (não crítico): {str(rule_err)}')
+        
+        db.session.commit()
+        return jsonify({'success': True, 'message': 'Lançamento criado e conciliado!'})
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f'Erro ao gerar lancamento conciliação: {str(e)}')
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/conciliacao/confirmar/<int:lancamento_id>', methods=['POST'])
+def conciliar_lancamento(lancamento_id):
+    valido, session_user, _ = validar_sessao_ativa()
+    if not valido:
+        return jsonify({'success': False, 'message': 'Sessão inválida'}), 401
+
+    empresa_id = obter_empresa_id_sessao(session, session_user)
+    lancamento = Lancamento.query.filter_by(id=lancamento_id, empresa_id=empresa_id).first()
+    
+    if not lancamento:
+        return jsonify({'success': False, 'message': 'Lançamento não encontrado'}), 404
+        
+    try:
+        data = request.get_json()
+        data_banco_str = data.get('data_realizada')
+        
+        if data_banco_str:
+            data_banco = datetime.strptime(data_banco_str, '%Y-%m-%d').date()
+            lancamento.data_realizada = data_banco
+        else:
+            lancamento.data_realizada = datetime.utcnow().date()
+            
+        # Pega a conta caixa atual se puder para re-calcular saldo, embora não estritamente necessário 
+        # já que atualiza no banco de dados mas é bom por completude.
+        lancamento.realizado = True
+        db.session.commit()
+        return jsonify({'success': True})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
 
 @app.route('/admin/verificar-empresas-orfas')
 def verificar_empresas_orfas():
@@ -6063,6 +6605,207 @@ def deletar_venda(venda_id):
     
     return redirect(url_for('vendas'))
 
+@app.route('/venda/<int:venda_id>/pdf_os', methods=['GET'])
+def gerar_os_pdf(venda_id):
+    valido, session_user, _ = validar_sessao_ativa()
+    if not valido:
+        return redirect(url_for('login'))
+
+    empresa_id = obter_empresa_id_sessao(session, session_user)
+    venda = Venda.query.filter_by(id=venda_id, empresa_id=empresa_id).first_or_404()
+    cliente = db.session.get(Cliente, venda.cliente_id)
+    empresa = db.session.get(Empresa, empresa_id)
+
+    try:
+        from reportlab.lib.pagesizes import A4
+        from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.lib import colors
+        from io import BytesIO
+        import json
+
+        # Criar buffer para o PDF
+        buffer = BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=30, leftMargin=30, topMargin=30, bottomMargin=30)
+        elements = []
+        styles = getSampleStyleSheet()
+
+        # Custom Styles
+        style_header_title = ParagraphStyle('HeaderTitle', parent=styles['Normal'], fontSize=16, fontName='Helvetica-Bold', textColor=colors.black)
+        style_header_info = ParagraphStyle('HeaderInfo', parent=styles['Normal'], fontSize=9, leading=12)
+        style_header_contact = ParagraphStyle('HeaderContact', parent=styles['Normal'], fontSize=9, leading=12, alignment=0)
+        
+        style_section_title = ParagraphStyle('SectionTitle', parent=styles['Normal'], fontSize=14, fontName='Helvetica-Bold', spaceBefore=15, spaceAfter=5)
+        style_normal_bold = ParagraphStyle('NormalBold', parent=styles['Normal'], fontSize=10, fontName='Helvetica-Bold')
+        style_normal = ParagraphStyle('Normal', parent=styles['Normal'], fontSize=10, leading=14)
+
+        # 1. Cabeçalho (Header Table) - Esquerda: Info Empresa, Direita: Data e Contatos
+        empresa_nome = empresa.razao_social or 'Sua Empresa'
+        empresa_cnpj = empresa.cnpj or '00.000.000/0000-00'
+        empresa_endereco = empresa.endereco or 'Endereço não cadastrado'
+        data_atual_str = datetime.now().strftime('%d/%m/%Y')
+
+        header_left = Paragraph(f"<b>{empresa_nome}</b><br/>CNPJ: {empresa_cnpj}<br/>{empresa_endereco}", style_header_info)
+        header_right = Paragraph(f"📅 <b>{data_atual_str}</b><br/><br/>✉️ {empresa.email or 'email@empresa.com'}<br/>📞 {empresa.telefone or '(00) 0000-0000'}", style_header_contact)
+
+        header_table = Table([[header_left, header_right]], colWidths=[380, 150])
+        header_table.setStyle(TableStyle([
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('ALIGN', (1, 0), (1, 0), 'RIGHT'),
+        ]))
+        
+        elements.append(header_table)
+        elements.append(Spacer(1, 20))
+
+        # 2. Título do Documento
+        # Retângulo cinza claro simulando o design da referência
+        title_text = f"Orçamento {venda.id}-{datetime.now().year}" if venda.realizado == False else f"Ordem de Serviço {venda.id}-{datetime.now().year}"
+        title_para = Paragraph(f"<b>{title_text}</b>", style_section_title)
+        
+        title_table = Table([[title_para]], colWidths=[530])
+        title_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#d9d9d9')),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+            ('TOPPADDING', (0, 0), (-1, -1), 2),
+        ]))
+        elements.append(title_table)
+        elements.append(Spacer(1, 10))
+
+        # 3. Dados do Cliente
+        elements.append(Paragraph("<b>Cliente: " + (cliente.nome or '') + "</b>", style_normal_bold))
+        cliente_cpf_cnpj = cliente.cpf_cnpj or 'Não informado'
+        cliente_endereco = cliente.endereco or 'Endereço não informado'
+        cliente_email = cliente.email or 'Não informado'
+        cliente_telefone = cliente.telefone or 'Não informado'
+
+        client_left = Paragraph(f"CNPJ/CPF: {cliente_cpf_cnpj}<br/>{cliente_endereco}", style_normal)
+        client_right = Paragraph(f"✉️ {cliente_email}<br/>📞 {cliente_telefone}", style_normal)
+        client_table = Table([[client_left, client_right]], colWidths=[330, 200])
+        client_table.setStyle(TableStyle([
+            ('VALIGN', (0,0), (-1,-1), 'TOP')
+        ]))
+        elements.append(client_table)
+        elements.append(Spacer(1, 20))
+
+        # 4. Tabela de Itens/Peças/Serviços
+        elements.append(Table([[Paragraph("<b>Peças / Serviços</b>", style_section_title)]], colWidths=[530], style=TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#f2f2f2')),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+            ('TOPPADDING', (0, 0), (-1, -1), 0),
+        ])))
+        elements.append(Spacer(1, 10))
+
+        # Recuperar itens. Prioridade: itens_carrinho do primeiro lancamento -> venda.produto
+        itens = []
+        lancamento = Lancamento.query.filter_by(venda_id=venda.id).first()
+        if lancamento and lancamento.itens_carrinho:
+            try:
+                itens_json = json.loads(lancamento.itens_carrinho)
+                for item in itens_json:
+                    itens.append({
+                        'descricao': item.get('nome', 'Item'),
+                        'preco_unitario': item.get('preco', 0),
+                        'qtd': item.get('qtd', 1),
+                        'total': item.get('total', 0)
+                    })
+            except Exception as e:
+                app.logger.warning(f"Erro ao ler itens_carrinho na geração de OS: {e}")
+
+        # Se não houver itens detalhados (venda legada), usar o campo venda.produto
+        if not itens:
+             itens.append({
+                 'descricao': venda.produto or 'Produto/Serviço diverso',
+                 'preco_unitario': venda.valor_final if hasattr(venda, 'valor_final') and venda.valor_final else venda.valor,
+                 'qtd': venda.quantidade if hasattr(venda, 'quantidade') else 1,
+                 'total': venda.valor_final if hasattr(venda, 'valor_final') and venda.valor_final else venda.valor
+             })
+
+        # Cabeçalho da Tabela
+        data_itens = [['Descrição', 'Unidade', 'Preço unitário', 'Qtd.', 'Preço']]
+        
+        for item in itens:
+            desc = item['descricao']
+            un = 'UN'  # Padrão
+            pu = f"R$ {float(item['preco_unitario']):.2f}".replace('.', ',')
+            qtd = str(item['qtd'])
+            tot = f"R$ {float(item['total']):.2f}".replace('.', ',')
+            data_itens.append([desc, un, pu, qtd, tot])
+
+        table_itens = Table(data_itens, colWidths=[250, 60, 90, 40, 90])
+        table_itens.setStyle(TableStyle([
+            ('ALIGN', (1, 0), (-1, -1), 'RIGHT'),
+            ('ALIGN', (3, 0), (3, -1), 'CENTER'),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.grey),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+            ('TOPPADDING', (0, 0), (-1, -1), 8),
+            ('LINEBELOW', (0, 0), (-1, 0), 0.5, colors.grey) # Linha sob cabecalho
+        ]))
+        elements.append(table_itens)
+        
+        # Total
+        venda_total = venda.valor_final if hasattr(venda, 'valor_final') and venda.valor_final else venda.valor
+        venda_total_str = f"R$ {float(venda_total):.2f}".replace('.', ',')
+        
+        data_total = [['', 'Total', venda_total_str]]
+        table_total = Table(data_total, colWidths=[250, 190, 90])
+        table_total.setStyle(TableStyle([
+            ('BACKGROUND', (1, 0), (-1, -1), colors.HexColor('#e6e6e6')),
+            ('ALIGN', (1, 0), (1, -1), 'LEFT'),
+            ('ALIGN', (2, 0), (2, -1), 'RIGHT'),
+            ('FONTNAME', (1, 0), (-1, -1), 'Helvetica-Bold'),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+            ('TOPPADDING', (0, 0), (-1, -1), 6),
+        ]))
+        elements.append(table_total)
+        elements.append(Spacer(1, 25))
+
+        # 5. Seção de Pagamento
+        elements.append(Table([[Paragraph("<b>Pagamento</b>", style_section_title)]], colWidths=[530], style=TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#f2f2f2')),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+            ('TOPPADDING', (0, 0), (-1, -1), 0),
+        ])))
+        elements.append(Spacer(1, 5))
+        
+        tipo_pag = 'A vista'
+        if hasattr(venda, 'tipo_pagamento') and getattr(venda, 'tipo_pagamento') == 'parcelado':
+            num_parc = getattr(venda, 'numero_parcelas', 1)
+            tipo_pag = f'Parcelado em {num_parc}x'
+        
+        elements.append(Paragraph("<b>Meios de pagamento / Forma:</b>", style_normal_bold))
+        elements.append(Paragraph(f"{tipo_pag}. Boleto, PIX, Cartão, Dinheiro ou Transferência bancária.", style_normal))
+        elements.append(Spacer(1, 50))
+
+        # 6. Assinaturas
+        elements.append(Paragraph(f"<b>Fortaleza, {data_atual_str}</b>", ParagraphStyle('Center', parent=styles['Normal'], alignment=1)))
+        elements.append(Spacer(1, 30))
+        
+        assinatura_linha = "________________________________________________"
+        assinatura_texto = f"<b>{empresa_nome}</b><br/>{session_user.nome}"
+        
+        elements.append(Paragraph(assinatura_linha, ParagraphStyle('Line', parent=styles['Normal'], alignment=1)))
+        elements.append(Paragraph(assinatura_texto, ParagraphStyle('SignText', parent=styles['Normal'], alignment=1, fontSize=11)))
+
+        # Build PDF
+        doc.build(elements)
+        buffer.seek(0)
+        
+        return send_file(
+            buffer,
+            as_attachment=False,
+            download_name=f'OS_{venda.id}.pdf',
+            mimetype='application/pdf'
+        )
+
+    except Exception as e:
+        app.logger.error(f"Erro ao gerar PDF da OS: {e}")
+        import traceback
+        traceback.print_exc()
+        flash('Erro ao gerar Ordem de Serviço em PDF.', 'error')
+        return redirect(url_for('vendas'))
+
 # Rotas para Compras
 @app.route('/compras')
 def compras():
@@ -8009,104 +8752,147 @@ def exportar_relatorio_saldos(formato):
     usuarios_ids = [u.id for u in usuarios_empresa]
     
     # Obter filtros de data do request
-    data_inicio_str = request.args.get('data_inicio', '')
-    data_fim_str = request.args.get('data_fim', '')
+    data_referencia_str = request.args.get('data_referencia', '')
     
-    # Converter strings de data para objetos datetime
-    data_inicio = None
-    data_fim = None
-    
-    if data_inicio_str:
-        try:
-            data_inicio = datetime.strptime(data_inicio_str, '%d/%m/%Y').date()
-        except ValueError:
-            pass
-    
-    if data_fim_str:
-        try:
-            data_fim = datetime.strptime(data_fim_str, '%d/%m/%Y').date()
-        except ValueError:
-            pass
-    
-    # Construir query base
-    query = Lancamento.query.filter(Lancamento.empresa_id == empresa_id)
-    
-    # Aplicar filtros de data se fornecidos
-    if data_inicio:
-        query = query.filter(Lancamento.data_prevista >= data_inicio)
-    if data_fim:
-        query = query.filter(Lancamento.data_prevista <= data_fim)
-    
-    # Carregar lançamentos
-    lancamentos = query.all()
-
     hoje = datetime.now().date()
-
-    # Totais por status
-    total_receitas_realizadas = sum([l.valor for l in lancamentos if l.tipo == 'entrada' and l.realizado and (not l.data_realizada or l.data_realizada <= hoje)])
-    total_despesas_realizadas = sum([l.valor for l in lancamentos if l.tipo == 'saida' and l.realizado and (not l.data_realizada or l.data_realizada <= hoje)])
-    total_receitas_pendentes = sum([l.valor for l in lancamentos if l.tipo == 'entrada' and not l.realizado])
-    total_despesas_pendentes = sum([l.valor for l in lancamentos if l.tipo == 'saida' and not l.realizado])
-    # Agendado: tem data_realizada futura OU (tem data_prevista futura e não está realizado)
-    total_receitas_agendadas = sum([l.valor for l in lancamentos if l.tipo == 'entrada' and (
-        (l.data_realizada and l.data_realizada > hoje) or 
-        (not l.realizado and l.data_prevista and l.data_prevista > hoje)
-    )])
-    total_despesas_agendadas = sum([l.valor for l in lancamentos if l.tipo == 'saida' and (
-        (l.data_realizada and l.data_realizada > hoje) or 
-        (not l.realizado and l.data_prevista and l.data_prevista > hoje)
-    )])
-
-    total_entradas = total_receitas_realizadas
-    total_saidas = total_despesas_realizadas
-    saldo_atual = total_entradas - total_saidas
+    data_referencia = hoje
     
-    # Buscar categorias válidas do plano de contas
-    categorias_validas = db.session.query(PlanoConta.nome).filter(PlanoConta.ativo == True).all()
-    categorias_validas_nomes = [cat[0] for cat in categorias_validas]
+    if data_referencia_str:
+        try:
+            data_referencia = datetime.strptime(data_referencia_str, '%d/%m/%Y').date()
+        except ValueError:
+            pass
+            
+    # ------ REPLICAR LÓGICA DO RELATÓRIO SALDOS PRINCIPAL ------
+    lancamentos_ate_data = Lancamento.query.filter(
+        Lancamento.empresa_id == empresa_id,
+        Lancamento.data_prevista <= data_referencia
+    ).all()
+
+    total_receitas_realizadas = sum([l.valor for l in lancamentos_ate_data if l.tipo == 'entrada' and l.realizado])
+    total_despesas_realizadas = sum([l.valor for l in lancamentos_ate_data if l.tipo == 'saida' and l.realizado])
     
-    # Agrupar por categoria (apenas categorias válidas do plano de contas)
+    total_receitas_vencidas = sum([l.valor for l in lancamentos_ate_data if l.tipo == 'entrada' and not l.realizado and l.data_prevista < hoje])
+    total_despesas_vencidas = sum([l.valor for l in lancamentos_ate_data if l.tipo == 'saida' and not l.realizado and l.data_prevista < hoje])
+
+    total_receitas_agendadas = sum([l.valor for l in lancamentos_ate_data if l.tipo == 'entrada' and not l.realizado and l.data_prevista == hoje])
+    total_despesas_agendadas = sum([l.valor for l in lancamentos_ate_data if l.tipo == 'saida' and not l.realizado and l.data_prevista == hoje])
+    
+    total_receitas_a_vencer = sum([l.valor for l in lancamentos_ate_data if l.tipo == 'entrada' and not l.realizado and l.data_prevista > hoje])
+    total_despesas_a_vencer = sum([l.valor for l in lancamentos_ate_data if l.tipo == 'saida' and not l.realizado and l.data_prevista > hoje])
+
+    saldo_realizado = total_receitas_realizadas - total_despesas_realizadas
+    total_receitas_pendentes = total_receitas_vencidas + total_receitas_agendadas + total_receitas_a_vencer
+    total_despesas_pendentes = total_despesas_vencidas + total_despesas_agendadas + total_despesas_a_vencer
+    saldo_projetado = saldo_realizado + total_receitas_pendentes - total_despesas_pendentes
+    saldo_vencido = total_receitas_vencidas - total_despesas_vencidas
+
+    # 1. SALDOS POR CONTA DO PLANO DE CONTAS
+    contas_plano = PlanoConta.query.filter_by(empresa_id=empresa_id, ativo=True).order_by(PlanoConta.codigo).all()
+    p_contas_map = {c.id: c for c in contas_plano}
+    
     categorias_receitas = {}
     categorias_despesas = {}
+
+    for c in contas_plano:
+        if c.natureza == 'analitica':
+            nome_exibicao = f"{c.codigo} - {c.nome}" if c.codigo else c.nome
+            item = {'realizado': 0.0, 'a_vencer': 0.0, 'vencido': 0.0, 'agendado': 0.0, 'total': 0.0, 'codigo': c.codigo}
+            if c.tipo == 'entrada':
+                categorias_receitas[nome_exibicao] = item
+            else:
+                categorias_despesas[nome_exibicao] = item
+
+    for l in lancamentos_ate_data:
+        if l.plano_conta_id and l.plano_conta_id in p_contas_map:
+            pc = p_contas_map[l.plano_conta_id]
+            nome_exibicao = f"{pc.codigo} - {pc.nome}" if pc.codigo else pc.nome
+            dest = categorias_receitas if pc.tipo == 'entrada' else categorias_despesas
+            
+            if nome_exibicao not in dest:
+                dest[nome_exibicao] = {'realizado': 0.0, 'a_vencer': 0.0, 'vencido': 0.0, 'agendado': 0.0, 'total': 0.0, 'codigo': pc.codigo or ''}
+            
+            if l.realizado:
+                dest[nome_exibicao]['realizado'] += l.valor
+            elif l.data_prevista < hoje:
+                dest[nome_exibicao]['vencido'] += l.valor
+            elif l.data_prevista == hoje:
+                dest[nome_exibicao]['agendado'] += l.valor
+            else:
+                dest[nome_exibicao]['a_vencer'] += l.valor
+                
+            dest[nome_exibicao]['total'] = (dest[nome_exibicao]['realizado'] + dest[nome_exibicao]['vencido'] + dest[nome_exibicao]['agendado'] + dest[nome_exibicao]['a_vencer'])
+        else:
+            cat_nome = "Sem Categoria"
+            dest = categorias_receitas if l.tipo == 'entrada' else categorias_despesas
+            if cat_nome not in dest:
+                dest[cat_nome] = {'realizado': 0.0, 'a_vencer': 0.0, 'vencido': 0.0, 'agendado': 0.0, 'total': 0.0, 'codigo': ''}
+            
+            if l.realizado:
+                dest[cat_nome]['realizado'] += l.valor
+            elif l.data_prevista < hoje:
+                dest[cat_nome]['vencido'] += l.valor
+            elif l.data_prevista == hoje:
+                dest[cat_nome]['agendado'] += l.valor
+            else:
+                dest[cat_nome]['a_vencer'] += l.valor
+                
+            dest[cat_nome]['total'] = (dest[cat_nome]['realizado'] + dest[cat_nome]['vencido'] + dest[cat_nome]['agendado'] + dest[cat_nome]['a_vencer'])
+
+    # 3. CONTAS CAIXA DETALHADAS
+    contas_caixa = ContaCaixa.query.filter_by(empresa_id=empresa_id, ativo=True).all()
+    contas_caixa_detalhadas = []
     
-    for lancamento in lancamentos:
-        categoria = lancamento.categoria
-        # Só incluir se a categoria estiver no plano de contas
-        if categoria and categoria in categorias_validas_nomes:
-            if lancamento.tipo == 'entrada':
-                if categoria not in categorias_receitas:
-                    categorias_receitas[categoria] = {'realizado': 0, 'pendente': 0, 'agendado': 0}
-                # Realizado: tem data_realizada <= hoje OU (realizado=True E sem data_realizada)
-                if (lancamento.data_realizada and lancamento.data_realizada <= hoje) or (lancamento.realizado and not lancamento.data_realizada):
-                    categorias_receitas[categoria]['realizado'] += lancamento.valor
-                # Agendado: tem data_realizada futura OU (tem data_prevista futura e não está realizado)
-                elif (lancamento.data_realizada and lancamento.data_realizada > hoje) or (not lancamento.realizado and lancamento.data_prevista and lancamento.data_prevista > hoje):
-                    categorias_receitas[categoria]['agendado'] += lancamento.valor
-                # Pendente: não realizado
-                else:
-                    categorias_receitas[categoria]['pendente'] += lancamento.valor
-            else:  # saida
-                if categoria not in categorias_despesas:
-                    categorias_despesas[categoria] = {'realizado': 0, 'pendente': 0, 'agendado': 0}
-                # Realizado: tem data_realizada <= hoje OU (realizado=True E sem data_realizada)
-                if (lancamento.data_realizada and lancamento.data_realizada <= hoje) or (lancamento.realizado and not lancamento.data_realizada):
-                    categorias_despesas[categoria]['realizado'] += lancamento.valor
-                # Agendado: tem data_realizada futura OU (tem data_prevista futura e não está realizado)
-                elif (lancamento.data_realizada and lancamento.data_realizada > hoje) or (not lancamento.realizado and lancamento.data_prevista and lancamento.data_prevista > hoje):
-                    categorias_despesas[categoria]['agendado'] += lancamento.valor
-                # Pendente: não realizado
-                else:
-                    categorias_despesas[categoria]['pendente'] += lancamento.valor
-    
+    for c in contas_caixa:
+        saldo_r = c.saldo_inicial
+        l_realizados = [l for l in lancamentos_ate_data if l.conta_caixa_id == c.id and l.realizado]
+        saldo_r += sum([l.valor for l in l_realizados if l.tipo == 'entrada'])
+        saldo_r -= sum([l.valor for l in l_realizados if l.tipo == 'saida'])
+        
+        # Pendentes de Entradas
+        r_pend_hoje = sum([l.valor for l in lancamentos_ate_data if l.conta_caixa_id == c.id and l.tipo == 'entrada' and not l.realizado and l.data_prevista == hoje])
+        r_pend_futuro = sum([l.valor for l in lancamentos_ate_data if l.conta_caixa_id == c.id and l.tipo == 'entrada' and not l.realizado and l.data_prevista > hoje])
+        r_vencidos = sum([l.valor for l in lancamentos_ate_data if l.conta_caixa_id == c.id and l.tipo == 'entrada' and not l.realizado and l.data_prevista < hoje])
+        
+        # Pendentes de Saídas
+        d_pend_hoje = sum([l.valor for l in lancamentos_ate_data if l.conta_caixa_id == c.id and l.tipo == 'saida' and not l.realizado and l.data_prevista == hoje])
+        d_pend_futuro = sum([l.valor for l in lancamentos_ate_data if l.conta_caixa_id == c.id and l.tipo == 'saida' and not l.realizado and l.data_prevista > hoje])
+        d_vencidos = sum([l.valor for l in lancamentos_ate_data if l.conta_caixa_id == c.id and l.tipo == 'saida' and not l.realizado and l.data_prevista < hoje])
+        
+        proj_final = saldo_r + (r_pend_hoje + r_pend_futuro + r_vencidos) - (d_pend_hoje + d_pend_futuro + d_vencidos)
+        
+        contas_caixa_detalhadas.append({
+            'conta': c,
+            'saldo_atual': saldo_r,
+            'rec_a_vencer': r_pend_futuro,
+            'rec_vencido': r_vencidos,
+            'rec_agendado': r_pend_hoje,
+            'desp_a_vencer': d_pend_futuro,
+            'desp_vencido': d_vencidos,
+            'desp_agendado': d_pend_hoje,
+            'saldo_projetado': proj_final
+        })
+
     # Preparar dados para exportação
     dados = {
-        'total_entradas': total_entradas,
-        'total_saidas': total_saidas,
-        'total_receitas_pendentes': total_receitas_pendentes,
-        'total_despesas_pendentes': total_despesas_pendentes,
-        'total_receitas_agendadas': total_receitas_agendadas,
-        'total_despesas_agendadas': total_despesas_agendadas,
-        'saldo_geral': saldo_atual,
+        'resumo': {
+            'total_entradas_realizado': total_receitas_realizadas,
+            'total_saidas_realizado': total_despesas_realizadas,
+            'saldo_realizado': saldo_realizado,
+            'total_receitas_a_vencer': total_receitas_a_vencer,
+            'total_saidas_a_vencer': total_despesas_a_vencer,
+            'saldo_a_vencer': total_receitas_a_vencer - total_despesas_a_vencer,
+            'total_receitas_vencidas': total_receitas_vencidas,
+            'total_saidas_vencidas': total_despesas_vencidas,
+            'saldo_vencido': saldo_vencido,
+            'total_receitas_agendadas': total_receitas_agendadas,
+            'total_saidas_agendadas': total_despesas_agendadas,
+            'saldo_agendado': total_receitas_agendadas - total_despesas_agendadas,
+            'total_geral_receitas': total_receitas_realizadas + total_receitas_pendentes,
+            'total_geral_saidas': total_despesas_realizadas + total_despesas_pendentes,
+            'saldo_projetado': saldo_projetado
+        },
+        'contas_caixa': contas_caixa_detalhadas,
         'categorias_receitas': categorias_receitas,
         'categorias_despesas': categorias_despesas
     }
@@ -13612,6 +14398,32 @@ def api_importar_dados():
                 else:
                     realizado = False  # Sem data = pendente
                 
+                # Criar itens_carrinho a partir de dados da planilha (se produto/serviço informado)
+                itens_carrinho_importacao = None
+                if produto_servico_final and tipo_produto_servico:
+                    try:
+                        qtd_raw = dados.get('QUANTIDADE')
+                        qtd = float(str(qtd_raw).replace(',', '.')) if qtd_raw else 1.0
+                        preco_raw = dados.get('VALOR_UNITARIO')
+                        preco = float(str(preco_raw).replace(',', '.')) if preco_raw else float(valor or 0)
+                        
+                        # Pegar desconto da planilha
+                        desconto_raw = dados.get('DESCONTO')
+                        desconto = float(str(desconto_raw).replace(',', '.')) if desconto_raw else 0.0
+                        
+                        total_item = round(preco * qtd - desconto, 2)
+                        tipo_item = 'servico' if str(tipo_produto_servico).lower() in ['serviço', 'servico', 'service'] else 'produto'
+                        itens_carrinho_importacao = json.dumps([{
+                            'tipo': tipo_item,
+                            'nome': produto_servico_final,
+                            'preco': preco,
+                            'qtd': qtd,
+                            'desconto': desconto,
+                            'total': total_item
+                        }], ensure_ascii=False)
+                    except Exception as e_cart:
+                        app.logger.warning(f'[Import] Erro ao gerar itens_carrinho: {e_cart}')
+                
                 # Criar lançamento financeiro
                 if is_parcelado and quantidade_parcelas > 1:
                     # Criar lançamentos parcelados
@@ -13654,6 +14466,7 @@ def api_importar_dados():
                             observacoes=f"{observacoes or ''} - Parcela {i+1}/{quantidade_parcelas}".strip(),
                             produto_servico=produto_servico_final,
                             tipo_produto_servico=tipo_produto_servico,
+                            itens_carrinho=itens_carrinho_importacao,
                             nota_fiscal=nota_fiscal,
                             usuario_criacao_id=usuario.id  # Registrar quem criou
                         )
@@ -13762,6 +14575,7 @@ def api_importar_dados():
                         observacoes=observacoes,
                         produto_servico=produto_servico_final,
                         tipo_produto_servico=tipo_produto_servico,
+                        itens_carrinho=itens_carrinho_importacao,
                         nota_fiscal=nota_fiscal,
                         usuario_criacao_id=usuario.id  # Registrar quem criou
                     )
@@ -16221,59 +17035,133 @@ def exportar_relatorio_excel(dados, nome_arquivo, titulo, usuario=None, filtros=
         linha_atual += 2  # Espaço extra antes da tabela
         
         # Cabeçalhos
-        if 'categorias_receitas' in dados and 'categorias_despesas' in dados:
-            # Relatório de saldos
-            ws[f'A{linha_atual}'] = "Categoria"
-            ws[f'B{linha_atual}'] = "Entradas Realizadas"
-            ws[f'C{linha_atual}'] = "Entradas Pendentes"
-            ws[f'D{linha_atual}'] = "Total Entradas"
-            ws[f'E{linha_atual}'] = "Saídas Realizadas"
-            ws[f'F{linha_atual}'] = "Saídas Pendentes"
-            ws[f'G{linha_atual}'] = "Total Saídas"
-            ws[f'H{linha_atual}'] = "Saldo da Categoria"
-            
-            # Formatar cabeçalhos
-            for col in ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']:
-                ws[f'{col}{linha_atual}'].font = Font(bold=True)
-            
-            linha_atual += 1
-            
-            # Dados das categorias
-            todas_categorias = set()
-            if dados['categorias_receitas']:
-                todas_categorias.update(dados['categorias_receitas'].keys())
-            if dados['categorias_despesas']:
-                todas_categorias.update(dados['categorias_despesas'].keys())
-            
-            for categoria in sorted(todas_categorias):
-                entrada = dados['categorias_receitas'].get(categoria, {'realizado': 0, 'pendente': 0})
-                saida = dados['categorias_despesas'].get(categoria, {'realizado': 0, 'pendente': 0})
-                
-                ws[f'A{linha_atual}'] = categoria
-                ws[f'B{linha_atual}'] = entrada['realizado']
-                ws[f'C{linha_atual}'] = entrada['pendente']
-                ws[f'D{linha_atual}'] = entrada['realizado'] + entrada['pendente']
-                ws[f'E{linha_atual}'] = saida['realizado']
-                ws[f'F{linha_atual}'] = saida['pendente']
-                ws[f'G{linha_atual}'] = saida['realizado'] + saida['pendente']
-                ws[f'H{linha_atual}'] = (entrada['realizado'] + entrada['pendente']) - (saida['realizado'] + saida['pendente'])
-                linha_atual += 1
-            
-            # Total geral
-            linha_atual += 1
-            ws[f'A{linha_atual}'] = "TOTAL GERAL"
+        if 'contas_caixa' in dados and 'categorias_receitas' in dados:
+            # BLOCO 1: RESUMO DO PERÍODO
+            ws[f'A{linha_atual}'] = "RESUMO GERAL"
             ws[f'A{linha_atual}'].font = Font(bold=True)
-            ws[f'B{linha_atual}'] = dados.get('total_entradas', 0)
-            ws[f'C{linha_atual}'] = dados.get('total_receitas_pendentes', 0)
-            ws[f'D{linha_atual}'] = dados.get('total_entradas', 0) + dados.get('total_receitas_pendentes', 0)
-            ws[f'E{linha_atual}'] = dados.get('total_saidas', 0)
-            ws[f'F{linha_atual}'] = dados.get('total_despesas_pendentes', 0)
-            ws[f'G{linha_atual}'] = dados.get('total_saidas', 0) + dados.get('total_despesas_pendentes', 0)
-            ws[f'H{linha_atual}'] = dados.get('saldo_geral', 0)
+            linha_atual += 1
             
-            # Formatar total geral
-            for col in ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']:
+            resumo = dados['resumo']
+            ws[f'A{linha_atual}'] = "Item"
+            ws[f'B{linha_atual}'] = "Realizado"
+            ws[f'C{linha_atual}'] = "A Vencer"
+            ws[f'D{linha_atual}'] = "Vencido"
+            ws[f'E{linha_atual}'] = "Agendado Hoje"
+            ws[f'F{linha_atual}'] = "Total Esperado"
+            for col in ['A', 'B', 'C', 'D', 'E', 'F']:
                 ws[f'{col}{linha_atual}'].font = Font(bold=True)
+            linha_atual += 1
+            
+            # Entradas Totais Gerais
+            ws[f'A{linha_atual}'] = "Total Entradas"
+            ws[f'B{linha_atual}'] = resumo['total_entradas_realizado']
+            ws[f'C{linha_atual}'] = resumo['total_receitas_a_vencer']
+            ws[f'D{linha_atual}'] = resumo['total_receitas_vencidas']
+            ws[f'E{linha_atual}'] = resumo['total_receitas_agendadas']
+            ws[f'F{linha_atual}'] = resumo['total_geral_receitas']
+            linha_atual += 1
+            
+            # Saídas Totais Gerais
+            ws[f'A{linha_atual}'] = "Total Saídas"
+            ws[f'B{linha_atual}'] = resumo['total_saidas_realizado']
+            ws[f'C{linha_atual}'] = resumo['total_saidas_a_vencer']
+            ws[f'D{linha_atual}'] = resumo['total_saidas_vencidas']
+            ws[f'E{linha_atual}'] = resumo['total_saidas_agendadas']
+            ws[f'F{linha_atual}'] = resumo['total_geral_saidas']
+            linha_atual += 1
+            
+            # Saldos
+            ws[f'A{linha_atual}'] = "SALDO"
+            ws[f'A{linha_atual}'].font = Font(bold=True)
+            ws[f'B{linha_atual}'] = resumo['saldo_realizado']
+            ws[f'B{linha_atual}'].font = Font(bold=True)
+            ws[f'C{linha_atual}'] = resumo['saldo_a_vencer']
+            ws[f'C{linha_atual}'].font = Font(bold=True)
+            ws[f'D{linha_atual}'] = resumo['saldo_vencido']
+            ws[f'D{linha_atual}'].font = Font(bold=True)
+            ws[f'E{linha_atual}'] = resumo['saldo_agendado']
+            ws[f'E{linha_atual}'].font = Font(bold=True)
+            ws[f'F{linha_atual}'] = resumo['saldo_projetado']
+            ws[f'F{linha_atual}'].font = Font(bold=True)
+            linha_atual += 3
+            
+            # BLOCO 2: SALDOS POR CONTAS CAIXA
+            ws[f'A{linha_atual}'] = "SALDOS POR CONTA / BANCO"
+            ws[f'A{linha_atual}'].font = Font(bold=True)
+            linha_atual += 1
+            
+            ws[f'A{linha_atual}'] = "Conta / Banco"
+            ws[f'B{linha_atual}'] = "Saldo Realizado"
+            ws[f'C{linha_atual}'] = "Entradas Futuras"
+            ws[f'D{linha_atual}'] = "Saídas Futuras"
+            ws[f'E{linha_atual}'] = "Saldo Projetado"
+            for col in ['A', 'B', 'C', 'D', 'E']:
+                ws[f'{col}{linha_atual}'].font = Font(bold=True)
+            linha_atual += 1
+            
+            for cx in dados['contas_caixa']:
+                entradas_futuras = cx['rec_agendado'] + cx['rec_vencido'] + cx['rec_a_vencer']
+                saidas_futuras = cx['desp_agendado'] + cx['desp_vencido'] + cx['desp_a_vencer']
+                
+                ws[f'A{linha_atual}'] = cx['conta'].nome
+                ws[f'B{linha_atual}'] = cx['saldo_atual']
+                ws[f'C{linha_atual}'] = entradas_futuras
+                ws[f'D{linha_atual}'] = saidas_futuras
+                ws[f'E{linha_atual}'] = cx['saldo_projetado']
+                linha_atual += 1
+                
+            linha_atual += 2
+            
+            # BLOCO 3: SALDOS DO PLANO DE CONTAS
+            ws[f'A{linha_atual}'] = "PLANO DE CONTAS DE RECEITA"
+            ws[f'A{linha_atual}'].font = Font(bold=True)
+            linha_atual += 1
+            
+            ws[f'A{linha_atual}'] = "Categoria de Receita"
+            ws[f'B{linha_atual}'] = "Realizado"
+            ws[f'C{linha_atual}'] = "A Vencer"
+            ws[f'D{linha_atual}'] = "Vencido"
+            ws[f'E{linha_atual}'] = "Agendado"
+            ws[f'F{linha_atual}'] = "Total"
+            for col in ['A', 'B', 'C', 'D', 'E', 'F']:
+                ws[f'{col}{linha_atual}'].font = Font(bold=True)
+            linha_atual += 1
+            
+            for cat, vals in sorted(dados['categorias_receitas'].items()):
+                if vals['total'] > 0:
+                    ws[f'A{linha_atual}'] = cat
+                    ws[f'B{linha_atual}'] = vals['realizado']
+                    ws[f'C{linha_atual}'] = vals['a_vencer']
+                    ws[f'D{linha_atual}'] = vals['vencido']
+                    ws[f'E{linha_atual}'] = vals['agendado']
+                    ws[f'F{linha_atual}'] = vals['total']
+                    linha_atual += 1
+                    
+            linha_atual += 2
+            
+            ws[f'A{linha_atual}'] = "PLANO DE CONTAS DE DESPESA"
+            ws[f'A{linha_atual}'].font = Font(bold=True)
+            linha_atual += 1
+            
+            ws[f'A{linha_atual}'] = "Categoria de Despesa"
+            ws[f'B{linha_atual}'] = "Realizado"
+            ws[f'C{linha_atual}'] = "A Vencer"
+            ws[f'D{linha_atual}'] = "Vencido"
+            ws[f'E{linha_atual}'] = "Agendado"
+            ws[f'F{linha_atual}'] = "Total"
+            for col in ['A', 'B', 'C', 'D', 'E', 'F']:
+                ws[f'{col}{linha_atual}'].font = Font(bold=True)
+            linha_atual += 1
+            
+            for cat, vals in sorted(dados['categorias_despesas'].items()):
+                if vals['total'] > 0:
+                    ws[f'A{linha_atual}'] = cat
+                    ws[f'B{linha_atual}'] = vals['realizado']
+                    ws[f'C{linha_atual}'] = vals['a_vencer']
+                    ws[f'D{linha_atual}'] = vals['vencido']
+                    ws[f'E{linha_atual}'] = vals['agendado']
+                    ws[f'F{linha_atual}'] = vals['total']
+                    linha_atual += 1
                 
         elif 'lancamentos' in dados:
             # Relatório de lançamentos

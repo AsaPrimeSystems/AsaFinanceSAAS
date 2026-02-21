@@ -321,23 +321,23 @@
                             style="--display: {% if lancamento.produto_servico %}none{% else %}block{% endif %}; display: var(--display);">
                             <label class="form-label">Valor Total *</label>
                             <input type="number" step="0.01" min="0" class="form-control" id="valor_direto"
-                                name="valor_direto" value="{{ " %.2f"|format(lancamento.valor) }}" {% if
+                                name="valor_direto" value="{{ '%.2f'|format(lancamento.valor) }}" {% if
                                 lancamento.produto_servico %}required{% endif %}>
                             <small class="form-text text-muted">Digite o valor total do lançamento</small>
                         </div>
                         <div class="col-md-6 mb-3" id="campo-total-operacao"
                             style="--display: {% if lancamento.produto_servico %}block{% else %}none{% endif %}; display: var(--display);">
                             <label class="form-label">Total da Operação</label>
-                            <input type="text" class="form-control" id="total_operacao" name="valor" value="{{ "
-                                %.2f"|format(lancamento.valor) }}" readonly
+                            <input type="text" class="form-control" id="total_operacao" name="valor"
+                                value="{{ '%.2f'|format(lancamento.valor) }}" readonly
                                 style="background-color: #f8f9fa; font-weight: bold; color: #495057;">
                             <small class="form-text text-muted">Calculado automaticamente: (Quantidade × Valor) -
                                 Desconto</small>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Valor por Parcela</label>
-                            <input type="text" class="form-control" id="valor_parcela" value="{{ "
-                                %.2f"|format(lancamento.valor) }}" readonly
+                            <input type="text" class="form-control" id="valor_parcela"
+                                value="{{ '%.2f'|format(lancamento.valor) }}" readonly
                                 style="background-color: #f8f9fa; color: #6c757d;">
                             <small class="form-text text-muted">Valor dividido pelo número de parcelas</small>
                         </div>
@@ -461,13 +461,13 @@
             {% for cliente in clientes %}
     { id: { { cliente.id } }, nome: "{{ cliente.nome }}", tipo: "cliente" },
     {% endfor %}
-    ],
+        ],
     fornecedores: [
         {% for fornecedor in fornecedores %}
     { id: { { fornecedor.id } }, nome: "{{ fornecedor.nome }}", tipo: "fornecedor" },
     {% endfor %}
-    ]
-};
+        ]
+    };
 
     let nomeNovoCadastro = '';
     const categoriaAtual = '{{ lancamento.categoria }}';
@@ -581,9 +581,16 @@
                             const option = document.createElement('option');
                             option.value = categoria.id;
                             option.textContent = (categoria.codigo ? categoria.codigo + ' - ' : '') + categoria.nome;
-                            if (categoria.id == '{{ lancamento.plano_conta_id or "" }}' || (categoria.nome === categoriaAtual && !'{{ lancamento.plano_conta_id }}')) {
+
+                            const savedId = '{{ lancamento.plano_conta_id or "" }}';
+                            const savedName = '{{ lancamento.categoria or "" }}';
+
+                            if (savedId && String(categoria.id) === String(savedId)) {
+                                option.selected = true;
+                            } else if (!savedId && savedName && categoria.nome === savedName) {
                                 option.selected = true;
                             }
+
                             categoriaSelect.appendChild(option);
                         });
                     } else {

@@ -1,0 +1,423 @@
+{% extends "base.html" %}
+
+{% block title %}Conciliação Bancária - Asa Finance{% endblock %}
+
+{% block page_title %}<i class="fas fa-handshake me-2"></i>Conciliação Bancária{% endblock %}
+
+{% block content %}
+<div class="pf-card mb-4 shadow-sm border-0">
+    <div class="pf-card-header-primary d-flex justify-content-between align-items-center">
+        <h6 class="mb-0"><i class="fas fa-file-invoice-dollar me-2"></i>Importar Extrato OFX</h6>
+    </div>
+    <div class="card-body">
+        <form action="{{ url_for('conciliacao') }}" method="POST" enctype="multipart/form-data"
+            class="row g-3 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label text-muted" style="font-size: 0.85rem; font-weight: 500;">
+                    <i class="fas fa-piggy-bank me-1 text-primary"></i>Conta Caixa / Bancária
+                </label>
+                <select name="conta_caixa_id"
+                    class="form-select {{ 'border-success' if conta_caixa_detectada else '' }}" id="select-conta-caixa"
+                    required>
+                    <option value="">-- Selecione a conta bancária --</option>
+                    {% for cc in contas_caixa %}
+                    <option value="{{ cc.id }}" {% if conta_caixa_detectada and conta_caixa_detectada.id==cc.id
+                        %}selected{% endif %} {% if conta_caixa_selecionada_id and conta_caixa_selecionada_id==cc.id
+                        %}selected{% endif %}>
+                        {{ cc.nome }}{% if cc.banco %} — {{ cc.banco }}{% endif %}{% if cc.conta %} ({{ cc.conta }}){%
+                        endif %}
+                    </option>
+                    {% endfor %}
+                </select>
+                {% if conta_caixa_detectada %}
+                <small class="text-success"><i class="fas fa-magic me-1"></i>Auto-detectada pelo extrato OFX</small>
+                {% endif %}
+            </div>
+            <div class="col-md-5">
+                <label for="arquivo_ofx" class="form-label text-muted" style="font-size: 0.85rem; font-weight: 500;">
+                    Selecione o arquivo do extrato (.ofx)
+                </label>
+                <input type="file" class="form-control" name="arquivo_ofx" id="arquivo_ofx" accept=".ofx" required>
+                {% if ofx_account_info %}
+                <small class="text-muted mt-1 d-block">
+                    <i class="fas fa-university me-1"></i>OFX detectou: Banco {{ ofx_account_info.banco }} |
+                    Ag. {{ ofx_account_info.agencia }} | Conta {{ ofx_account_info.conta }}
+                </small>
+                {% endif %}
+            </div>
+            <div class="col-md-3">
+                <button type="submit" class="pf-btn pf-btn-primary w-100">
+                    <i class="fas fa-upload me-1"></i> Processar Extrato
+                </button>
+            </div>
+        </form>
+        <div class="mt-2 text-muted" style="font-size: 0.82rem;">
+            <i class="fas fa-info-circle me-1"></i> O formato OFX é suportado por praticamente todos os bancos. Baixe o
+            extrato no formato OFX pelo seu internet banking e envie aqui.
+        </div>
+    </div>
+</div>
+
+
+{% if ofx_transactions %}
+<div class="w-100">
+    <div class="row g-4">
+        <!-- LADO ESQUERDO: EXTRATO OFX -->
+        <div class="col-lg-6">
+            <div class="pf-card shadow-sm h-100 border-0">
+                <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0 fw-bold text-primary">
+                        <i class="fas fa-file-import me-2"></i>Lançamentos do Extrato (OFX)
+                    </h6>
+                    <span class="badge bg-primary rounded-pill" title="Total OFX">{{ ofx_transactions|length }}</span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive" style="max-height: 600px; overflow-y: auto;">
+                        <table class="pf-table mb-0 table-hover align-middle">
+                            <thead class="sticky-top bg-light">
+                                <tr>
+                                    <th>Data</th>
+                                    <th>Descrição (Banco)</th>
+                                    <th>Valor</th>
+                                    <th class="text-end">Ação / Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in ofx_transactions %}
+                                {% set tx = item.tx %}
+                                {% set is_match = item.match is not none %}
+                                <tr class="{{ 'table-success' if is_match else 'table-danger bg-opacity-10' }}">
+                                    <td style="white-space: nowrap; font-size: 0.85rem;">{{ tx.date.strftime('%d/%m/%Y')
+                                        }}
+                                    </td>
+                                    <td>
+                                        <span title="{{ tx.memo }}" style="font-size: 0.85rem; color: #334155;">
+                                            {{ tx.memo[:30] }}{% if tx.memo|length > 30 %}...{% endif %}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span
+                                            class="pf-money {{ 'pf-money-pos text-success fw-bold' if tx.amount >= 0 else 'pf-money-neg text-danger fw-bold' }}"
+                                            style="font-size: 0.85rem;">
+                                            R$ {{ "%.2f"|format(tx.amount|abs) }}
+                                            {% if tx.amount < 0 %}<i class="fas fa-arrow-down ms-1"
+                                                style="font-size: 0.65rem;"></i>{% else %}<i
+                                                    class="fas fa-arrow-up ms-1" style="font-size: 0.65rem;"></i>{%
+                                                endif %}
+                                        </span>
+                                    </td>
+                                    <td class="text-end">
+                                        {% if is_match %}
+                                        <span class="badge bg-success py-1 px-2"
+                                            title="Match: {{ item.match.descricao[:60] }}">
+                                            <i class="fas fa-check-circle me-1"></i>Conciliado
+                                        </span>
+                                        {% else %}
+                                        <span class="badge bg-danger py-1 px-2" style="cursor:pointer;"
+                                            onclick='abrirModalCadastrar("{{ tx.date.strftime("%Y-%m-%d") }}", "{{ tx.amount }}", {{ tx.memo|tojson }}, {{ item.regra.plano_conta_id if item.regra else "null" }})'
+                                            title="Gerar lançamento para esta transação">
+                                            <i class="fas fa-plus-circle me-1"></i>Gerar Lançamento
+                                        </span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- LADO DIREITO: SISTEMA (LANÇAMENTOS) -->
+        <div class="col-lg-6">
+            <div class="pf-card shadow-sm h-100 border-0">
+                <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0 fw-bold text-success">
+                        <i class="fas fa-server me-2"></i>Lançamentos no Sistema ({{ system_transactions|length }})
+                    </h6>
+                    <span class="badge bg-success rounded-pill" title="Encontrados no mesmo período do OFX">Período
+                        OFX</span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive" style="max-height: 600px; overflow-y: auto;">
+                        <table class="pf-table mb-0 table-hover align-middle">
+                            <thead class="sticky-top bg-light">
+                                <tr>
+                                    <th>Data</th>
+                                    <th>Lançamento</th>
+                                    <th>Valor</th>
+                                    <th class="text-end">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for lanc in system_transactions %}
+                                {% set is_match = lanc.ofx_match is defined %}
+                                <tr class="{{ 'table-success bg-opacity-25' if is_match else '' }}">
+                                    <td style="white-space: nowrap; font-size: 0.85rem;">{{
+                                        lanc.data_prevista.strftime('%d/%m/%Y') }}</td>
+                                    <td>
+                                        <div class="d-flex flex-column" style="font-size: 0.8rem;">
+                                            <span class="fw-bold" style="color: #1E293B;">{{ lanc.descricao[:30] }}{% if
+                                                lanc.descricao|length > 30 %}...{% endif %}</span>
+                                            <span class="pf-badge pf-badge-info mt-1 d-inline-block"
+                                                style="font-size:0.65rem; max-width: max-content;">
+                                                {{ lanc.categoria.nome if lanc.categoria else 'Sem Categoria' }}
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span
+                                            class="pf-money {{ 'pf-money-pos text-success fw-bold' if lanc.tipo == 'entrada' else 'pf-money-neg text-danger fw-bold' }}"
+                                            style="font-size: 0.85rem;">
+                                            R$ {{ "%.2f"|format(lanc.valor|abs) }}
+                                            {% if lanc.tipo == 'saida' %}<i class="fas fa-arrow-down ms-1"
+                                                style="font-size: 0.65rem;"></i>{% else %}<i
+                                                class="fas fa-arrow-up ms-1" style="font-size: 0.65rem;"></i>{% endif %}
+                                        </span>
+                                    </td>
+                                    <td class="text-end">
+                                        {% if is_match %}
+                                        <span class="badge bg-success" title="Match com o Extrato ao lado">
+                                            <i class="fas fa-check-double me-1"></i> Conciliado
+                                        </span>
+                                        {% elif lanc.realizado %}
+                                        <span class="badge bg-secondary"
+                                            title="Já marcado como pago (mas sem match neste OFX)">
+                                            <i class="fas fa-check me-1"></i> Realizado
+                                        </span>
+                                        {% else %}
+                                        <span class="badge bg-warning text-dark"
+                                            title="Pendente de pagamento e conciliação">
+                                            <i class="fas fa-clock me-1"></i> Pendente
+                                        </span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted py-4">
+                                        Nenhum lançamento no sistema no período deste extrato.
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Cadastrar e Conciliar Lançamento -->
+    <div class="modal fade" id="modalCadastrar" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header pf-card-header-primary">
+                    <h5 class="modal-title mb-0"><i class="fas fa-plus-circle me-2"></i>Gerar Lançamento Financeiro</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <form id="formNovoLancamento">
+                        <input type="hidden" id="hidden-conta-caixa-id"
+                            value="{{ conta_caixa_ativa.id if conta_caixa_ativa else '' }}">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label form-label-sm">Data</label>
+                                <input type="date" class="form-control" id="form-data" readonly>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label form-label-sm">Valor Identificado</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">R$</span>
+                                    <input type="number" step="0.01" class="form-control fw-bold" id="form-valor"
+                                        readonly>
+                                </div>
+                            </div>
+
+                            <div class="col-12">
+                                <label class="form-label form-label-sm">Tipo de Lançamento</label>
+                                <input type="text" class="form-control fw-bold" id="form-tipo-visual" readonly>
+                                <input type="hidden" id="form-tipo-real">
+                            </div>
+
+                            <div class="col-12">
+                                <label class="form-label form-label-sm">Descrição <span
+                                        class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="form-descricao" required autocomplete="off">
+                                <small class="text-muted" style="font-size: 0.75rem;">Sugerido a partir do
+                                    extrato.</small>
+                            </div>
+
+                            <div class="col-12">
+                                <label class="form-label form-label-sm">Categoria <span
+                                        class="text-danger">*</span></label>
+                                <select class="form-select" id="form-categoria" required>
+                                    <option value="">-- Selecione uma categoria --</option>
+                                    {% for cat in categorias %}
+                                    <option value="{{ cat.id }}" data-tipo="{{ cat.tipo }}">
+                                        {{ cat.nome }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="col-12" id="div-cliente" style="display: none;">
+                                <label class="form-label form-label-sm">Cliente (Opcional)</label>
+                                <select class="form-select" id="form-cliente">
+                                    <option value="">-- Selecione um Cliente --</option>
+                                    {% for c in clientes %}
+                                    <option value="{{ c.id }}">{{ c.nome }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="col-12" id="div-fornecedor" style="display: none;">
+                                <label class="form-label form-label-sm">Fornecedor (Opcional)</label>
+                                <select class="form-select" id="form-fornecedor">
+                                    <option value="">-- Selecione um Fornecedor --</option>
+                                    {% for f in fornecedores %}
+                                    <option value="{{ f.id }}">{{ f.nome or f.razao_social }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-outline-secondary px-4"
+                        data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="pf-btn pf-btn-primary px-4" onclick="salvarNovoLancamento()">
+                        <i class="fas fa-save me-1"></i> Cadastrar e Conciliar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% elif ofx_transactions is not none %}
+    <div class="w-100">
+        <div class="alert alert-warning d-flex align-items-center mt-3 border-0 shadow-sm" role="alert">
+            <i class="fas fa-exclamation-circle fa-2x me-3 text-warning"></i>
+            <div>
+                <h6 class="alert-heading fw-bold mb-1">Atenção: Extrato sem transações</h6>
+                O arquivo OFX foi processado com sucesso, mas o sistema não encontrou nenhuma transação financeira
+                (saldo de 0
+                registros). Verifique as datas e o conteúdo do arquivo exportado do seu banco.
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% endblock %}
+
+    {% block scripts %}
+    <script>
+        const modalCad = new bootstrap.Modal(document.getElementById('modalCadastrar') || document.createElement('div'));
+        // Store the original OFX memo for rule saving
+        let _memoOriginal = '';
+
+        function abrirModalCadastrar(dataBanco, valorBancoStr, memoBanco, prefilledCategoriaId) {
+            let valor = parseFloat(valorBancoStr);
+            let valorAbsoluto = Math.abs(valor).toFixed(2);
+            _memoOriginal = memoBanco;
+
+            document.getElementById('form-data').value = dataBanco;
+            document.getElementById('form-valor').value = valorAbsoluto;
+            document.getElementById('form-descricao').value = memoBanco;
+
+            const tipoVis = document.getElementById('form-tipo-visual');
+            const tipoReal = document.getElementById('form-tipo-real');
+            const divCliente = document.getElementById('div-cliente');
+            const divFornecedor = document.getElementById('div-fornecedor');
+
+            if (valor >= 0) {
+                tipoVis.value = "ENTRADA (Crédito)";
+                tipoVis.className = "form-control fw-bold text-success bg-white";
+                tipoReal.value = "entrada";
+                divCliente.style.display = "block";
+                divFornecedor.style.display = "none";
+                document.getElementById('form-fornecedor').value = "";
+            } else {
+                tipoVis.value = "SAÍDA (Débito)";
+                tipoVis.className = "form-control fw-bold text-danger bg-white";
+                tipoReal.value = "saida";
+                divCliente.style.display = "none";
+                divFornecedor.style.display = "block";
+                document.getElementById('form-cliente').value = "";
+            }
+
+            // Filter categories by tipo (entrada/saida)
+            const catSelect = document.getElementById('form-categoria');
+            catSelect.value = "";
+            const tipoAtual = valor >= 0 ? 'entrada' : 'saida';
+            Array.from(catSelect.options).forEach(opt => {
+                if (!opt.value) return;  // keep the blank placeholder
+                const optTipo = opt.getAttribute('data-tipo');
+                opt.hidden = optTipo && optTipo !== tipoAtual;
+            });
+            if (prefilledCategoriaId && prefilledCategoriaId !== null) {
+                catSelect.value = String(prefilledCategoriaId);
+                catSelect.style.borderColor = "#8b5cf6";
+                catSelect.title = "💡 Categoria sugerida pela memória de conciliação";
+            } else {
+                catSelect.style.borderColor = "";
+                catSelect.title = "";
+            }
+
+            modalCad.show(document.getElementById('modalCadastrar'));
+        }
+
+        function salvarNovoLancamento() {
+            const descricao = document.getElementById('form-descricao').value.trim();
+            const categoria = document.getElementById('form-categoria').value;
+            const data = document.getElementById('form-data').value;
+            const valor = document.getElementById('form-valor').value;
+            const tipo = document.getElementById('form-tipo-real').value;
+
+            let relacaoId = "";
+            if (tipo === 'entrada') {
+                relacaoId = document.getElementById('form-cliente').value;
+            } else {
+                relacaoId = document.getElementById('form-fornecedor').value;
+            }
+
+            if (!descricao) { alert('A descrição é obrigatória.'); return; }
+            if (!categoria) { alert('Selecione uma Categoria.'); return; }
+
+            const btn = event.currentTarget;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Salvando...';
+
+            fetch('/conciliacao/gerar_lancamento', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    descricao: descricao,
+                    valor: valor,
+                    tipo: tipo,
+                    data: data,
+                    categoria_id: categoria,
+                    cliente_fornecedor_id: relacaoId || null,
+                    memo_original: _memoOriginal,
+                    conta_caixa_id: document.getElementById('hidden-conta-caixa-id')?.value || null
+                })
+            })
+                .then(r => r.json())
+                .then(res => {
+                    if (res.success) {
+                        // Reload triggers form resubmit → OFX is re-processed with the new lançamento now matching
+                        window.location.reload();
+                    } else {
+                        alert('Erro: ' + res.message);
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="fas fa-save me-1"></i> Gerar e Conciliar';
+                    }
+                })
+                .catch(err => {
+                    alert('Erro de rede: ' + err);
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-save me-1"></i> Gerar e Conciliar';
+                });
+        }
+    </script>
+    {% endblock %}
