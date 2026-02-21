@@ -3061,6 +3061,7 @@ def conciliacao():
                             conta_caixa_detectada = cc
                             break
             except Exception as det_err:
+                db.session.rollback()
                 app.logger.warning(f'[OFX] Falha ao detectar conta bancária: {det_err}')
             
             # Conta selecionada pelo usuário no formulário (tem precedência sobre auto-detecção)
@@ -3203,6 +3204,7 @@ def conciliacao():
                             if best_regra and best_regra_score >= 30:  # 30% keyword overlap minimum
                                 ofx_item['regra'] = best_regra
             except Exception as regra_err:
+                db.session.rollback()
                 app.logger.error(f'[OFX] Erro ao carregar regras de conciliação: {str(regra_err)}')
 
             matched_count = sum(1 for item in ofx_transactions if item['match'] is not None)
@@ -3215,6 +3217,7 @@ def conciliacao():
                 clientes = Cliente.query.filter_by(empresa_id=empresa_id).order_by(Cliente.nome).all()
                 fornecedores = Fornecedor.query.filter_by(empresa_id=empresa_id).order_by(Fornecedor.nome).all()
             except Exception as modal_err:
+                db.session.rollback()
                 app.logger.error(f'Erro ao buscar dados do modal OFX (não crítico): {str(modal_err)}')
             
             return render_template('conciliacao.html',
@@ -3234,6 +3237,7 @@ def conciliacao():
             
         except Exception as e:
             import traceback
+            db.session.rollback()
             app.logger.error(f'Erro ao processar OFX: {str(e)}\n{traceback.format_exc()}')
             flash(f'Erro ao ler arquivo OFX: {str(e)}', 'error')
 
