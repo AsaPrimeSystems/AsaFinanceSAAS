@@ -1172,6 +1172,101 @@ def obter_empresa_id_sessao(session, usuario):
 
     return usuario.empresa_id if usuario and usuario.empresa_id else None
 
+
+# ===== CONTROLE DE ACESSO POR MÓDULO =====
+
+_MODULOS_PREFIXOS = {
+    '/lancamentos':     'lancamentos',
+    '/novo-lancamento': 'lancamentos',
+    '/clientes':        'clientes',
+    '/novo-cliente':    'clientes',
+    '/fornecedores':    'fornecedores',
+    '/novo-fornecedor': 'fornecedores',
+    '/vendas':          'vendas',
+    '/nova-venda':      'vendas',
+    '/compras':         'compras',
+    '/nova-compra':     'compras',
+    '/estoque':         'estoque',
+    '/relatorios':      'relatorios',
+    '/dre':             'relatorios',
+    '/plano-contas':    'plano_contas',
+    '/importacao':      'importacao',
+    '/conciliacao':     'conciliacao',
+    '/conta-caixa':     'configuracoes',
+}
+
+def _modulo_da_url(path):
+    for prefixo, modulo in _MODULOS_PREFIXOS.items():
+        if path == prefixo or path.startswith(prefixo + '/'):
+            return modulo
+    return None
+
+def _acao_da_requisicao(path, method):
+    if method == 'GET':
+        return 'visualizar'
+    p = path.lower()
+    if any(k in p for k in ('deletar', 'excluir', 'remover')):
+        return 'deletar'
+    if any(k in p for k in ('editar', 'atualizar')):
+        return 'editar'
+    return 'criar'
+
+def verificar_acesso_modulo(modulo, acao):
+    """
+    Verifica se o usuário atual tem acesso ao módulo/ação.
+    Retorna (tem_acesso: bool, mensagem: str).
+
+    Regras:
+    - Admin e usuario_principal: acesso total
+    - Contador em acesso_contador (empresa vinculada): acesso total
+    - sub_contador: verifica PermissaoCategoria da categoria do sub-usuário
+    - Usuario tipo='usuario' com categoria_id: verifica PermissaoCategoria (tempo real)
+    - Usuario tipo='usuario' sem categoria e sem Permissao: libera (compatibilidade)
+    """
+    tipo = session.get('usuario_tipo')
+
+    if tipo in ('admin', 'usuario_principal'):
+        return True, ''
+
+    if session.get('acesso_contador'):
+        return True, ''
+
+    MSG = 'Você não tem permissão para acessar este módulo. Entre em contato com o usuário master.'
+
+    if tipo == 'sub_contador':
+        sub_id = session.get('sub_usuario_id')
+        sub = db.session.get(SubUsuarioContador, sub_id) if sub_id else None
+        if not sub or not sub.categoria_id:
+            return False, MSG
+        perm = PermissaoCategoria.query.filter_by(
+            categoria_id=sub.categoria_id, modulo=modulo, acao=acao, ativo=True
+        ).first()
+        return (perm is not None), ('' if perm else MSG)
+
+    if tipo == 'usuario':
+        uid = session.get('usuario_id')
+        u = db.session.get(Usuario, uid) if uid else None
+        if not u:
+            return False, MSG
+        if u.tipo in ('admin', 'usuario_principal'):
+            return True, ''
+        if u.categoria_id:
+            perm = PermissaoCategoria.query.filter_by(
+                categoria_id=u.categoria_id, modulo=modulo, acao=acao, ativo=True
+            ).first()
+            return (perm is not None), ('' if perm else MSG)
+        # Sem categoria: verificar Permissao individual
+        perm = Permissao.query.filter_by(usuario_id=uid, modulo=modulo, acao=acao, ativo=True).first()
+        if perm:
+            return True, ''
+        # Sem nenhuma Permissao cadastrada: libera (compatibilidade com usuários antigos)
+        if Permissao.query.filter_by(usuario_id=uid).count() == 0:
+            return True, ''
+        return False, MSG
+
+    return True, ''
+
+
 # Funções auxiliares para parcelamento
 def criar_parcelas_automaticas(venda_ou_compra, tipo, usuario_id, itens_carrinho_json=None):
     """
@@ -1552,6 +1647,41 @@ def login():
             flash('Usuário ou senha incorretos.', 'error')
     
     return render_template('login_novo.html')
+
+@app.before_request
+def verificar_permissoes_modulos():
+    """
+    Enforcement de permissões por módulo para sub-usuários e usuários com categoria.
+    Contadores em modo acesso_contador têm acesso total a todos os módulos.
+    Roda antes de cada requisição nas rotas protegidas.
+    """
+    if not (session.get('usuario_id') or session.get('sub_usuario_id')):
+        return
+
+    ep = request.endpoint
+    if ep and (ep.startswith('static') or ep in (
+        'login', 'logout', 'registro', 'precos', 'assinatura_suspensa',
+        'gateway_webhook', 'index', 'dashboard_contador',
+    )):
+        return
+
+    modulo = _modulo_da_url(request.path)
+    if not modulo:
+        return
+
+    acao = _acao_da_requisicao(request.path, request.method)
+    tem_acesso, mensagem = verificar_acesso_modulo(modulo, acao)
+    if tem_acesso:
+        return
+
+    if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify({'success': False, 'message': mensagem}), 403
+
+    flash(mensagem, 'error')
+    if session.get('usuario_tipo') == 'sub_contador' or session.get('tipo_conta') == 'contador_bpo':
+        return redirect(url_for('dashboard_contador'))
+    return redirect(url_for('dashboard'))
+
 
 @app.before_request
 def atualizar_ultimo_acesso():
@@ -5586,7 +5716,9 @@ def ajustar_estoque(produto_id):
         return redirect(url_for('dashboard'))
     
     produto = db.session.get(Produto, produto_id)
-    if not produto or produto.usuario_id != usuario.id:
+    _empresa_id_est = obter_empresa_id_sessao(session, usuario)
+    _uids_est = [r.id for r in Usuario.query.filter_by(empresa_id=_empresa_id_est).with_entities(Usuario.id)]
+    if not produto or produto.usuario_id not in _uids_est:
         flash('Produto não encontrado.', 'error')
         return redirect(url_for('estoque'))
     
@@ -5987,8 +6119,9 @@ def deletar_conta(conta_id):
 
     usuario = db.session.get(Usuario, session['usuario_id'])
 
+    _empresa_id_pc = obter_empresa_id_sessao(session, usuario)
     conta = db.session.get(PlanoConta, conta_id)
-    if not conta or conta.usuario_id != usuario.id:
+    if not conta or conta.empresa_id != _empresa_id_pc:
         flash('Conta não encontrada ou sem permissão para deletar.', 'error')
         return redirect(url_for('plano_contas'))
 
@@ -11024,8 +11157,9 @@ def parcelas_venda(venda_id):
     if usuario.tipo == 'admin':
         return redirect(url_for('admin_dashboard'))
     
+    _empresa_id_pv = obter_empresa_id_sessao(session, usuario)
     venda = db.session.get(Venda, venda_id)
-    if not venda or venda.usuario_id != usuario.id:
+    if not venda or venda.empresa_id != _empresa_id_pv:
         flash('Venda não encontrada.', 'error')
         return redirect(url_for('vendas'))
     
@@ -11042,8 +11176,9 @@ def parcelas_compra(compra_id):
     if usuario.tipo == 'admin':
         return redirect(url_for('admin_dashboard'))
     
+    _empresa_id_pc2 = obter_empresa_id_sessao(session, usuario)
     compra = db.session.get(Compra, compra_id)
-    if not compra or compra.usuario_id != usuario.id:
+    if not compra or compra.empresa_id != _empresa_id_pc2:
         flash('Compra não encontrada.', 'error')
         return redirect(url_for('compras'))
     
@@ -16913,13 +17048,14 @@ def api_criar_lancamento_financeiro(tipo, id):
         return jsonify({'success': False, 'error': 'Acesso negado'}), 403
     
     try:
+        _empresa_id_api = obter_empresa_id_sessao(session, usuario)
         if tipo == 'venda':
             venda_ou_compra = db.session.get(Venda, id)
-            if not venda_ou_compra or venda_ou_compra.usuario_id != usuario.id:
+            if not venda_ou_compra or venda_ou_compra.empresa_id != _empresa_id_api:
                 return jsonify({'success': False, 'error': 'Venda não encontrada'}), 404
         elif tipo == 'compra':
             venda_ou_compra = db.session.get(Compra, id)
-            if not venda_ou_compra or venda_ou_compra.usuario_id != usuario.id:
+            if not venda_ou_compra or venda_ou_compra.empresa_id != _empresa_id_api:
                 return jsonify({'success': False, 'error': 'Compra não encontrada'}), 404
         else:
             return jsonify({'success': False, 'error': 'Tipo inválido'}), 400
