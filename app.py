@@ -1061,6 +1061,14 @@ class DreConfiguracao(db.Model):
     def __repr__(self):
         return f'<DreConfiguracao {self.codigo} - {self.descricao}>'
 
+# Garantir criação de todas as tabelas após todos os modelos estarem definidos
+# (necessário em Gunicorn/produção onde __main__ não é executado)
+with app.app_context():
+    try:
+        db.create_all()
+    except Exception as _e:
+        print(f"⚠️ Aviso ao garantir criação de tabelas: {_e}")
+
 # ===== INICIALIZAÇÃO DOS SERVIÇOS =====
 def obter_modelos():
     """Retorna dicionário com todos os modelos para os serviços"""
@@ -3363,21 +3371,19 @@ def conciliar_gerar_lancamento():
             novo_lanc.fornecedor_id = int(cliente_fornecedor_id)
 
         db.session.add(novo_lanc)
-        
-        # ===== SALVAR/ATUALIZAR REGRA DE CONCILIAÇÃO (Memória) =====
-        # Scoped strictly to this empresa — never shared with others
+        db.session.commit()
+
+        # ===== SALVAR/ATUALIZAR REGRA DE CONCILIAÇÃO (transação separada, não crítica) =====
         try:
             keywords = ConciliacaoRegra.keywords_from_memo(memo_original or descricao)
             if keywords:
-                # Check if a rule with the same keywords+tipo already exists for this empresa
                 regra_existente = ConciliacaoRegra.query.filter_by(
                     empresa_id=empresa_id,
                     tipo=tipo,
                     memo_keywords=keywords
                 ).first()
-                
+
                 if regra_existente:
-                    # Update usage stats and re-apply category/client/supplier
                     regra_existente.uso_count = (regra_existente.uso_count or 0) + 1
                     regra_existente.ultimo_uso = datetime.utcnow()
                     regra_existente.categoria_id = int(categoria_id)
@@ -3386,7 +3392,6 @@ def conciliar_gerar_lancamento():
                     elif tipo == 'saida' and cliente_fornecedor_id:
                         regra_existente.fornecedor_id = int(cliente_fornecedor_id)
                 else:
-                    # Create new rule
                     nova_regra = ConciliacaoRegra(
                         empresa_id=empresa_id,
                         memo_keywords=keywords,
@@ -3398,10 +3403,11 @@ def conciliar_gerar_lancamento():
                     )
                     db.session.add(nova_regra)
                     app.logger.info(f'[OFX] Nova regra de conciliação criada para empresa {empresa_id}: {keywords}')
+                db.session.commit()
         except Exception as rule_err:
+            db.session.rollback()
             app.logger.error(f'[OFX] Erro ao salvar regra de conciliação (não crítico): {str(rule_err)}')
-        
-        db.session.commit()
+
         return jsonify({'success': True, 'message': 'Lançamento criado e conciliado!'})
     except Exception as e:
         db.session.rollback()
@@ -13626,8 +13632,16 @@ def importacao_ofx_gerar():
                     usuario_criacao_id=session_user.id
                 )
                 db.session.add(novo_lanc)
+                # flush() atribui ID antes do commit; evita ObjectDeletedError
+                # causado por expire_on_commit=True ao acessar novo_lanc.id após commit
+                db.session.flush()
+                lanc_id = int(novo_lanc.id)
 
-                # Salvar/atualizar ConciliacaoRegra para aprendizado
+                # Commit do lançamento — transação independente da ConciliacaoRegra
+                db.session.commit()
+                criados.append({'id': lanc_id, 'tipo': tipo, 'valor': valor})
+
+                # Salvar/atualizar ConciliacaoRegra em transação separada (não crítica)
                 try:
                     keywords = ConciliacaoRegra.keywords_from_memo(memo_original)
                     if keywords and categoria_id:
@@ -13653,13 +13667,9 @@ def importacao_ofx_gerar():
                                 fornecedor_id=int(fornecedor_id) if tipo == 'saida' and fornecedor_id else None
                             )
                             db.session.add(nova_regra)
+                        db.session.commit()
                 except Exception:
-                    pass  # erro na regra não cancela o lançamento
-
-                # Commit individual: persiste este item e libera a conexão
-                # para o próximo item partir de um estado limpo.
-                db.session.commit()
-                criados.append({'id': novo_lanc.id, 'tipo': tipo, 'valor': valor})
+                    db.session.rollback()  # não-crítico: lançamento já foi salvo com sucesso
 
             except Exception as item_err:
                 # Rollback completo reseta a conexão PostgreSQL para estado válido.
