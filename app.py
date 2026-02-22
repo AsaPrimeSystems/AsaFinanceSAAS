@@ -6006,6 +6006,8 @@ def deletar_conta(conta_id):
 
     try:
         nome_conta = conta.nome
+        # Remover configurações DRE que referenciam esta conta antes de deletar
+        DreConfiguracao.query.filter_by(plano_conta_id=conta.id).delete(synchronize_session=False)
         db.session.delete(conta)
         db.session.commit()
         flash(f'Conta {nome_conta} deletada com sucesso.', 'success')
@@ -19185,6 +19187,7 @@ def admin_excluir_conta(conta_id):
             Servico.query.filter(Servico.usuario_id.in_(usuarios_ids)).delete(synchronize_session=False)
 
             # 4. Limpar Infraestrutura e Logs
+            DreConfiguracao.query.filter_by(empresa_id=conta_id).delete(synchronize_session=False)
             PlanoConta.query.filter(PlanoConta.empresa_id == conta_id).delete(synchronize_session=False)
             ContaCaixa.query.filter(ContaCaixa.usuario_id.in_(usuarios_ids)).delete(synchronize_session=False)
             Importacao.query.filter(Importacao.usuario_id.in_(usuarios_ids)).delete(synchronize_session=False)
