@@ -268,28 +268,18 @@
                     </div>
 
                     <!-- Estrutura esperada -->
-                    <div class="mb-3" style="font-size:0.8rem; color:#555;">
-                        <strong>Colunas da planilha:</strong>
-                        <table class="table table-sm table-bordered mt-1 mb-0" style="font-size:0.78rem;">
-                            <thead class="table-dark">
-                                <tr>
-                                    <th>CODIGO</th><th>NOME</th><th>TIPO</th>
-                                    <th>NATUREZA</th><th>CODIGO_PAI</th><th>DESCRICAO</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr class="table-light">
-                                    <td>1</td><td>Receitas</td><td>entrada</td>
-                                    <td>sintetica</td><td></td><td>Grupo de receitas</td>
-                                </tr>
-                                <tr>
-                                    <td>1.1.1</td><td>Vendas</td><td>entrada</td>
-                                    <td>analitica</td><td>1.1</td><td></td>
-                                </tr>
-                            </tbody>
-                        </table>
-                        <small class="text-muted">
-                            <strong>CODIGO_PAI</strong>: código da conta sintética pai (obrigatório para analíticas)
+                    <div class="mb-3">
+                        <p class="mb-1 fw-semibold" style="font-size:0.82rem;">Colunas da planilha:</p>
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:4px 12px; font-size:0.78rem;">
+                            <div><span class="badge bg-dark me-1">CODIGO</span><span class="text-muted">Ex: 1, 1.1, 1.1.2</span></div>
+                            <div><span class="badge bg-dark me-1">NOME</span><span class="text-muted">Nome da conta</span></div>
+                            <div><span class="badge bg-dark me-1">TIPO</span><span class="text-muted"><em>entrada</em> ou <em>saida</em></span></div>
+                            <div><span class="badge bg-dark me-1">NATUREZA</span><span class="text-muted"><em>sintetica</em> ou <em>analitica</em></span></div>
+                            <div><span class="badge bg-secondary me-1">CODIGO_PAI</span><span class="text-muted">Código da conta pai</span></div>
+                            <div><span class="badge bg-secondary me-1">DESCRICAO</span><span class="text-muted">Opcional</span></div>
+                        </div>
+                        <small class="text-muted d-block mt-1">
+                            <strong>CODIGO_PAI</strong> obrigatório para contas analíticas — deve referenciar o CODIGO de uma sintética da mesma planilha.
                         </small>
                     </div>
 
