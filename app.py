@@ -13587,10 +13587,13 @@ def importacao_ofx_gerar():
         if not lancamentos_data:
             return jsonify({'success': False, 'message': 'Nenhum lançamento para gerar'}), 400
 
-        criados = []
+        criados = []       # lista de (id, tipo, valor) dos lançamentos criados
         erros = []
 
         for item in lancamentos_data:
+            # Usar savepoint por item: se um falha com erro SQL no PostgreSQL,
+            # o rollback vai apenas ao savepoint e a transação principal fica intacta.
+            sp = db.session.begin_nested()
             try:
                 dt = datetime.strptime(item['data'], '%Y-%m-%d').date()
                 valor = float(item['valor'])
@@ -13651,34 +13654,33 @@ def importacao_ofx_gerar():
                             )
                             db.session.add(nova_regra)
                 except Exception:
-                    pass
+                    pass  # erro na regra não cancela o lançamento
 
                 db.session.flush()
-                criados.append(novo_lanc.id)
+                sp.commit()
+                criados.append({'id': novo_lanc.id, 'tipo': tipo, 'valor': valor})
 
             except Exception as item_err:
+                sp.rollback()  # reverte apenas este item, preserva os já criados
                 erros.append(f"Transação {item.get('fitid', '?')}: {str(item_err)}")
+                app.logger.warning(f'[OFX Import] Erro em item: {item_err}')
+
+        ids_criados = [c['id'] for c in criados]
 
         # Registrar no histórico de importações
-        if criados:
+        if ids_criados:
             try:
-                total_entradas = sum(
-                    float(it['valor']) for it in lancamentos_data
-                    if it.get('tipo') == 'entrada' and lancamentos_data.index(it) < len(criados)
-                )
-                total_saidas = sum(
-                    float(it['valor']) for it in lancamentos_data
-                    if it.get('tipo') == 'saida' and lancamentos_data.index(it) < len(criados)
-                )
+                total_entradas = sum(c['valor'] for c in criados if c['tipo'] == 'entrada')
+                total_saidas   = sum(c['valor'] for c in criados if c['tipo'] == 'saida')
                 nova_importacao = Importacao(
                     usuario_id=session_user.id,
                     nome_arquivo='extrato_bancario.ofx',
-                    total_lancamentos=len(criados),
+                    total_lancamentos=len(ids_criados),
                     total_entradas=total_entradas,
                     total_saidas=total_saidas,
-                    sucessos=len(criados),
+                    sucessos=len(ids_criados),
                     erros=len(erros),
-                    lancamentos_ids=_json_ofx.dumps(criados),
+                    lancamentos_ids=_json_ofx.dumps(ids_criados),
                     status='concluida'
                 )
                 db.session.add(nova_importacao)
