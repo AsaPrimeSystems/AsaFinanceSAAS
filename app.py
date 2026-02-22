@@ -3353,7 +3353,8 @@ def conciliar_gerar_lancamento():
             data_realizada=dt.date(),
             categoria=categoria_nome,        # text field
             plano_conta_id=int(categoria_id),  # FK to PlanoConta
-            conta_caixa_id=int(conta_caixa_id) if conta_caixa_id else None  # FK to ContaCaixa
+            conta_caixa_id=int(conta_caixa_id) if conta_caixa_id else None,  # FK to ContaCaixa
+            usuario_criacao_id=session_user.id
         )
         
         if tipo == 'entrada' and cliente_fornecedor_id:
@@ -3430,9 +3431,11 @@ def conciliar_lancamento(lancamento_id):
         else:
             lancamento.data_realizada = datetime.utcnow().date()
             
-        # Pega a conta caixa atual se puder para re-calcular saldo, embora não estritamente necessário 
+        # Pega a conta caixa atual se puder para re-calcular saldo, embora não estritamente necessário
         # já que atualiza no banco de dados mas é bom por completude.
         lancamento.realizado = True
+        lancamento.usuario_ultima_edicao_id = session_user.id
+        lancamento.data_ultima_edicao = datetime.utcnow()
         db.session.commit()
         return jsonify({'success': True})
     except Exception as e:
@@ -7061,6 +7064,7 @@ def nova_compra():
     
     if request.method == 'POST':
         try:
+            empresa_id = obter_empresa_id_sessao(session, usuario)
             # Validação robusta dos dados de entrada
             fornecedor_id = request.form.get('fornecedor_id')
             fornecedor_nome = request.form.get('fornecedor_nome', '').strip()
@@ -7162,10 +7166,14 @@ def nova_compra():
                 flash('Valor inválido no carrinho.', 'error')
                 return redirect(url_for('nova_compra'))
             
-            # Usar valores do primeiro item válido para compatibilidade
+            # Calcular quantidade e preço de custo considerando todos os itens
             primeiro_item = itens_validos[0]
-            quantidade = primeiro_item['qtd']
-            preco_custo = primeiro_item['preco']
+            if len(itens_validos) > 1:
+                quantidade = sum(item['qtd'] for item in itens_validos)
+                preco_custo = round(valor / quantidade, 4) if quantidade > 0 else primeiro_item['preco']
+            else:
+                quantidade = primeiro_item['qtd']
+                preco_custo = primeiro_item['preco']
             
             if quantidade <= 0:
                 flash('Quantidade deve ser maior que zero.', 'error')

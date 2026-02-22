@@ -142,7 +142,7 @@
 
                     <!-- Carrinho -->
                     <div class="card carrinho-card mb-3" id="carrinho-container"
-                        style="--display: {% if lancamento.produto_servico %}block{% else %}none{% endif %}; display: var(--display);">
+                        style="--display: {% if lancamento.produto_servico or (itens_carrinho and itens_carrinho|length > 0) %}block{% else %}none{% endif %}; display: var(--display);">
                         <div class="card-header">
                             <h6 class="mb-0">Carrinho</h6>
                         </div>
@@ -459,18 +459,18 @@
     let clientesFornecedores = {
         clientes: [
             {% for cliente in clientes %}
-    { id: { { cliente.id } }, nome: "{{ cliente.nome }}", tipo: "cliente" },
+    { id: {{ cliente.id }}, nome: "{{ cliente.nome }}", tipo: "cliente" },
     {% endfor %}
         ],
     fornecedores: [
         {% for fornecedor in fornecedores %}
-    { id: { { fornecedor.id } }, nome: "{{ fornecedor.nome }}", tipo: "fornecedor" },
+    { id: {{ fornecedor.id }}, nome: "{{ fornecedor.nome }}", tipo: "fornecedor" },
     {% endfor %}
         ]
     };
 
     let nomeNovoCadastro = '';
-    const categoriaAtual = '{{ lancamento.categoria }}';
+    const categoriaAtual = {{ lancamento.categoria | tojson }};
 
     document.addEventListener('DOMContentLoaded', function () {
         const input = document.getElementById('cliente_fornecedor');
@@ -559,17 +559,21 @@
             });
         }
 
-        // Atualizar categorias baseado no tipo selecionado
-        document.getElementById('tipo').addEventListener('change', function () {
-            const tipo = this.value;
-            const categoriaSelect = document.getElementById('categoria');
+        // Carregar categorias para um dado tipo (entrada/saida)
+        // preSelectId e preSelectName são usados apenas no carregamento inicial
+        const _savedCatId = {{ lancamento.plano_conta_id | tojson }};
+        const _savedCatName = {{ lancamento.categoria | tojson }};
 
-            categoriaSelect.innerHTML = '<option value="">Carregando categorias...</option>';
+        function carregarCategorias(tipo, preSelectId, preSelectName) {
+            const categoriaSelect = document.getElementById('categoria');
+            if (!categoriaSelect) return;
 
             if (!tipo) {
                 categoriaSelect.innerHTML = '<option value="">Selecione primeiro o tipo...</option>';
                 return;
             }
+
+            categoriaSelect.innerHTML = '<option value="">Carregando categorias...</option>';
 
             fetch(`/api/categorias/${tipo}`)
                 .then(response => response.json())
@@ -582,12 +586,9 @@
                             option.value = categoria.id;
                             option.textContent = (categoria.codigo ? categoria.codigo + ' - ' : '') + categoria.nome;
 
-                            const savedId = '{{ lancamento.plano_conta_id or "" }}';
-                            const savedName = '{{ lancamento.categoria or "" }}';
-
-                            if (savedId && String(categoria.id) === String(savedId)) {
+                            if (preSelectId && String(categoria.id) === String(preSelectId)) {
                                 option.selected = true;
-                            } else if (!savedId && savedName && categoria.nome === savedName) {
+                            } else if (!preSelectId && preSelectName && categoria.nome === preSelectName) {
                                 option.selected = true;
                             }
 
@@ -601,12 +602,17 @@
                     console.error('Erro ao carregar categorias:', error);
                     categoriaSelect.innerHTML = '<option value="">Erro ao carregar categorias</option>';
                 });
+        }
+
+        // Atualizar categorias quando tipo muda (sem pré-seleção, usuário está trocando)
+        document.getElementById('tipo').addEventListener('change', function () {
+            carregarCategorias(this.value, null, null);
         });
 
-        // Carregar categorias iniciais
-        const tipoSelect = document.getElementById('tipo');
-        if (tipoSelect && tipoSelect.value) {
-            tipoSelect.dispatchEvent(new Event('change'));
+        // Carregar categorias iniciais com pré-seleção da categoria salva
+        const _tipoInicial = document.getElementById('tipo') ? document.getElementById('tipo').value : '';
+        if (_tipoInicial) {
+            carregarCategorias(_tipoInicial, _savedCatId, _savedCatName);
         }
 
         function toNumber(el) {

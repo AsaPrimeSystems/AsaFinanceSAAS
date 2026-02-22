@@ -125,7 +125,7 @@
                     lancamentos|length if lancamentos else 0 }} itens)</span>
             </div>
 
-            <div class="totals-grid">
+            <div class="totals-grid" style="grid-template-columns: 1fr 1fr 1fr !important;">
                 <!-- Entradas -->
                 <div class="totals-group entradas-group">
                     <div class="group-title">
@@ -179,6 +179,31 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Saldos por Conta-Caixa -->
+                {% if saldos_contas_caixa %}
+                <div class="totals-group" style="border-left: 3px solid #6c757d !important;">
+                    <div class="group-title" style="color: #495057!important; flex-direction:column; align-items:flex-start; gap:2px;">
+                        <span><i class="fas fa-wallet"></i> SALDOS CONTAS</span>
+                        <small style="font-size:0.7em; font-weight:400;">
+                            até {{ data_limite_saldo.strftime('%d/%m/%Y') if data_limite_saldo else data_fim }}
+                        </small>
+                    </div>
+                    <div class="group-items" style="max-height:88px; overflow-y:auto;">
+                        {% for sc in saldos_contas_caixa %}
+                        <div class="total-item">
+                            <span class="item-label" title="{{ sc.nome }}">
+                                {{ sc.nome[:22] }}{{ '…' if sc.nome|length > 22 else '' }}:
+                            </span>
+                            <span class="item-value {% if sc.saldo >= 0 %}text-success{% else %}text-danger{% endif %}"
+                                  style="font-weight:600;">
+                                R$ {{ "%.2f"|format(sc.saldo) }}
+                            </span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>

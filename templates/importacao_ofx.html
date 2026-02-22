@@ -1,0 +1,619 @@
+{% extends "base.html" %}
+
+{% block title %}Importação via Extrato OFX{% endblock %}
+{% block page_title %}Importação via Extrato Bancário OFX{% endblock %}
+
+{% block content %}
+<style>
+/* ===== LAYOUT GERAL ===== */
+.ofx-topo {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+.ofx-badges { display: flex; gap: 6px; align-items: center; }
+.ofx-acoes  { display: flex; gap: 8px; align-items: center; }
+
+/* ===== DOIS PAINÉIS ===== */
+.ofx-paineis {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    align-items: start;
+}
+@media (max-width: 767px) {
+    .ofx-paineis { grid-template-columns: 1fr; }
+}
+
+/* ===== CARD PAINEL ===== */
+.ofx-card-painel {
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    overflow: hidden;         /* contém todo filho — inclusive thead */
+    display: flex;
+    flex-direction: column;
+}
+.ofx-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 9px 14px;
+    background: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+    font-weight: 600;
+    font-size: 0.9rem;
+    flex-shrink: 0;
+}
+.ofx-card-body {
+    overflow-y: auto;
+    height: 66vh;
+    min-height: 280px;
+}
+
+/* ===== ITEM OFX (painel esquerdo) ===== */
+.ofx-item {
+    display: grid;
+    grid-template-columns: 20px 1fr auto;
+    gap: 8px;
+    align-items: center;
+    padding: 8px 12px;
+    border-bottom: 1px solid #f0f0f0;
+    transition: background 0.1s;
+}
+.ofx-item:hover { background: #f8f9fa; }
+.ofx-item-info { min-width: 0; }
+.ofx-item-desc {
+    font-weight: 600;
+    font-size: 0.875rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.ofx-item-meta {
+    font-size: 0.75rem;
+    color: #6c757d;
+    margin-top: 2px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+.ofx-item-valor {
+    font-weight: 700;
+    font-size: 0.875rem;
+    white-space: nowrap;
+    text-align: right;
+}
+.ofx-item-btn { flex-shrink: 0; }
+
+/* ===== TABELA MAPEADOS (painel direito) ===== */
+#tabela-mapeados {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.82rem;
+    table-layout: fixed;
+}
+#tabela-mapeados thead th {
+    background: #f8f9fa;
+    border-bottom: 2px solid #dee2e6;
+    padding: 7px 8px;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: .03em;
+    color: #6c757d;
+    white-space: nowrap;
+    /* SEM position:sticky — evita ghost rendering quando display:none */
+}
+#tabela-mapeados tbody td {
+    padding: 6px 8px;
+    border-bottom: 1px solid #f0f0f0;
+    vertical-align: middle;
+}
+#tabela-mapeados tbody tr:hover { background: #f8f9fa; }
+
+/* ===== SUGESTÃO BADGE ===== */
+.badge-sug {
+    background: #e0f4ff;
+    color: #0d6efd;
+    border: 1px solid #b6d9ff;
+    border-radius: 4px;
+    padding: 1px 5px;
+    font-size: 0.68rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+</style>
+
+<div class="container-fluid px-2 pb-3">
+
+    {% if not ofx_items %}
+    <!-- ===== UPLOAD FORM ===== -->
+    <div class="row justify-content-center mt-2">
+        <div class="col-md-6">
+            <a href="{{ url_for('importacao') }}" class="btn btn-outline-secondary btn-sm d-inline-flex align-items-center mb-3">
+                <i class="fas fa-arrow-left me-1"></i> Voltar
+            </a>
+            <div class="card border-primary shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0"><i class="fas fa-university me-2"></i>Enviar Extrato Bancário OFX</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info mb-3 small">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Faça upload do extrato <strong>.ofx</strong>. As transações aparecem no painel esquerdo — você mapeia a categoria e confirma antes de criar os lançamentos.
+                    </div>
+                    <form method="POST" enctype="multipart/form-data">
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold small">Conta Caixa <span class="text-muted fw-normal">(opcional)</span></label>
+                            <select class="form-select form-select-sm" name="conta_caixa_id">
+                                <option value="">-- Selecionar conta --</option>
+                                {% for cc in contas_caixa %}
+                                <option value="{{ cc.id }}">{{ cc.nome }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-4">
+                            <label class="form-label fw-semibold small">Arquivo OFX</label>
+                            <input type="file" class="form-control form-control-sm" name="arquivo_ofx" accept=".ofx" required>
+                            <div class="form-text">Formato aceito: .ofx</div>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-upload me-2"></i>Processar Extrato
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% else %}
+    <!-- ===== DOIS PAINÉIS ===== -->
+
+    <!-- Dados JS -->
+    <script>
+    const OFX_ITEMS = {{ ofx_items | tojson }};
+    const CATEGORIAS_NOMES = { {% for cat in categorias %}"{{ cat.id }}": {{ cat.nome | tojson }}{% if not loop.last %},{% endif %}{% endfor %} };
+    const CATEGORIAS_TIPO  = { {% for cat in categorias %}"{{ cat.id }}": {{ cat.tipo | tojson }}{% if not loop.last %},{% endif %}{% endfor %} };
+    const CLIENTES     = {{ clientes     | map(attribute='id') | list | tojson }};
+    const CLIENTES_NM  = { {% for c in clientes %}"{{ c.id }}": {{ c.nome | tojson }}{% if not loop.last %},{% endif %}{% endfor %} };
+    const FORNECEDORES    = {{ fornecedores    | map(attribute='id') | list | tojson }};
+    const FORNECEDORES_NM = { {% for f in fornecedores %}"{{ f.id }}": {{ f.nome | tojson }}{% if not loop.last %},{% endif %}{% endfor %} };
+    const CONTA_CAIXA_ID  = {{ conta_caixa_id_selecionada | tojson }};
+    </script>
+
+    <!-- Topo: voltar + badges + botões -->
+    <div class="ofx-topo">
+        <div class="ofx-badges">
+            <a href="{{ url_for('importacao') }}" class="btn btn-outline-secondary btn-sm d-inline-flex align-items-center me-1">
+                <i class="fas fa-arrow-left me-1"></i> Voltar
+            </a>
+            <span class="badge bg-secondary" id="badge-pendentes">{{ ofx_items|length }} pendente(s)</span>
+            <span class="badge bg-success"   id="badge-mapeados">0 mapeado(s)</span>
+        </div>
+        <div class="ofx-acoes">
+            <button class="btn btn-outline-secondary btn-sm" onclick="mapearTodosComSugestao()">
+                <i class="fas fa-magic me-1"></i>Aplicar Sugestões
+            </button>
+            <button class="btn btn-success" id="btnGerarTodos" onclick="gerarTodos()" disabled>
+                <i class="fas fa-check-circle me-1"></i>Gerar Todos Mapeados
+            </button>
+        </div>
+    </div>
+
+    <!-- Painéis -->
+    <div class="ofx-paineis">
+
+        <!-- PAINEL ESQUERDO -->
+        <div class="ofx-card-painel">
+            <div class="ofx-card-header">
+                <span><i class="fas fa-file-alt me-2 text-primary"></i>Transações OFX</span>
+                <small class="text-muted fw-normal" id="lbl-esquerda">{{ ofx_items|length }}</small>
+            </div>
+            <div class="ofx-card-body" id="corpo-esquerda">
+                {% for item in ofx_items %}
+                <div class="ofx-item" id="ofx-{{ loop.index0 }}">
+                    <div>
+                        {% if item.tipo == 'entrada' %}
+                        <i class="fas fa-arrow-up text-success"></i>
+                        {% else %}
+                        <i class="fas fa-arrow-down text-danger"></i>
+                        {% endif %}
+                    </div>
+                    <div class="ofx-item-info">
+                        <div class="ofx-item-desc" title="{{ item.memo | e }}">{{ item.memo or '(sem descrição)' }}</div>
+                        <div class="ofx-item-meta">
+                            <span><i class="fas fa-calendar-day me-1"></i>{{ item.data_br }}</span>
+                            {% if item.regra_sugerida %}
+                            <span class="badge-sug"><i class="fas fa-magic me-1"></i>{{ item.regra_sugerida.categoria_nome }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="d-flex flex-column align-items-end gap-1 ofx-item-btn">
+                        <span class="ofx-item-valor {% if item.tipo == 'entrada' %}text-success{% else %}text-danger{% endif %}">
+                            {% if item.tipo == 'saida' %}-{% endif %}R$&nbsp;{{ "%.2f"|format(item.valor)|replace('.', ',') }}
+                        </span>
+                        <button class="btn btn-outline-primary btn-sm py-0 px-2" style="font-size:0.78rem;"
+                                onclick="abrirModal({{ loop.index0 }})">
+                            <i class="fas fa-tags me-1"></i>Mapear
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+                <div id="esquerda-vazio" class="text-center py-5 d-none">
+                    <i class="fas fa-check-circle fa-3x text-success mb-2"></i>
+                    <p class="text-muted mb-0">Todas mapeadas!</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- PAINEL DIREITO -->
+        <div class="ofx-card-painel">
+            <div class="ofx-card-header">
+                <span><i class="fas fa-list-check me-2 text-success"></i>Lançamentos a Gerar</span>
+                <small class="text-muted fw-normal" id="lbl-direita">0 mapeado(s)</small>
+            </div>
+            <div class="ofx-card-body" id="corpo-direita">
+                <!-- Empty state -->
+                <div id="direita-vazio" class="text-center py-5">
+                    <i class="fas fa-inbox fa-3x text-muted mb-2"></i>
+                    <p class="text-muted mb-0 small">Mapeie transações para ver<br>os lançamentos aqui</p>
+                </div>
+                <!-- Tabela (oculta até ter itens) -->
+                <div id="direita-tabela" style="display:none;">
+                    <table id="tabela-mapeados" class="table table-sm mb-0">
+                        <thead>
+                            <tr>
+                                <th style="width:82px">Data</th>
+                                <th style="width:35%">Descrição</th>
+                                <th>Categoria</th>
+                                <th class="text-end" style="width:82px">Valor</th>
+                                <th style="width:28px"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbody-mapeados"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div><!-- /ofx-paineis -->
+    {% endif %}
+
+</div><!-- /container -->
+
+<!-- ===== MODAL ===== -->
+<div class="modal fade" id="modalMapear" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header py-2">
+                <h6 class="modal-title mb-0"><i class="fas fa-tags me-2"></i>Mapear Transação</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body pb-2">
+                <div class="p-2 rounded mb-3 d-flex justify-content-between align-items-center" style="background:#f8f9fa;border:1px solid #dee2e6;">
+                    <div>
+                        <strong id="modal-memo" style="font-size:0.9rem;"></strong>
+                        <div class="text-muted small mt-1" id="modal-data-valor"></div>
+                    </div>
+                    <span id="modal-badge-tipo" class="badge ms-2"></span>
+                </div>
+                <input type="hidden" id="modal-index">
+                <div class="row g-2">
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold mb-1">Tipo</label>
+                        <select class="form-select form-select-sm" id="modal-tipo" onchange="filtrarCats()">
+                            <option value="entrada">Entrada (Receita)</option>
+                            <option value="saida">Saída (Despesa)</option>
+                        </select>
+                    </div>
+                    <div class="col-md-8">
+                        <label class="form-label small fw-semibold mb-1">Categoria <span class="text-danger">*</span></label>
+                        <select class="form-select form-select-sm" id="modal-categoria">
+                            <option value="">-- Selecionar --</option>
+                            {% for cat in categorias %}
+                            <option value="{{ cat.id }}" data-tipo="{{ cat.tipo }}">{{ cat.nome }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label small fw-semibold mb-1">Descrição</label>
+                        <input type="text" class="form-control form-control-sm" id="modal-descricao">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label small fw-semibold mb-1" id="modal-entidade-label">Cliente / Fornecedor</label>
+                        <select class="form-select form-select-sm" id="modal-entidade">
+                            <option value="">-- Opcional --</option>
+                        </select>
+                    </div>
+                    <div class="col-12 pt-1">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="modal-similares" checked>
+                            <label class="form-check-label small" for="modal-similares">
+                                <strong>Aplicar para transações similares</strong>
+                                <span class="text-muted"> — palavras em comum</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer py-2">
+                <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                <button class="btn btn-primary btn-sm" onclick="confirmarMapear()">
+                    <i class="fas fa-check me-1"></i>Confirmar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if ofx_items %}
+<script>
+// ===== ESTADO =====
+let pendentes = OFX_ITEMS.map((item, i) => ({ ...item, _i: i }));
+let mapeados  = [];
+
+const bsModal = new bootstrap.Modal(document.getElementById('modalMapear'));
+
+// ===== PAINEL ESQUERDO =====
+function removerItemEsq(i) {
+    const el = document.getElementById(`ofx-${i}`);
+    if (el) el.remove();
+    if (pendentes.length === 0) {
+        document.getElementById('esquerda-vazio').classList.remove('d-none');
+    }
+}
+
+// ===== PAINEL DIREITO =====
+function adicionarItemDir(m) {
+    document.getElementById('direita-vazio').style.display = 'none';
+    document.getElementById('direita-tabela').style.display = '';
+
+    const cor  = m.tipo === 'entrada' ? 'text-success' : 'text-danger';
+    const pref = m.tipo === 'saida'   ? '-' : '';
+    const val  = 'R$ ' + m.item.valor.toFixed(2).replace('.', ',');
+
+    const tr = document.createElement('tr');
+    tr.id = `map-${m.item._i}`;
+    tr.innerHTML =
+        `<td class="text-nowrap">${m.item.data_br}</td>` +
+        `<td class="text-truncate" style="max-width:0;" title="${esc(m.descricao)}">${esc(m.descricao)}</td>` +
+        `<td class="text-truncate" style="max-width:0;" title="${esc(m.categoria_nome)}">${esc(m.categoria_nome)}</td>` +
+        `<td class="text-end ${cor} text-nowrap">${pref}${val}</td>` +
+        `<td class="text-center"><button class="btn btn-link btn-sm p-0 text-danger" onclick="desfazer(${m.item._i})" title="Desfazer"><i class="fas fa-times"></i></button></td>`;
+    document.getElementById('tbody-mapeados').appendChild(tr);
+}
+
+// ===== DESFAZER =====
+function desfazer(i) {
+    const idx = mapeados.findIndex(m => m.item._i === i);
+    if (idx === -1) return;
+    const m = mapeados.splice(idx, 1)[0];
+
+    document.getElementById(`map-${i}`)?.remove();
+    pendentes.push(m.item);
+
+    // Recriar card esquerdo
+    const cor  = m.item.tipo === 'entrada' ? 'text-success' : 'text-danger';
+    const pref = m.item.tipo === 'saida'   ? '-' : '';
+    const val  = 'R$ ' + m.item.valor.toFixed(2).replace('.', ',');
+    const seta = m.item.tipo === 'entrada'
+        ? '<i class="fas fa-arrow-up text-success"></i>'
+        : '<i class="fas fa-arrow-down text-danger"></i>';
+
+    const div = document.createElement('div');
+    div.className = 'ofx-item';
+    div.id = `ofx-${i}`;
+    div.innerHTML =
+        `<div>${seta}</div>` +
+        `<div class="ofx-item-info">` +
+            `<div class="ofx-item-desc" title="${esc(m.item.memo)}">${esc(m.item.memo)}</div>` +
+            `<div class="ofx-item-meta"><i class="fas fa-calendar-day me-1"></i>${m.item.data_br}</div>` +
+        `</div>` +
+        `<div class="d-flex flex-column align-items-end gap-1 ofx-item-btn">` +
+            `<span class="ofx-item-valor ${cor}">${pref}${val}</span>` +
+            `<button class="btn btn-outline-primary btn-sm py-0 px-2" style="font-size:0.78rem;" onclick="abrirModal(${i})"><i class="fas fa-tags me-1"></i>Mapear</button>` +
+        `</div>`;
+    document.getElementById('corpo-esquerda').appendChild(div);
+    document.getElementById('esquerda-vazio').classList.add('d-none');
+
+    if (mapeados.length === 0) {
+        document.getElementById('direita-tabela').style.display = 'none';
+        document.getElementById('direita-vazio').style.display  = '';
+    }
+    atualizar();
+}
+
+// ===== ABRIR MODAL =====
+function abrirModal(i) {
+    const item = OFX_ITEMS[i];
+    document.getElementById('modal-index').value = i;
+    document.getElementById('modal-memo').textContent = item.memo || '(sem descrição)';
+    document.getElementById('modal-data-valor').textContent =
+        item.data_br + '  ·  R$ ' + item.valor.toFixed(2).replace('.', ',');
+
+    const badge = document.getElementById('modal-badge-tipo');
+    badge.textContent = item.tipo === 'entrada' ? 'ENTRADA' : 'SAÍDA';
+    badge.className   = 'badge ms-2 ' + (item.tipo === 'entrada' ? 'bg-success' : 'bg-danger');
+
+    document.getElementById('modal-tipo').value      = item.tipo;
+    document.getElementById('modal-descricao').value = item.memo || '';
+
+    const sug = item.regra_sugerida;
+    filtrarCats();
+    if (sug && sug.categoria_id) document.getElementById('modal-categoria').value = sug.categoria_id;
+    preencherEntidades(item.tipo, sug ? (sug.cliente_id || sug.fornecedor_id) : null);
+
+    bsModal.show();
+}
+
+// ===== FILTRAR CATEGORIAS =====
+function filtrarCats() {
+    const tipo = document.getElementById('modal-tipo').value;
+    const sel  = document.getElementById('modal-categoria');
+    const cur  = sel.value;
+    Array.from(sel.options).forEach(o => {
+        if (!o.value) return;
+        o.hidden = CATEGORIAS_TIPO[o.value] && CATEGORIAS_TIPO[o.value] !== tipo;
+    });
+    if (cur && sel.querySelector(`option[value="${cur}"][hidden]`)) sel.value = '';
+    preencherEntidades(tipo, null);
+}
+
+// ===== ENTIDADES =====
+function preencherEntidades(tipo, pre) {
+    const sel   = document.getElementById('modal-entidade');
+    const label = document.getElementById('modal-entidade-label');
+    sel.innerHTML = '<option value="">-- Opcional --</option>';
+    const ids = tipo === 'entrada' ? CLIENTES     : FORNECEDORES;
+    const nms = tipo === 'entrada' ? CLIENTES_NM  : FORNECEDORES_NM;
+    label.textContent = tipo === 'entrada' ? 'Cliente' : 'Fornecedor';
+    ids.forEach(id => {
+        const o = document.createElement('option');
+        o.value = id; o.textContent = nms[id] || id;
+        sel.appendChild(o);
+    });
+    if (pre) sel.value = pre;
+}
+
+// ===== CONFIRMAR =====
+function confirmarMapear() {
+    const i      = parseInt(document.getElementById('modal-index').value);
+    const tipo   = document.getElementById('modal-tipo').value;
+    const catId  = document.getElementById('modal-categoria').value;
+    const catNm  = CATEGORIAS_NOMES[catId] || '';
+    const entId  = document.getElementById('modal-entidade').value || null;
+    const simil  = document.getElementById('modal-similares').checked;
+
+    if (!catId) { alert('Selecione uma categoria.'); return; }
+
+    // Busca o item no array pendentes (que tem _i definido)
+    const item = pendentes.find(p => p._i === i);
+    if (!item) { bsModal.hide(); return; } // já foi mapeado por outra ação
+
+    const desc = document.getElementById('modal-descricao').value.trim() || item.memo;
+    const m = { item, tipo, categoria_id: catId, categoria_nome: catNm, descricao: desc,
+                cliente_id: tipo === 'entrada' ? entId : null,
+                fornecedor_id: tipo === 'saida' ? entId : null };
+    aplicar(m);
+
+    if (simil) {
+        const ref = kw(item.memo);
+        pendentes.filter(p => p._i !== i && overlap(ref, kw(p.memo)) >= 0.50)
+            .forEach(p => aplicar({ item: p, tipo, categoria_id: catId, categoria_nome: catNm,
+                descricao: desc,
+                cliente_id: tipo === 'entrada' ? entId : null,
+                fornecedor_id: tipo === 'saida' ? entId : null }));
+    }
+    bsModal.hide();
+}
+
+function aplicar(m) {
+    const idx = pendentes.findIndex(p => p._i === m.item._i);
+    if (idx !== -1) pendentes.splice(idx, 1);
+    mapeados.push(m);
+    removerItemEsq(m.item._i);
+    adicionarItemDir(m);
+    atualizar();
+}
+
+// ===== SUGESTÕES AUTOMÁTICAS =====
+function mapearTodosComSugestao() {
+    const com = pendentes.filter(p => p.regra_sugerida?.categoria_id);
+    if (!com.length) { alert('Nenhuma transação com sugestão automática.'); return; }
+    com.forEach(item => {
+        const s = item.regra_sugerida;
+        aplicar({ item, tipo: item.tipo,
+            categoria_id: String(s.categoria_id),
+            categoria_nome: s.categoria_nome || CATEGORIAS_NOMES[s.categoria_id] || '',
+            descricao: item.memo,
+            cliente_id: item.tipo === 'entrada' ? (s.cliente_id || null) : null,
+            fornecedor_id: item.tipo === 'saida' ? (s.fornecedor_id || null) : null });
+    });
+}
+
+// ===== GERAR =====
+function gerarTodos() {
+    if (!mapeados.length) { alert('Nenhum lançamento mapeado.'); return; }
+    const btn = document.getElementById('btnGerarTodos');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Gerando...';
+
+    fetch('/importacao/ofx/gerar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            conta_caixa_id: CONTA_CAIXA_ID,
+            lancamentos: mapeados.map(m => ({
+                fitid: m.item.fitid, data: m.item.data, memo: m.item.memo,
+                valor: m.item.valor, tipo: m.tipo, descricao: m.descricao,
+                categoria_id: m.categoria_id ? parseInt(m.categoria_id) : null,
+                cliente_id:   m.cliente_id   ? parseInt(m.cliente_id)   : null,
+                fornecedor_id: m.fornecedor_id ? parseInt(m.fornecedor_id) : null
+            }))
+        })
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (d.success) {
+            alert(d.message + (d.erros > 0 ? `\n${d.erros} erro(s).` : ''));
+            window.location.href = '/lancamentos';
+        } else {
+            alert('Erro: ' + d.message);
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-check-circle me-1"></i>Gerar Todos Mapeados';
+        }
+    })
+    .catch(() => {
+        alert('Erro de comunicação.');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-check-circle me-1"></i>Gerar Todos Mapeados';
+    });
+}
+
+// ===== CONTADORES =====
+function atualizar() {
+    const np = pendentes.length, nm = mapeados.length;
+    document.getElementById('badge-pendentes').textContent = np + ' pendente(s)';
+    document.getElementById('badge-mapeados').textContent  = nm + ' mapeado(s)';
+    document.getElementById('lbl-esquerda').textContent    = np;
+    document.getElementById('lbl-direita').textContent     = nm + ' mapeado(s)';
+    document.getElementById('btnGerarTodos').disabled      = nm === 0;
+}
+
+// ===== UTILS =====
+// Palavras genéricas de extratos bancários — não devem influenciar similaridade
+const STOP = new Set([
+    'transf','transferencia','transferencia','pix','recebida','recebido',
+    'enviada','enviado','pagamento','pgto','cobr','cobranca','debito',
+    'credito','ted','doc','qrcode','code','para','pela','pelo','esse',
+    'essa','este','esta','banco','caixa','conta','tarifas','taxa','tarifa',
+    'comp','compra','parcela','mensal','saldo','extrato','lancamento',
+    'deposito','saque','juros','multa','iof','tarif','bpag','cpgto'
+]);
+
+function kw(s) {
+    if (!s) return new Set();
+    return new Set(
+        s.toLowerCase()
+         .split(/\s+/)
+         .filter(w => w.length > 3 && !STOP.has(w))
+    );
+}
+function overlap(a, b) {
+    if (!a.size || !b.size) return 0;
+    let n = 0; a.forEach(w => { if (b.has(w)) n++; });
+    return n / Math.max(a.size, b.size);
+}
+function esc(s) {
+    return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+atualizar();
+</script>
+{% endif %}
+{% endblock %}

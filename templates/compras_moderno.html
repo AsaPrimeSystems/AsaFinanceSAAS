@@ -144,20 +144,28 @@
                         </span>
                     </td>
                     <td class="modern-status-col text-center">
-                        {% if compra.lancamento_financeiro %}
-                        <a href="{{ url_for('lancamentos', busca=compra.lancamento_financeiro.id) }}"
-                            class="badge bg-light text-dark border" title="Ir para lançamento vinculado"
-                            target="_blank">#{{ compra.lancamento_financeiro.id }}</a>
-                        {% elif compra.lancamentos and compra.lancamentos|length > 0 %}
-                        <div class="d-flex flex-wrap gap-1 justify-content-center">
-                            {% for lanc in compra.lancamentos %}
-                            <a href="{{ url_for('lancamentos', busca=lanc.id) }}"
-                                class="badge bg-light text-dark border" title="Ir para lançamento vinculado"
-                                target="_blank">#{{ lanc.id }}</a>
-                            {% endfor %}
-                        </div>
+                        {% if compra.lancamentos_financeiros and compra.lancamentos_financeiros|length > 0 %}
+                            {% set lancs = compra.lancamentos_financeiros %}
+                            {% if lancs|length == 1 %}
+                                <a href="{{ url_for('lancamentos', busca='#' ~ lancs[0].id|string) }}"
+                                    class="badge bg-light text-dark border px-2 py-1"
+                                    title="#{{ lancs[0].id }}" target="_blank">#{{ lancs[0].id }}</a>
+                            {% else %}
+                                {% set ids_str = '#' ~ (lancs | map(attribute='id') | join(', #')) %}
+                                <a href="{{ url_for('lancamentos', busca=ids_str) }}"
+                                    class="badge bg-light text-dark border px-2 py-1"
+                                    title="{{ ids_str }}" target="_blank"
+                                    style="font-size:0.78em;">
+                                    {{ lancs|length }} lançamentos
+                                </a>
+                            {% endif %}
+                        {% elif compra.lancamento_financeiro %}
+                            <a href="{{ url_for('lancamentos', busca='#' ~ compra.lancamento_financeiro.id|string) }}"
+                                class="badge bg-light text-dark border px-2 py-1"
+                                title="#{{ compra.lancamento_financeiro.id }}" target="_blank">
+                                #{{ compra.lancamento_financeiro.id }}</a>
                         {% else %}
-                        <span class="text-muted" style="font-size: 0.8em;">-</span>
+                            <span class="text-muted" style="font-size: 0.8em;">-</span>
                         {% endif %}
                     </td>
                     <td class="modern-actions-col">
@@ -173,7 +181,7 @@
                 {% endfor %}
                 {% else %}
                 <tr>
-                    <td colspan="8" class="text-center text-muted py-4">
+                    <td colspan="10" class="text-center text-muted py-4">
                         <i class="fas fa-shopping-bag fa-2x mb-2"></i>
                         <br>Nenhuma compra encontrada
                     </td>

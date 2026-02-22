@@ -1,0 +1,764 @@
+{% extends "base.html" %}
+
+{% block title %}Importação via Planilha Excel - Sistema de Gestão Financeira{% endblock %}
+
+{% block page_title %}Importação via Planilha Excel{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <!-- Botão voltar -->
+        <div class="mb-3">
+            <a href="{{ url_for('importacao') }}" class="btn btn-outline-secondary btn-sm">
+                <i class="fas fa-arrow-left me-1"></i> Voltar para Importação
+            </a>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-file-excel me-2 text-success"></i>Importação de Lançamentos via Planilha Excel
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Instruções:</strong> Use esta funcionalidade para importar lançamentos financeiros em lote através de planilha Excel.
+                </div>
+
+                <!-- Seção 1: Download do Modelo -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card border-primary">
+                            <div class="card-header bg-primary text-white">
+                                <h6 class="card-title mb-0">
+                                    <i class="fas fa-download me-2"></i>1. Baixar Modelo de Planilha
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <p class="card-text">
+                                    Primeiro, baixe o modelo de planilha para preencher com seus dados:
+                                </p>
+                                <button type="button" class="btn btn-primary" onclick="baixarModelo()">
+                                    <i class="fas fa-download me-2"></i>Baixar Modelo Excel
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Seção 2: Upload do Arquivo -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card border-success">
+                            <div class="card-header bg-success text-white">
+                                <h6 class="card-title mb-0">
+                                    <i class="fas fa-upload me-2"></i>2. Enviar Planilha Preenchida
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <form id="formImportacao" enctype="multipart/form-data">
+                                    <div class="mb-3">
+                                        <label for="arquivo" class="form-label">Selecionar Arquivo Excel</label>
+                                        <input type="file" class="form-control" id="arquivo" name="arquivo"
+                                               accept=".xlsx,.xls" required>
+                                        <div class="form-text">Formatos aceitos: .xlsx, .xls</div>
+                                    </div>
+                                    <div class="d-grid gap-2">
+                                        <button type="button" class="btn btn-info" id="btnPreview" onclick="gerarPreview()">
+                                            <i class="fas fa-eye me-2"></i>Ver Prévia da Importação
+                                        </button>
+                                        <button type="submit" class="btn btn-success" id="btnImportar" style="display: none;">
+                                            <i class="fas fa-upload me-2"></i>Confirmar e Importar Dados
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Seção 3: Histórico de Importações -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card border-success">
+                            <div class="card-header bg-success text-white">
+                                <h5 class="card-title mb-0">
+                                    <i class="fas fa-history me-2"></i>Histórico de Importações
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div id="historico-importacoes">
+                                    <div class="text-center py-4">
+                                        <div class="spinner-border text-success" role="status">
+                                            <span class="visually-hidden">Carregando...</span>
+                                        </div>
+                                        <p class="mt-2 text-muted">Carregando histórico de importações...</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Seção 4: Prévia da Importação -->
+                <div class="row" id="preview-container" style="display: none;">
+                    <div class="col-12">
+                        <div class="card border-warning">
+                            <div class="card-header bg-warning text-dark">
+                                <h6 class="card-title mb-0">
+                                    <i class="fas fa-eye me-2"></i>4. Prévia da Importação
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <div id="preview-conteudo">
+                                    <!-- Conteúdo será inserido aqui via JavaScript -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Seção 4: Resultados -->
+                <div class="row" id="resultados-container" style="display: none;">
+                    <div class="col-12">
+                        <div class="card border-info">
+                            <div class="card-header bg-info text-white">
+                                <h6 class="card-title mb-0">
+                                    <i class="fas fa-chart-bar me-2"></i>5. Resultados da Importação
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <div id="resultados-conteudo">
+                                    <!-- Resultados serão inseridos aqui -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Seção 4: Instruções Detalhadas -->
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="card-title mb-0">
+                                    <i class="fas fa-question-circle me-2"></i>Instruções Detalhadas
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <h6>Campos Obrigatórios:</h6>
+                                        <ul class="list-unstyled">
+                                            <li><strong>Tipo:</strong> entrada ou saida</li>
+                                            <li><strong>Descrição:</strong> descrição do lançamento</li>
+                                            <li><strong>Valor:</strong> valor numérico (ex: 1000.00)</li>
+                                            <li><strong>Categoria:</strong> categoria do lançamento</li>
+                                            <li><strong>Data Prevista:</strong> data no formato DD/MM/AAAA</li>
+                                        </ul>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <h6>Campos Opcionais:</h6>
+                                        <ul class="list-unstyled">
+                                            <li><strong>Data Realizada:</strong> data de realização</li>
+                                            <li><strong>Conta Caixa:</strong> nome da conta</li>
+                                            <li><strong>Tipo Cliente/Fornecedor:</strong> cliente ou fornecedor</li>
+                                            <li><strong>Cliente/Fornecedor:</strong> nome do cliente ou fornecedor</li>
+                                            <li><strong>Observações:</strong> observações adicionais</li>
+                                            <li><strong>Produto/Serviço:</strong> nome do produto ou serviço</li>
+                                            <li><strong>Parcelado:</strong> sim ou não</li>
+                                            <li><strong>Quantidade de Parcelas:</strong> número de parcelas</li>
+                                        </ul>
+                                    </div>
+                                </div>
+
+                                <div class="alert alert-warning mt-3">
+                                    <i class="fas fa-exclamation-triangle me-2"></i>
+                                    <strong>Importante:</strong>
+                                    <ul class="mb-0 mt-2">
+                                        <li><strong>Cabeçalhos:</strong> Podem ter variações (maiúsculas/minúsculas)</li>
+                                        <li><strong>Valores:</strong> Aceita múltiplos formatos (1000,50 / 1000.50 / 1.000,50)</li>
+                                        <li><strong>Datas:</strong> Suporta DD/MM/AAAA, DD-MM-AAAA, AAAA-MM-DD, etc.</li>
+                                        <li><strong>Tipo:</strong> Aceita 'entrada', 'saida', 'entrada', 'saída', 'r', 'd'</li>
+                                        <li><strong>Status:</strong> Aceita 'sim', 'não', 'true', 'false', '1', '0'</li>
+                                        <li><strong>Busca Inteligente:</strong> Clientes/fornecedores/contas são encontrados automaticamente</li>
+                                        <li><strong>Integração:</strong> Cria automaticamente vendas/compras quando aplicável</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function baixarModelo() {
+    window.location.href = '/api/importacao/exportar-modelo';
+}
+
+function gerarPreview() {
+    const arquivo = document.getElementById('arquivo').files[0];
+    if (!arquivo) {
+        alert('Por favor, selecione um arquivo');
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('arquivo', arquivo);
+
+    const btnPreview = document.getElementById('btnPreview');
+    const btnTextoOriginal = btnPreview.innerHTML;
+    btnPreview.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Gerando Prévia...';
+    btnPreview.disabled = true;
+
+    fetch('/api/importacao/preview', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            mostrarPreview(data);
+        } else {
+            mostrarErroPreview(data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        mostrarErroPreview('Erro ao gerar prévia da importação');
+    })
+    .finally(() => {
+        btnPreview.innerHTML = btnTextoOriginal;
+        btnPreview.disabled = false;
+    });
+}
+
+function mostrarPreview(data) {
+    const container = document.getElementById('preview-container');
+    const conteudo = document.getElementById('preview-conteudo');
+
+    let html = `
+        <div class="row mb-4">
+            <div class="col-md-2">
+                <div class="text-center">
+                    <h4 class="text-primary">${data.total_linhas}</h4>
+                    <p class="text-muted">Lançamentos</p>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="text-center">
+                    <h4 class="text-success">${data.resumo.vendas}</h4>
+                    <p class="text-muted">Vendas</p>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="text-center">
+                    <h4 class="text-warning">${data.resumo.compras}</h4>
+                    <p class="text-muted">Compras</p>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="text-center">
+                    <h4 class="text-info">${data.resumo.realizados}</h4>
+                    <p class="text-muted">Realizados</p>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="text-center">
+                    <h4 class="text-secondary">${data.resumo.agendados}</h4>
+                    <p class="text-muted">Agendados</p>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="text-center">
+                    <h4 class="text-dark">${data.resumo.pendentes}</h4>
+                    <p class="text-muted">Pendentes</p>
+                </div>
+            </div>
+        </div>
+    `;
+
+    if (data.total_erros > 0) {
+        html += `
+            <div class="alert alert-danger mb-3">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                <strong>${data.total_erros} erro(s) encontrado(s):</strong>
+                <ul class="mb-0 mt-2">
+                    ${data.erros.slice(0, 5).map(erro => `<li>${erro}</li>`).join('')}
+                    ${data.erros.length > 5 ? `<li><em>... e mais ${data.erros.length - 5} erro(s)</em></li>` : ''}
+                </ul>
+            </div>
+        `;
+    }
+
+    if (data.preview_data.length > 0) {
+        html += `
+            <div class="alert alert-info mb-3">
+                <i class="fas fa-info-circle me-2"></i>
+                <strong>Total de registros encontrados:</strong> ${data.preview_data.length} lançamento(s)
+            </div>
+
+            ${data.tem_divergencias ? `
+                <div class="alert alert-danger mb-3">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Atenção!</strong> Foram encontradas ${data.divergencias_valor_total} divergência(s) no Valor Total.
+                    <br><small>Verifique as linhas destacadas em vermelho e corrija os valores na planilha antes de importar.</small>
+                </div>
+            ` : ''}
+
+            ${data.tem_categorias_faltantes ? `
+                <div class="alert alert-warning mb-3">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    <strong>Categorias não encontradas no Plano de Contas:</strong>
+                    <ul class="mb-2 mt-2">
+                        ${data.categorias_faltantes.map(cat => `<li><strong>${cat}</strong></li>`).join('')}
+                    </ul>
+                    <small>Ao confirmar a importação, estas categorias serão criadas automaticamente no seu Plano de Contas.</small>
+                </div>
+            ` : ''}
+            <div class="table-responsive" style="max-height: 500px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 0.375rem;">
+                <table class="table table-striped table-hover mb-0">
+                    <thead class="table-dark sticky-top">
+                        <tr>
+                            <th>Linha</th>
+                            <th>Tipo</th>
+                            <th>Descrição</th>
+                            <th>Quantidade</th>
+                            <th>Valor Unitário</th>
+                            <th>Desconto</th>
+                            <th>Valor Total</th>
+                            <th>Categoria</th>
+                            <th>Data Prevista</th>
+                            <th>Data Realizada</th>
+                            <th>Status</th>
+                            <th>Conta Caixa</th>
+                            <th>Tipo Cliente/Fornecedor</th>
+                            <th>Cliente/Fornecedor</th>
+                            <th>Observações</th>
+                            <th>Tipo Produto/Serviço</th>
+                            <th>Nome Produto/Serviço</th>
+                            <th>Parcelado?</th>
+                            <th>Quantidade de Parcelas</th>
+                            <th>Valor Parcela</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${data.preview_data.map(item => `
+                            <tr ${item.valor_total_divergente ? 'class="table-danger"' : ''}>
+                                <td>${item.linha}</td>
+                                <td>
+                                    <span class="badge ${item.tipo === 'entrada' ? 'bg-success' : 'bg-danger'}">
+                                        ${item.tipo.toUpperCase()}
+                                    </span>
+                                </td>
+                                <td>${item.descricao}</td>
+                                <td>${item.quantidade || '1'}</td>
+                                <td>${item.valor_unitario ? 'R$ ' + item.valor_unitario.toFixed(2).replace('.', ',') : '-'}</td>
+                                <td>${item.desconto ? 'R$ ' + item.desconto.toFixed(2).replace('.', ',') : 'R$ 0,00'}</td>
+                                <td>
+                                    ${item.valor_total ? 'R$ ' + item.valor_total.toFixed(2).replace('.', ',') : '-'}
+                                    ${item.valor_total_divergente ?
+                                        `<br><small class="text-danger"><i class="fas fa-exclamation-triangle"></i> ${item.erro_validacao}</small>` :
+                                        ''
+                                    }
+                                </td>
+                                <td>${item.categoria}</td>
+                                <td>${item.data_prevista}</td>
+                                <td>${item.data_realizada || '-'}</td>
+                                <td>
+                                    <span class="badge ${
+                                        item.status === 'Realizado' ? 'bg-success' :
+                                        item.status === 'Agendado' ? 'bg-info' : 'bg-warning'
+                                    }">
+                                        ${item.status}
+                                    </span>
+                                </td>
+                                <td>${item.conta_caixa || '-'}</td>
+                                <td>${item.tipo_cliente_fornecedor || '-'}</td>
+                                <td>${item.cliente_fornecedor || '-'}</td>
+                                <td>${item.observacoes || '-'}</td>
+                                <td>${item.tipo_produto_servico || '-'}</td>
+                                <td>${item.nome_produto_servico || '-'}</td>
+                                <td>
+                                    ${item.parcelado === 'SIM' ? '<span class="badge bg-info">SIM</span>' : '<span class="badge bg-secondary">NÃO</span>'}
+                                </td>
+                                <td>${item.quantidade_parcelas || '-'}</td>
+                                <td>${item.valor_parcela || '-'}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+
+            <style>
+            /* Desabilitar coluna sticky na tabela de preview para evitar bug de transparência */
+            #preview-conteudo .table th:last-child,
+            #preview-conteudo .table td:last-child {
+                position: static !important;
+                right: auto !important;
+                background: transparent !important;
+                border-left: none !important;
+            }
+            </style>
+        `;
+    }
+
+    // Botão de confirmação
+    if (data.total_linhas > 0) {
+        const botaoDesabilitado = data.tem_divergencias ? 'disabled' : '';
+        const corBotao = data.tem_divergencias ? 'btn-danger' : 'btn-success';
+        const iconeBotao = data.tem_divergencias ? 'fas fa-exclamation-triangle' : 'fas fa-check';
+        const textoBotao = data.tem_divergencias ?
+            `Corrigir ${data.divergencias_valor_total} Divergência(s) na Planilha` :
+            `Confirmar e Importar ${data.total_linhas} Lançamento(s)`;
+
+        html += `
+            <div class="text-center mt-4">
+                <button type="button" class="btn ${corBotao} btn-lg" onclick="confirmarImportacao()" ${botaoDesabilitado}>
+                    <i class="${iconeBotao} me-2"></i>${textoBotao}
+                </button>
+                <button type="button" class="btn btn-secondary ms-2" onclick="cancelarPreview()">
+                    <i class="fas fa-times me-2"></i>Cancelar
+                </button>
+            </div>
+        `;
+    }
+
+    conteudo.innerHTML = html;
+    container.style.display = 'block';
+
+    // Scroll para prévia
+    container.scrollIntoView({ behavior: 'smooth' });
+}
+
+function confirmarImportacao() {
+    const arquivo = document.getElementById('arquivo').files[0];
+    if (!arquivo) {
+        alert('Arquivo não encontrado');
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('arquivo', arquivo);
+
+    const btnImportar = document.getElementById('btnImportar');
+    const btnTextoOriginal = btnImportar.innerHTML;
+    btnImportar.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Importando...';
+    btnImportar.disabled = true;
+
+    fetch('/api/importacao/importar', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            mostrarResultados(data);
+            cancelarPreview();
+        } else {
+            mostrarErro(data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        mostrarErro('Erro ao importar dados');
+    })
+    .finally(() => {
+        btnImportar.innerHTML = btnTextoOriginal;
+        btnImportar.disabled = false;
+    });
+}
+
+function cancelarPreview() {
+    document.getElementById('preview-container').style.display = 'none';
+    document.getElementById('btnImportar').style.display = 'none';
+}
+
+function mostrarErroPreview(mensagem) {
+    const container = document.getElementById('preview-container');
+    const conteudo = document.getElementById('preview-conteudo');
+
+    conteudo.innerHTML = `
+        <div class="alert alert-danger">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            <strong>Erro:</strong> ${mensagem}
+        </div>
+    `;
+
+    container.style.display = 'block';
+    container.scrollIntoView({ behavior: 'smooth' });
+}
+
+document.getElementById('formImportacao').addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    const arquivo = document.getElementById('arquivo').files[0];
+    if (!arquivo) {
+        alert('Por favor, selecione um arquivo');
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('arquivo', arquivo);
+
+    const btnImportar = document.getElementById('btnImportar');
+    const btnTextoOriginal = btnImportar.innerHTML;
+
+    // Mostrar loading
+    btnImportar.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Importando...';
+    btnImportar.disabled = true;
+
+    fetch('/api/importacao/importar', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            mostrarResultados(data);
+        } else {
+            mostrarErro(data.error || 'Erro desconhecido');
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        mostrarErro('Erro ao processar arquivo: ' + error.message);
+    })
+    .finally(() => {
+        // Restaurar botão
+        btnImportar.innerHTML = btnTextoOriginal;
+        btnImportar.disabled = false;
+    });
+});
+
+function mostrarResultados(data) {
+    const container = document.getElementById('resultados-container');
+    const conteudo = document.getElementById('resultados-conteudo');
+
+    let html = `
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="text-center">
+                    <h4 class="text-success">${data.sucessos}</h4>
+                    <p class="text-muted">Sucessos</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="text-center">
+                    <h4 class="text-danger">${data.erros.length}</h4>
+                    <p class="text-muted">Erros</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="text-center">
+                    <h4 class="text-info">${data.total_processados}</h4>
+                    <p class="text-muted">Total Processado</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="text-center">
+                    <h4 class="text-primary">${data.lancamentos_criados || 0}</h4>
+                    <p class="text-muted">Lançamentos</p>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // Detalhes da importação
+    if (data.detalhes) {
+        html += `
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <div class="card border-success">
+                        <div class="card-header bg-success text-white">
+                            <h6 class="mb-0"><i class="fas fa-money-bill-wave me-2"></i>Lançamentos Financeiros</h6>
+                        </div>
+                        <div class="card-body">
+                            <p class="mb-1"><strong>Criados:</strong> ${data.lancamentos_criados || 0}</p>
+                            ${data.detalhes.lancamentos && data.detalhes.lancamentos.length > 0 ?
+                                `<small class="text-muted">Exemplos: ${data.detalhes.lancamentos.slice(0, 3).map(l => l.descricao).join(', ')}</small>` :
+                                '<small class="text-muted">Nenhum lançamento criado</small>'
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="card border-info">
+                        <div class="card-header bg-info text-white">
+                            <h6 class="mb-0"><i class="fas fa-shopping-cart me-2"></i>Vendas</h6>
+                        </div>
+                        <div class="card-body">
+                            <p class="mb-1"><strong>Criadas:</strong> ${data.vendas_criadas || 0}</p>
+                            ${data.detalhes.vendas && data.detalhes.vendas.length > 0 ?
+                                `<small class="text-muted">Clientes: ${data.detalhes.vendas.slice(0, 3).map(v => v.cliente).join(', ')}</small>` :
+                                '<small class="text-muted">Nenhuma venda criada</small>'
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="card border-warning">
+                        <div class="card-header bg-warning text-dark">
+                            <h6 class="mb-0"><i class="fas fa-shopping-bag me-2"></i>Compras</h6>
+                        </div>
+                        <div class="card-body">
+                            <p class="mb-1"><strong>Criadas:</strong> ${data.compras_criadas || 0}</p>
+                            ${data.detalhes.compras && data.detalhes.compras.length > 0 ?
+                                `<small class="text-muted">Fornecedores: ${data.detalhes.compras.slice(0, 3).map(c => c.fornecedor).join(', ')}</small>` :
+                                '<small class="text-muted">Nenhuma compra criada</small>'
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    if (data.erros.length > 0) {
+        html += `
+            <div class="mt-3">
+                <h6><i class="fas fa-exclamation-triangle me-2"></i>Erros encontrados:</h6>
+                <div class="alert alert-danger">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <ul class="mb-0">
+                                ${data.erros.slice(0, Math.ceil(data.erros.length / 2)).map(erro => `<li>${erro}</li>`).join('')}
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <ul class="mb-0">
+                                ${data.erros.slice(Math.ceil(data.erros.length / 2)).map(erro => `<li>${erro}</li>`).join('')}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    if (data.sucessos > 0) {
+        html += `
+            <div class="mt-3">
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle me-2"></i>
+                    <strong>Importação concluída com sucesso!</strong><br>
+                    <small>
+                        ${data.lancamentos_criados || 0} lançamento(s) financeiro(s) criado(s) |
+                        ${data.vendas_criadas || 0} venda(s) criada(s) |
+                        ${data.compras_criadas || 0} compra(s) criada(s)
+                    </small>
+                </div>
+            </div>
+        `;
+    }
+
+    conteudo.innerHTML = html;
+    container.style.display = 'block';
+
+    // Scroll para resultados
+    container.scrollIntoView({ behavior: 'smooth' });
+
+    // Recarregar histórico de importações após importação bem-sucedida
+    if (data.success) {
+        setTimeout(() => {
+            carregarHistoricoImportacoes();
+        }, 1000);
+    }
+}
+
+// Carregar histórico de importações ao carregar a página
+document.addEventListener('DOMContentLoaded', function() {
+    carregarHistoricoImportacoes();
+});
+
+function carregarHistoricoImportacoes() {
+    fetch('/api/importacao/listar')
+        .then(response => response.json())
+        .then(data => {
+            if (data.importacoes) {
+                mostrarHistoricoImportacoes(data.importacoes);
+            } else if (data.error) {
+                document.getElementById('historico-importacoes').innerHTML =
+                    `<div class="alert alert-warning">Erro: ${data.error}</div>`;
+            }
+        })
+        .catch(error => {
+            console.error('Erro ao carregar histórico:', error);
+            document.getElementById('historico-importacoes').innerHTML =
+                '<div class="alert alert-warning">Erro ao carregar histórico de importações</div>';
+        });
+}
+
+function mostrarHistoricoImportacoes(importacoes) {
+    const container = document.getElementById('historico-importacoes');
+
+    if (importacoes.length === 0) {
+        container.innerHTML = '<div class="text-center py-4"><i class="fas fa-inbox fa-3x text-muted mb-3"></i><h6 class="text-muted">Nenhuma importação realizada</h6></div>';
+        return;
+    }
+
+    let html = '<div class="table-responsive"><table class="table table-striped table-hover">';
+    html += '<thead class="table-dark"><tr>';
+    html += '<th>Arquivo</th><th>Data</th><th>Lançamentos</th><th>Entradas</th><th>Saídas</th><th>Vendas</th><th>Compras</th><th>Status</th><th>Ações</th>';
+    html += '</tr></thead><tbody>';
+
+    importacoes.forEach(imp => {
+        const statusClass = imp.status === 'concluida' ? 'success' : 'secondary';
+        const statusText = imp.status === 'concluida' ? 'Concluída' : 'Desfeita';
+
+        html += '<tr>';
+        html += `<td><strong>${imp.nome_arquivo}</strong></td>`;
+        html += `<td>${imp.data_importacao}</td>`;
+        html += `<td><span class="badge bg-info">${imp.total_lancamentos}</span></td>`;
+        html += `<td class="text-success">R$ ${imp.total_entradas.toFixed(2).replace('.', ',')}</td>`;
+        html += `<td class="text-danger">R$ ${imp.total_saidas.toFixed(2).replace('.', ',')}</td>`;
+        html += `<td><span class="badge bg-primary">${imp.total_vendas}</span></td>`;
+        html += `<td><span class="badge bg-warning">${imp.total_compras}</span></td>`;
+        html += `<td><span class="badge bg-${statusClass}">${statusText}</span></td>`;
+
+        if (imp.status === 'concluida') {
+            html += `<td><button class="btn btn-danger btn-sm" onclick="desfazerImportacao(${imp.id})" title="Desfazer Importação"><i class="fas fa-undo"></i></button></td>`;
+        } else {
+            html += '<td><span class="text-muted">-</span></td>';
+        }
+
+        html += '</tr>';
+    });
+
+    html += '</tbody></table></div>';
+    container.innerHTML = html;
+}
+
+function desfazerImportacao(importacaoId) {
+    if (!confirm('Tem certeza que deseja desfazer esta importação? Esta ação não pode ser desfeita.')) {
+        return;
+    }
+
+    fetch(`/api/importacao/${importacaoId}/desfazer`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            carregarHistoricoImportacoes(); // Recarregar histórico
+        } else {
+            alert('Erro: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        alert('Erro ao desfazer importação');
+    });
+}
+</script>
+{% endblock %}
