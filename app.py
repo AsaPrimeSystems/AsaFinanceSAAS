@@ -19154,73 +19154,107 @@ def admin_toggle_status(conta_id):
 
 @app.route('/admin/excluir-conta/<int:conta_id>', methods=['POST'])
 def admin_excluir_conta(conta_id):
-    """Excluir conta"""
+    """Excluir conta — admin pode excluir qualquer conta sem restrições"""
     if 'usuario_id' not in session or session.get('usuario_tipo') != 'admin':
         return jsonify({'success': False, 'message': 'Acesso negado'}), 403
-    
+
     try:
         conta = Empresa.query.get(conta_id)
         if not conta:
             return jsonify({'success': False, 'message': 'Conta não encontrada'})
-        
-        # Não permitir excluir a conta admin
+
         if conta.tipo_conta == 'admin':
             return jsonify({'success': False, 'message': 'Não é possível excluir a conta administrativa'})
-        
-        # Pegar todos os usuários da conta para limpeza de dependências
-        usuarios = Usuario.query.filter_by(empresa_id=conta_id).all()
-        usuarios_ids = [u.id for u in usuarios]
-        
-        if usuarios_ids:
-            # 1. Limpar dependências financeiras (Parcelas dependem de Lancamento/Venda/Compra)
-            Parcela.query.filter(Parcela.usuario_id.in_(usuarios_ids)).delete(synchronize_session=False)
-            
-            # 2. Limpar Lançamentos, Vendas e Compras
-            Lancamento.query.filter_by(empresa_id=conta_id).delete(synchronize_session=False)
-            Venda.query.filter(Venda.empresa_id == conta_id).delete(synchronize_session=False)
-            Compra.query.filter(Compra.empresa_id == conta_id).delete(synchronize_session=False)
 
-            # 3. Limpar Cadastros (Cliente, Fornecedor, Produto, Servico)
-            Cliente.query.filter(Cliente.empresa_id == conta_id).delete(synchronize_session=False)
-            Fornecedor.query.filter(Fornecedor.empresa_id == conta_id).delete(synchronize_session=False)
+        # ── Coletar IDs auxiliares ─────────────────────────────────────────────
+        usuarios_ids = [r.id for r in Usuario.query.filter_by(empresa_id=conta_id).with_entities(Usuario.id)]
+        cat_ids = [r.id for r in CategoriaUsuario.query.filter_by(empresa_id=conta_id).with_entities(CategoriaUsuario.id)]
+        sub_ids = [r.id for r in SubUsuarioContador.query.filter_by(contador_id=conta_id).with_entities(SubUsuarioContador.id)]
+
+        # ── 1. Regras de conciliação OFX (FK: empresa, plano_conta, cliente, fornecedor) ──
+        ConciliacaoRegra.query.filter_by(empresa_id=conta_id).delete(synchronize_session=False)
+
+        # ── 2. Parcelas (FK: lancamento, venda, compra, usuario) ──────────────
+        if usuarios_ids:
+            Parcela.query.filter(Parcela.usuario_id.in_(usuarios_ids)).delete(synchronize_session=False)
+
+        # ── 3. Lançamentos, Vendas, Compras ────────────────────────────────────
+        Lancamento.query.filter_by(empresa_id=conta_id).delete(synchronize_session=False)
+        Venda.query.filter_by(empresa_id=conta_id).delete(synchronize_session=False)
+        Compra.query.filter_by(empresa_id=conta_id).delete(synchronize_session=False)
+
+        # ── 4. DreConfiguracao e ContaCaixa (FK: plano_conta) ─────────────────
+        DreConfiguracao.query.filter_by(empresa_id=conta_id).delete(synchronize_session=False)
+        if usuarios_ids:
+            ContaCaixa.query.filter(ContaCaixa.usuario_id.in_(usuarios_ids)).delete(synchronize_session=False)
+
+        # ── 5. PlanoConta: zerar pai_id (self-ref) antes de deletar ───────────
+        db.session.execute(
+            text("UPDATE plano_conta SET pai_id = NULL WHERE empresa_id = :eid"),
+            {'eid': conta_id}
+        )
+        PlanoConta.query.filter_by(empresa_id=conta_id).delete(synchronize_session=False)
+
+        # ── 6. Cadastros ───────────────────────────────────────────────────────
+        Cliente.query.filter_by(empresa_id=conta_id).delete(synchronize_session=False)
+        Fornecedor.query.filter_by(empresa_id=conta_id).delete(synchronize_session=False)
+        if usuarios_ids:
             Produto.query.filter(Produto.usuario_id.in_(usuarios_ids)).delete(synchronize_session=False)
             Servico.query.filter(Servico.usuario_id.in_(usuarios_ids)).delete(synchronize_session=False)
-
-            # 4. Limpar Infraestrutura e Logs
-            DreConfiguracao.query.filter_by(empresa_id=conta_id).delete(synchronize_session=False)
-            PlanoConta.query.filter(PlanoConta.empresa_id == conta_id).delete(synchronize_session=False)
-            ContaCaixa.query.filter(ContaCaixa.usuario_id.in_(usuarios_ids)).delete(synchronize_session=False)
             Importacao.query.filter(Importacao.usuario_id.in_(usuarios_ids)).delete(synchronize_session=False)
             Permissao.query.filter(Permissao.usuario_id.in_(usuarios_ids)).delete(synchronize_session=False)
             EventLog.query.filter(EventLog.usuario_id.in_(usuarios_ids)).delete(synchronize_session=False)
             Vinculo.query.filter(Vinculo.usuario_id.in_(usuarios_ids)).delete(synchronize_session=False)
 
-        # 5. Limpar Categorias e Vínculos da Empresa
-        CategoriaUsuario.query.filter_by(empresa_id=conta_id).delete(synchronize_session=False)
+        # ── 7. PermissaoSubUsuario: esta empresa como destino (cliente de contador) ──
+        PermissaoSubUsuario.query.filter_by(empresa_id=conta_id).delete(synchronize_session=False)
+        # PermissaoSubUsuario dos sub-usuários desta conta (se for contador)
+        if sub_ids:
+            PermissaoSubUsuario.query.filter(
+                PermissaoSubUsuario.sub_usuario_id.in_(sub_ids)
+            ).delete(synchronize_session=False)
+        SubUsuarioContador.query.filter_by(contador_id=conta_id).delete(synchronize_session=False)
+
+        # ── 8. Vínculos de contador ────────────────────────────────────────────
         VinculoContador.query.filter(
-            or_(
-                VinculoContador.contador_id == conta_id,
-                VinculoContador.empresa_id == conta_id
-            )
+            or_(VinculoContador.contador_id == conta_id, VinculoContador.empresa_id == conta_id)
         ).delete(synchronize_session=False)
-        
-        # 6. Limpar Registros de Pagamento e Vouchers
+
+        # ── 9. PermissaoCategoria (FK: categoria_usuario) ──────────────────────
+        if cat_ids:
+            PermissaoCategoria.query.filter(
+                PermissaoCategoria.categoria_id.in_(cat_ids)
+            ).delete(synchronize_session=False)
+
+        # ── 10. Zerar categoria_id antes de deletar CategoriaUsuario ──────────
+        if usuarios_ids:
+            Usuario.query.filter(Usuario.empresa_id == conta_id).update(
+                {'categoria_id': None}, synchronize_session=False
+            )
+        if cat_ids:
+            SubUsuarioContador.query.filter(
+                SubUsuarioContador.categoria_id.in_(cat_ids)
+            ).update({'categoria_id': None}, synchronize_session=False)
+
+        CategoriaUsuario.query.filter_by(empresa_id=conta_id).delete(synchronize_session=False)
+
+        # ── 11. Pagamentos e VoucherUso ────────────────────────────────────────
         Pagamento.query.filter_by(empresa_id=conta_id).delete(synchronize_session=False)
         VoucherUso.query.filter_by(empresa_id=conta_id).delete(synchronize_session=False)
-        
-        # 7. Excluir sub-usuários se for contador
-        sub_usuarios = SubUsuarioContador.query.filter_by(contador_id=conta_id).all()
-        for sub in sub_usuarios:
-            PermissaoSubUsuario.query.filter_by(sub_usuario_id=sub.id).delete(synchronize_session=False)
-            db.session.delete(sub)
-        
-        # 8. Finalmente excluir usuários e a conta
+
+        # ── 12. Zerar criado_por em outros usuários que referenciam esta conta ─
+        if usuarios_ids:
+            Usuario.query.filter(Usuario.criado_por.in_(usuarios_ids)).update(
+                {'criado_por': None}, synchronize_session=False
+            )
+
+        # ── 13. Usuários e a conta ─────────────────────────────────────────────
         Usuario.query.filter_by(empresa_id=conta_id).delete(synchronize_session=False)
         db.session.delete(conta)
         db.session.commit()
-        
+
         return jsonify({'success': True, 'message': 'Conta excluída com sucesso'})
-    
+
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'message': str(e)})
