@@ -148,9 +148,16 @@
     <div class="card shadow-sm">
         <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
             <h4 class="mb-0"><i class="fas fa-list-alt me-2"></i>Plano de Contas</h4>
-            <a href="{{ url_for('nova_conta') }}" class="btn btn-primary btn-sm">
-                <i class="fas fa-plus"></i> Nova Conta
-            </a>
+            <div class="d-flex gap-2 align-items-center">
+                <button type="button" class="btn btn-success btn-sm"
+                        data-bs-toggle="modal" data-bs-target="#modalImportarPlano"
+                        title="Importar contas via planilha Excel">
+                    <i class="fas fa-file-upload me-1"></i>Importar Excel
+                </button>
+                <a href="{{ url_for('nova_conta') }}" class="btn btn-primary btn-sm">
+                    <i class="fas fa-plus"></i> Nova Conta
+                </a>
+            </div>
         </div>
 
         <div class="card-body balancete-container">
@@ -228,6 +235,81 @@
                     {% endif %}
                 </tbody>
             </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Importar Plano de Contas -->
+<div class="modal fade" id="modalImportarPlano" tabindex="-1" aria-labelledby="modalImportarPlanoLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title" id="modalImportarPlanoLabel">
+                    <i class="fas fa-file-upload me-2"></i>Importar Plano de Contas
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <form method="POST" action="{{ url_for('plano_contas_importar') }}" enctype="multipart/form-data">
+                <div class="modal-body">
+                    <!-- Instruções -->
+                    <div class="alert alert-info py-2 mb-3" style="font-size:0.875rem;">
+                        <strong><i class="fas fa-info-circle me-1"></i>Como funciona:</strong>
+                        <ol class="mb-1 mt-1 ps-3">
+                            <li>Baixe o modelo Excel abaixo</li>
+                            <li>Preencha suas contas sintéticas e analíticas seguindo os exemplos</li>
+                            <li>Importe o arquivo preenchido</li>
+                        </ol>
+                        <div class="mt-2">
+                            <a href="{{ url_for('plano_contas_modelo_excel') }}"
+                               class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-download me-1"></i>Baixar Modelo Excel
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Estrutura esperada -->
+                    <div class="mb-3" style="font-size:0.8rem; color:#555;">
+                        <strong>Colunas da planilha:</strong>
+                        <table class="table table-sm table-bordered mt-1 mb-0" style="font-size:0.78rem;">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>CODIGO</th><th>NOME</th><th>TIPO</th>
+                                    <th>NATUREZA</th><th>CODIGO_PAI</th><th>DESCRICAO</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="table-light">
+                                    <td>1</td><td>Receitas</td><td>entrada</td>
+                                    <td>sintetica</td><td></td><td>Grupo de receitas</td>
+                                </tr>
+                                <tr>
+                                    <td>1.1.1</td><td>Vendas</td><td>entrada</td>
+                                    <td>analitica</td><td>1.1</td><td></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <small class="text-muted">
+                            <strong>CODIGO_PAI</strong>: código da conta sintética pai (obrigatório para analíticas)
+                        </small>
+                    </div>
+
+                    <!-- Input arquivo -->
+                    <div class="mb-0">
+                        <label for="arquivoImportacao" class="form-label fw-semibold">
+                            <i class="fas fa-file-excel me-1 text-success"></i>Arquivo Excel (.xlsx ou .xls)
+                        </label>
+                        <input type="file" class="form-control" id="arquivoImportacao"
+                               name="arquivo" accept=".xlsx,.xls" required>
+                        <div class="form-text">Contas já existentes (mesmo código) serão ignoradas automaticamente.</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success" data-no-intercept="true">
+                        <i class="fas fa-upload me-1"></i>Importar Contas
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </div>

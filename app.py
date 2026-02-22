@@ -6096,6 +6096,318 @@ def editar_conta(conta_id):
     
     return render_template('editar_conta.html', usuario=usuario, conta=conta, planos_sinteticos=planos_sinteticos)
 
+@app.route('/plano-contas/modelo-excel')
+def plano_contas_modelo_excel():
+    """Gera e retorna planilha Excel modelo para importação do Plano de Contas."""
+    if 'usuario_id' not in session:
+        return redirect(url_for('login'))
+
+    usuario = db.session.get(Usuario, session['usuario_id'])
+    if not usuario or usuario.tipo == 'admin':
+        return redirect(url_for('login'))
+
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side, colors
+    from openpyxl.utils import get_column_letter
+    from io import BytesIO
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = 'PLANO DE CONTAS'
+
+    # ── Estilos ──────────────────────────────────────────────────────────────
+    header_fill   = PatternFill('solid', fgColor='1F3864')   # azul escuro
+    header_font   = Font(color='FFFFFF', bold=True, size=10)
+    instruc_font  = Font(color='888888', italic=True, size=8)
+    instruc_fill  = PatternFill('solid', fgColor='F8F9FA')
+    example_fill  = PatternFill('solid', fgColor='EBF3FB')
+    center        = Alignment(horizontal='center', vertical='center', wrap_text=True)
+    left          = Alignment(horizontal='left', vertical='center', wrap_text=True)
+    thin          = Side(style='thin', color='CCCCCC')
+    borda         = Border(left=thin, right=thin, top=thin, bottom=thin)
+
+    # ── Linha 1: Título mesclado ──────────────────────────────────────────────
+    ws.merge_cells('A1:F1')
+    ws['A1'] = 'MODELO DE IMPORTAÇÃO — PLANO DE CONTAS'
+    ws['A1'].font  = Font(bold=True, size=12, color='1F3864')
+    ws['A1'].alignment = Alignment(horizontal='center', vertical='center')
+    ws['A1'].fill  = PatternFill('solid', fgColor='D6E4F0')
+    ws.row_dimensions[1].height = 22
+
+    # ── Linha 2: Instruções ───────────────────────────────────────────────────
+    instrucoes = [
+        'Ex: 1 | 1.1 | 1.2.3',
+        'Nome da conta',
+        '"entrada" ou "saida"',
+        '"sintetica" ou "analitica"',
+        'Código da conta PAI (opcional para sintéticas)',
+        'Descrição opcional'
+    ]
+    for col, texto in enumerate(instrucoes, start=1):
+        c = ws.cell(row=2, column=col, value=texto)
+        c.font      = instruc_font
+        c.fill      = instruc_fill
+        c.alignment = center
+        c.border    = borda
+    ws.row_dimensions[2].height = 30
+
+    # ── Linha 3: Cabeçalhos ───────────────────────────────────────────────────
+    cabecalhos = ['CODIGO', 'NOME', 'TIPO', 'NATUREZA', 'CODIGO_PAI', 'DESCRICAO']
+    for col, titulo in enumerate(cabecalhos, start=1):
+        c = ws.cell(row=3, column=col, value=titulo)
+        c.font      = header_font
+        c.fill      = header_fill
+        c.alignment = center
+        c.border    = borda
+    ws.row_dimensions[3].height = 18
+
+    # ── Linhas 4+: Dados de exemplo ───────────────────────────────────────────
+    exemplos = [
+        ('1',     'Receitas',                 'entrada', 'sintetica',  '',    'Grupo de receitas da empresa'),
+        ('1.1',   'Receitas Operacionais',    'entrada', 'sintetica',  '1',   'Receitas da atividade principal'),
+        ('1.1.1', 'Vendas de Produtos',       'entrada', 'analitica',  '1.1', 'Venda de mercadorias'),
+        ('1.1.2', 'Prestação de Serviços',    'entrada', 'analitica',  '1.1', 'Serviços prestados'),
+        ('1.2',   'Receitas Financeiras',     'entrada', 'sintetica',  '1',   'Juros e rendimentos'),
+        ('1.2.1', 'Juros Recebidos',          'entrada', 'analitica',  '1.2', 'Juros bancários'),
+        ('2',     'Despesas',                 'saida',   'sintetica',  '',    'Grupo de despesas'),
+        ('2.1',   'Despesas Operacionais',    'saida',   'sintetica',  '2',   'Despesas do negócio'),
+        ('2.1.1', 'Fornecedores',             'saida',   'analitica',  '2.1', 'Pagamentos a fornecedores'),
+        ('2.1.2', 'Aluguel',                  'saida',   'analitica',  '2.1', 'Despesas de aluguel'),
+        ('2.1.3', 'Salários',                 'saida',   'analitica',  '2.1', 'Folha de pagamento'),
+        ('2.2',   'Despesas Financeiras',     'saida',   'sintetica',  '2',   'Juros e taxas'),
+        ('2.2.1', 'Juros Pagos',              'saida',   'analitica',  '2.2', 'Juros bancários e multas'),
+    ]
+    for row_idx, linha in enumerate(exemplos, start=4):
+        for col_idx, valor in enumerate(linha, start=1):
+            c = ws.cell(row=row_idx, column=col_idx, value=valor)
+            c.fill      = example_fill
+            c.alignment = left if col_idx in (2, 6) else center
+            c.border    = borda
+        ws.row_dimensions[row_idx].height = 16
+
+    # ── Larguras de coluna ────────────────────────────────────────────────────
+    larguras = {'A': 12, 'B': 38, 'C': 12, 'D': 14, 'E': 14, 'F': 42}
+    for col_letra, largura in larguras.items():
+        ws.column_dimensions[col_letra].width = largura
+
+    # ── Salvar e retornar ─────────────────────────────────────────────────────
+    output = BytesIO()
+    wb.save(output)
+    output.seek(0)
+
+    return send_file(
+        output,
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        as_attachment=True,
+        download_name='modelo_plano_de_contas.xlsx'
+    )
+
+
+@app.route('/plano-contas/importar', methods=['POST'])
+def plano_contas_importar():
+    """Importa Plano de Contas a partir de planilha Excel."""
+    if 'usuario_id' not in session:
+        flash('Sessão expirada. Faça login novamente.', 'error')
+        return redirect(url_for('login'))
+
+    usuario = db.session.get(Usuario, session['usuario_id'])
+    if not usuario or usuario.tipo == 'admin':
+        flash('Acesso negado.', 'error')
+        return redirect(url_for('login'))
+
+    empresa_id = obter_empresa_id_sessao(session, usuario)
+
+    if 'arquivo' not in request.files:
+        flash('Nenhum arquivo enviado.', 'error')
+        return redirect(url_for('plano_contas'))
+
+    arquivo = request.files['arquivo']
+    if not arquivo or arquivo.filename == '':
+        flash('Nenhum arquivo selecionado.', 'error')
+        return redirect(url_for('plano_contas'))
+
+    if not arquivo.filename.lower().endswith(('.xlsx', '.xls')):
+        flash('Formato inválido. Use .xlsx ou .xls', 'error')
+        return redirect(url_for('plano_contas'))
+
+    try:
+        from openpyxl import load_workbook
+        from io import BytesIO as _BytesIO
+
+        wb = load_workbook(_BytesIO(arquivo.read()), data_only=True)
+        ws = wb.active
+
+        # ── Detectar linha de cabeçalhos ─────────────────────────────────────
+        header_row = None
+        for row_num in range(1, min(6, ws.max_row + 1)):
+            val = str(ws.cell(row=row_num, column=1).value or '').strip().upper()
+            if val == 'CODIGO':
+                header_row = row_num
+                break
+
+        if header_row is None:
+            flash('Cabeçalho "CODIGO" não encontrado. Use o modelo disponível para download.', 'error')
+            return redirect(url_for('plano_contas'))
+
+        # ── Mapear índices das colunas ────────────────────────────────────────
+        col_map = {}
+        for col_idx in range(1, ws.max_column + 1):
+            val = str(ws.cell(row=header_row, column=col_idx).value or '').strip().upper()
+            if val:
+                col_map[val] = col_idx
+
+        def get_val(row, campo):
+            idx = col_map.get(campo)
+            if idx is None:
+                return ''
+            v = ws.cell(row=row, column=idx).value
+            return str(v).strip() if v is not None else ''
+
+        # ── Ler todas as linhas de dados ──────────────────────────────────────
+        linhas = []
+        avisos = []
+        erros_leitura = []
+
+        for row_num in range(header_row + 1, ws.max_row + 1):
+            codigo    = get_val(row_num, 'CODIGO')
+            nome      = get_val(row_num, 'NOME')
+            tipo      = get_val(row_num, 'TIPO').lower()
+            natureza  = get_val(row_num, 'NATUREZA').lower()
+            codigo_pai = get_val(row_num, 'CODIGO_PAI')
+            descricao = get_val(row_num, 'DESCRICAO')
+
+            # Linha em branco — pular silenciosamente
+            if not codigo and not nome:
+                continue
+
+            if not codigo:
+                erros_leitura.append(f'Linha {row_num}: CODIGO vazio — ignorada.')
+                continue
+            if not nome:
+                erros_leitura.append(f'Linha {row_num}: NOME vazio (código {codigo}) — ignorada.')
+                continue
+            if tipo not in ('entrada', 'saida'):
+                erros_leitura.append(f'Linha {row_num}: TIPO "{tipo}" inválido (use "entrada" ou "saida") — ignorada.')
+                continue
+            if natureza not in ('sintetica', 'analitica'):
+                erros_leitura.append(f'Linha {row_num}: NATUREZA "{natureza}" inválida (use "sintetica" ou "analitica") — ignorada.')
+                continue
+
+            linhas.append({
+                'codigo': codigo,
+                'nome': nome,
+                'tipo': tipo,
+                'natureza': natureza,
+                'codigo_pai': codigo_pai,
+                'descricao': descricao,
+                'row_num': row_num
+            })
+
+        if not linhas:
+            flash('Nenhum dado válido encontrado na planilha. Verifique o arquivo e tente novamente.', 'warning')
+            return redirect(url_for('plano_contas'))
+
+        # ── Verificar duplicatas já existentes na empresa ─────────────────────
+        codigos_existentes = {
+            c.codigo: c.id
+            for c in PlanoConta.query.filter_by(empresa_id=empresa_id, ativo=True).all()
+            if c.codigo
+        }
+
+        # ── Separar sintéticas e analíticas ──────────────────────────────────
+        sinteticas = [l for l in linhas if l['natureza'] == 'sintetica']
+        analiticas = [l for l in linhas if l['natureza'] == 'analitica']
+
+        # Ordenar sintéticas por comprimento do código (pais antes de filhos)
+        sinteticas.sort(key=lambda x: (len(x['codigo']), x['codigo']))
+        # Ordenar analíticas da mesma forma
+        analiticas.sort(key=lambda x: (len(x['codigo']), x['codigo']))
+
+        # ── Mapa codigo → id das contas recém-criadas (+ já existentes) ───────
+        codigo_para_id = dict(codigos_existentes)
+
+        criadas = 0
+        puladas = 0
+
+        def criar_conta(linha):
+            nonlocal criadas, puladas
+
+            codigo = linha['codigo']
+
+            # Pular duplicatas
+            if codigo in codigos_existentes:
+                puladas += 1
+                return
+
+            # Resolver pai_id
+            pai_id = None
+            nivel = 1
+            codigo_pai = linha['codigo_pai']
+            if codigo_pai:
+                if codigo_pai in codigo_para_id:
+                    pai_id = codigo_para_id[codigo_pai]
+                    pai_obj = db.session.get(PlanoConta, pai_id)
+                    nivel = (pai_obj.nivel or 1) + 1 if pai_obj else 2
+                else:
+                    avisos.append(
+                        f'Linha {linha["row_num"]}: CODIGO_PAI "{codigo_pai}" não encontrado — '
+                        f'conta "{codigo}" criada sem pai.'
+                    )
+
+            nova = PlanoConta(
+                nome=linha['nome'],
+                codigo=codigo,
+                tipo=linha['tipo'],
+                natureza=linha['natureza'],
+                nivel=nivel,
+                pai_id=pai_id,
+                descricao=linha['descricao'] or None,
+                ativo=True,
+                usuario_id=usuario.id,
+                empresa_id=empresa_id,
+            )
+            db.session.add(nova)
+            db.session.flush()  # gera o ID imediatamente
+            codigo_para_id[codigo] = nova.id
+            criadas += 1
+
+        # Criar sintéticas primeiro, depois analíticas
+        for linha in sinteticas:
+            criar_conta(linha)
+        for linha in analiticas:
+            criar_conta(linha)
+
+        db.session.commit()
+
+        # ── Montar mensagem de resultado ──────────────────────────────────────
+        partes = []
+        if criadas:
+            partes.append(f'{criadas} conta(s) criada(s) com sucesso')
+        if puladas:
+            partes.append(f'{puladas} já existia(m) e foram ignoradas')
+        if erros_leitura:
+            partes.append(f'{len(erros_leitura)} linha(s) com erro ignoradas')
+
+        msg_principal = ' | '.join(partes) if partes else 'Nenhuma conta processada.'
+
+        if criadas:
+            flash(msg_principal, 'success')
+        else:
+            flash(msg_principal, 'warning')
+
+        for av in avisos:
+            flash(av, 'warning')
+        for er in erros_leitura:
+            flash(er, 'warning')
+
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f'Erro ao importar plano de contas: {str(e)}')
+        flash(f'Erro ao processar o arquivo: {str(e)}', 'error')
+
+    return redirect(url_for('plano_contas'))
+
+
 # Rotas para Vendas
 @app.route('/vendas')
 def vendas():
