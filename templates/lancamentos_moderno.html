@@ -125,7 +125,7 @@
                     lancamentos|length if lancamentos else 0 }} itens)</span>
             </div>
 
-            <div class="totals-grid" style="grid-template-columns: 1fr 1fr 1fr !important;">
+            <div class="totals-grid" style="grid-template-columns: {% if saldos_contas_caixa %}1fr 1fr 1fr{% else %}1fr 1fr{% endif %} !important;">
                 <!-- Entradas -->
                 <div class="totals-group entradas-group">
                     <div class="group-title">

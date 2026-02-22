@@ -11247,13 +11247,15 @@ def novo_usuario_empresa():
                 flash('Categoria selecionada não encontrada.', 'error')
                 return redirect(url_for('novo_usuario_empresa'))
         
+        # 'categoria_personalizada' (24 chars) excede VARCHAR(20); armazenar 'usuario' e usar categoria_id para o vínculo
+        tipo_db = 'usuario' if tipo == 'categoria_personalizada' else tipo
         novo_usuario = Usuario(
             nome=nome,
             usuario=usuario,  # Novo campo usuario
             email=email,
             senha=generate_password_hash(senha),
             telefone=telefone,
-            tipo=tipo,
+            tipo=tipo_db,
             categoria_id=categoria_id if tipo == 'categoria_personalizada' else None,
             empresa_id=usuario_atual.empresa_id,
             criado_por=usuario_atual.id
@@ -11295,42 +11297,44 @@ def editar_usuario_empresa(user_id):
         usuario.usuario = request.form['usuario']  # Novo campo usuario
         usuario.email = request.form['email']
         usuario.telefone = request.form.get('telefone', '')
-        usuario.tipo = request.form.get('tipo', 'usuario')
-        
+        # Normalizar tipo: 'categoria_personalizada' (24 chars) não cabe em VARCHAR(20)
+        tipo_form = request.form.get('tipo', 'usuario')
+        usuario.tipo = 'usuario' if tipo_form == 'categoria_personalizada' else tipo_form
+
         # Verificar se usuario já existe (exceto para o próprio usuário)
         usuario_existente = Usuario.query.filter_by(empresa_id=usuario_atual.empresa_id, usuario=usuario.usuario).first()
         if usuario_existente and usuario_existente.id != usuario.id:
             flash('Nome de usuário já cadastrado para esta empresa.', 'error')
             return redirect(url_for('editar_usuario_empresa', user_id=user_id))
-        
+
         # Removida validação de email único por empresa
         # Se uma nova senha foi fornecida
-        
+
         # Se uma nova senha foi fornecida
         if request.form.get('nova_senha'):
             usuario.senha = generate_password_hash(request.form['nova_senha'])
-        
+
         # Atualizar Categoria Personalizada e Permissões
+        # Usa categoria_id (não usuario.tipo) para detectar usuário com categoria
         nova_categoria_id = request.form.get('categoria_id')
-        if usuario.tipo == 'categoria_personalizada':
+        if tipo_form == 'categoria_personalizada':
             if nova_categoria_id:
                 # Se mudou a categoria ou não tinha nenhuma
                 if str(usuario.categoria_id) != str(nova_categoria_id):
                     usuario.categoria_id = nova_categoria_id
-                    
+
                     # Regenerar permissões baseadas na nova categoria
                     Permissao.query.filter_by(usuario_id=usuario.id).delete()
                     criar_permissoes_por_categoria(usuario.id, nova_categoria_id)
             else:
-                # Se removeu a categoria (mas manteve tipo categoria_personalizada - inválido, força 'usuario')
-                usuario.tipo = 'usuario'
+                # Se removeu a categoria, torna usuário padrão
                 usuario.categoria_id = None
                 # Regenerar permissões padrão
                 Permissao.query.filter_by(usuario_id=usuario.id).delete()
                 criar_permissoes_padrao(usuario.id)
-        elif usuario.tipo == 'usuario':
+        elif tipo_form == 'usuario':
             # Se for usuário padrão, remove categoria e reseta permissões padrão
-             if usuario.categoria_id:
+            if usuario.categoria_id:
                 usuario.categoria_id = None
                 Permissao.query.filter_by(usuario_id=usuario.id).delete()
                 criar_permissoes_padrao(usuario.id)
