@@ -13587,13 +13587,13 @@ def importacao_ofx_gerar():
         if not lancamentos_data:
             return jsonify({'success': False, 'message': 'Nenhum lançamento para gerar'}), 400
 
-        criados = []       # lista de (id, tipo, valor) dos lançamentos criados
+        criados = []   # lista de {'id', 'tipo', 'valor'} dos lançamentos criados
         erros = []
 
         for item in lancamentos_data:
-            # Usar savepoint por item: se um falha com erro SQL no PostgreSQL,
-            # o rollback vai apenas ao savepoint e a transação principal fica intacta.
-            sp = db.session.begin_nested()
+            # Cada item é commitado individualmente.
+            # Se falhar, fazemos rollback COMPLETO (reseta a conexão PostgreSQL para
+            # estado limpo) sem afetar os itens já commitados nas iterações anteriores.
             try:
                 dt = datetime.strptime(item['data'], '%Y-%m-%d').date()
                 valor = float(item['valor'])
@@ -13656,18 +13656,21 @@ def importacao_ofx_gerar():
                 except Exception:
                     pass  # erro na regra não cancela o lançamento
 
-                db.session.flush()
-                sp.commit()
+                # Commit individual: persiste este item e libera a conexão
+                # para o próximo item partir de um estado limpo.
+                db.session.commit()
                 criados.append({'id': novo_lanc.id, 'tipo': tipo, 'valor': valor})
 
             except Exception as item_err:
-                sp.rollback()  # reverte apenas este item, preserva os já criados
+                # Rollback completo reseta a conexão PostgreSQL para estado válido.
+                # Itens já commitados acima não são afetados.
+                db.session.rollback()
                 erros.append(f"Transação {item.get('fitid', '?')}: {str(item_err)}")
-                app.logger.warning(f'[OFX Import] Erro em item: {item_err}')
+                app.logger.warning(f'[OFX Import] Erro em item ({item.get("fitid","?")}): {item_err}')
 
         ids_criados = [c['id'] for c in criados]
 
-        # Registrar no histórico de importações
+        # Registrar no histórico de importações (nova transação limpa)
         if ids_criados:
             try:
                 total_entradas = sum(c['valor'] for c in criados if c['tipo'] == 'entrada')
@@ -13684,10 +13687,10 @@ def importacao_ofx_gerar():
                     status='concluida'
                 )
                 db.session.add(nova_importacao)
+                db.session.commit()
             except Exception as imp_err:
+                db.session.rollback()
                 app.logger.warning(f'[OFX Import] Erro ao salvar histórico (não crítico): {imp_err}')
-
-        db.session.commit()
 
         return jsonify({
             'success': True,
