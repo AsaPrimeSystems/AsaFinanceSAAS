@@ -1165,7 +1165,7 @@ def obter_empresa_id_sessao(session, usuario):
     return usuario.empresa_id if usuario and usuario.empresa_id else None
 
 # Funções auxiliares para parcelamento
-def criar_parcelas_automaticas(venda_ou_compra, tipo, usuario_id):
+def criar_parcelas_automaticas(venda_ou_compra, tipo, usuario_id, itens_carrinho_json=None):
     """
     Cria parcelas automaticamente para vendas ou compras parceladas
     """
@@ -1251,6 +1251,12 @@ def criar_parcelas_automaticas(venda_ou_compra, tipo, usuario_id):
         
         # Criar lançamento financeiro para cada parcela
         for parcela in parcelas_criadas:
+            # Primeira parcela herda data_realizada se a entidade tiver (o usuário informou o pagamento)
+            eh_primeira = (parcela.numero == 1)
+            data_realizada_parcela = entidade.data_realizada if eh_primeira and hasattr(entidade, 'data_realizada') and entidade.data_realizada else None
+            # Se o usuário forneceu data_realizada, a primeira parcela é considerada realizada
+            realizado_parcela = bool(data_realizada_parcela)
+
             lancamento = Lancamento(
                 descricao=f"{tipo.title()} - Parcela {parcela.numero}/{entidade.numero_parcelas} - {entidade.produto}",
                 valor=parcela.valor,
@@ -1258,12 +1264,15 @@ def criar_parcelas_automaticas(venda_ou_compra, tipo, usuario_id):
                 categoria=categoria_nome,
                 plano_conta_id=plano_conta_id,
                 data_prevista=parcela.data_vencimento,
-                realizado=False,
+                data_realizada=data_realizada_parcela,
+                realizado=realizado_parcela,
                 usuario_id=usuario_id,
                 empresa_id=empresa_id,
                 venda_id=entidade_id if tipo == 'venda' else None,
                 compra_id=entidade_id if tipo == 'compra' else None,
-                cliente_id=entidade.cliente_id if tipo == 'venda' else None
+                cliente_id=entidade.cliente_id if tipo == 'venda' else None,
+                fornecedor_id=entidade.fornecedor_id if tipo == 'compra' else None,
+                itens_carrinho=itens_carrinho_json if eh_primeira else None
             )
             
             db.session.add(lancamento)
@@ -2819,33 +2828,42 @@ def lancamentos():
             else:
                 query = query.filter(Lancamento.nota_fiscal.in_(nfs))
     
-    # Filtro por busca (descrição, cliente, fornecedor ou valor)
+    # Filtro por busca (descrição, cliente, fornecedor, valor ou ID com #)
     busca = request.args.get('busca')
     if busca and busca.strip():
         busca_clean = busca.strip()
-        query = query.join(Cliente, Lancamento.cliente_id == Cliente.id, isouter=True).join(
-            Fornecedor, Lancamento.fornecedor_id == Fornecedor.id, isouter=True)
-        
-        # Verificar se a busca é um número (valor)
-        try:
-            valor_busca = float(busca_clean.replace(',', '.'))
-            query = query.filter(
-                db.or_(
-                    Lancamento.descricao.ilike(f'%{busca_clean}%'),
-                    Cliente.nome.ilike(f'%{busca_clean}%'),
-                    Fornecedor.nome.ilike(f'%{busca_clean}%'),
-                    db.func.abs(Lancamento.valor - valor_busca) < 0.01  # Busca aproximada para valores
+
+        # Busca por ID(s): "#83" ou "#83, #84, #85" — prioridade máxima
+        import re as _re
+        _ids_buscados = [int(m) for m in _re.findall(r'#(\d+)', busca_clean)]
+        if _ids_buscados:
+            # Filtra diretamente por ID(s) sem join desnecessário
+            if len(_ids_buscados) == 1:
+                query = query.filter(Lancamento.id == _ids_buscados[0])
+            else:
+                query = query.filter(Lancamento.id.in_(_ids_buscados))
+        else:
+            query = query.join(Cliente, Lancamento.cliente_id == Cliente.id, isouter=True).join(
+                Fornecedor, Lancamento.fornecedor_id == Fornecedor.id, isouter=True)
+            # Verificar se a busca é um número (valor)
+            try:
+                valor_busca = float(busca_clean.replace(',', '.'))
+                query = query.filter(
+                    db.or_(
+                        Lancamento.descricao.ilike(f'%{busca_clean}%'),
+                        Cliente.nome.ilike(f'%{busca_clean}%'),
+                        Fornecedor.nome.ilike(f'%{busca_clean}%'),
+                        db.func.abs(Lancamento.valor - valor_busca) < 0.01
+                    )
                 )
-            )
-        except ValueError:
-            # Se não é um número, buscar apenas texto (busca mais precisa)
-            query = query.filter(
-                db.or_(
-                    Lancamento.descricao.ilike(f'%{busca_clean}%'),
-                    Cliente.nome.ilike(f'%{busca_clean}%'),
-                    Fornecedor.nome.ilike(f'%{busca_clean}%')
+            except ValueError:
+                query = query.filter(
+                    db.or_(
+                        Lancamento.descricao.ilike(f'%{busca_clean}%'),
+                        Cliente.nome.ilike(f'%{busca_clean}%'),
+                        Fornecedor.nome.ilike(f'%{busca_clean}%')
+                    )
                 )
-            )
     
     # Ordenar e executar query
     lancamentos = query.order_by(Lancamento.data_prevista.desc()).all()
@@ -2898,6 +2916,31 @@ def lancamentos():
         ContaCaixa.ativo == True
     ).order_by(ContaCaixa.nome).all()
 
+    # Calcular saldos acumulados por conta-caixa até data_fim (apenas lançamentos realizados)
+    # "Realizado até data_fim" = data_realizada <= data_fim, ou (realizado=True sem data_realizada, data_prevista <= data_fim)
+    data_limite_saldo = data_fim_obj or hoje
+    saldos_contas_caixa = []
+    for conta in contas_caixa:
+        filtro_base = [
+            Lancamento.empresa_id == empresa_id_correta,
+            Lancamento.conta_caixa_id == conta.id,
+            Lancamento.realizado == True,
+            db.or_(
+                Lancamento.data_realizada <= data_limite_saldo,
+                db.and_(Lancamento.data_realizada.is_(None), Lancamento.data_prevista <= data_limite_saldo)
+            )
+        ]
+        total_ent = db.session.query(
+            db.func.coalesce(db.func.sum(Lancamento.valor), 0)
+        ).filter(*filtro_base, Lancamento.tipo == 'entrada').scalar() or 0.0
+        total_sai = db.session.query(
+            db.func.coalesce(db.func.sum(Lancamento.valor), 0)
+        ).filter(*filtro_base, Lancamento.tipo == 'saida').scalar() or 0.0
+        saldos_contas_caixa.append({
+            'nome': conta.nome,
+            'saldo': round(float(total_ent) - float(total_sai), 2)
+        })
+
     # Criar lista de strings formatadas para compatibilidade ou objetos para o novo template
     # Para o template moderno, melhor passar os objetos
 
@@ -2923,7 +2966,9 @@ def lancamentos():
                           entradas_vencidas=entradas_vencidas, saidas_vencidas=saidas_vencidas,
                           entradas_agendadas=entradas_agendadas, saidas_agendadas=saidas_agendadas,
                           saldo_realizado=saldo_realizado, saldo_a_vencer=saldo_a_vencer,
-                          saldo_vencido=saldo_vencido, saldo_agendado=saldo_agendado)
+                          saldo_vencido=saldo_vencido, saldo_agendado=saldo_agendado,
+                          saldos_contas_caixa=saldos_contas_caixa,
+                          data_limite_saldo=data_limite_saldo)
 
 @app.route('/lancamentos/excluir-lote', methods=['POST'])
 def excluir_lancamentos_lote():
@@ -3081,25 +3126,36 @@ def conciliacao():
                 if isinstance(dt, datetime):
                     dt = dt.date()
                 dates.append(dt)
-                
+
             if dates:
-                min_date = min(dates) - timedelta(days=10)
-                max_date = max(dates) + timedelta(days=10)
+                ofx_min_date = min(dates)
+                ofx_max_date = max(dates)
             else:
                 hoje = datetime.utcnow().date()
-                min_date = hoje - timedelta(days=30)
-                max_date = hoje + timedelta(days=30)
-            
-            # Buscar todos os lançamentos da empresa nesse período
+                ofx_min_date = hoje - timedelta(days=30)
+                ofx_max_date = hoje
+
+            # Janela ampliada (±15 dias) usada apenas como pool de candidatos para matching
+            match_min_date = ofx_min_date - timedelta(days=15)
+            match_max_date = ofx_max_date + timedelta(days=15)
+
+            # Lançamentos para exibição no painel direito: apenas o período exato do OFX
             system_transactions = Lancamento.query.filter(
                 Lancamento.empresa_id == empresa_id,
-                Lancamento.data_prevista >= min_date,
-                Lancamento.data_prevista <= max_date
+                Lancamento.data_prevista >= ofx_min_date,
+                Lancamento.data_prevista <= ofx_max_date
             ).order_by(Lancamento.data_prevista).all()
-            
+
+            # Pool de candidatos para matching (janela mais ampla, inclui dias próximos)
+            candidatos_matching = Lancamento.query.filter(
+                Lancamento.empresa_id == empresa_id,
+                Lancamento.data_prevista >= match_min_date,
+                Lancamento.data_prevista <= match_max_date
+            ).all()
+
             # Listas para matching (priorizar os não realizados)
-            disponiveis = [l for l in system_transactions if not l.realizado]
-            disponiveis_realizados = [l for l in system_transactions if l.realizado]
+            disponiveis = [l for l in candidatos_matching if not l.realizado]
+            disponiveis_realizados = [l for l in candidatos_matching if l.realizado]
             
             ofx_transactions = []
             
@@ -3301,9 +3357,9 @@ def conciliar_gerar_lancamento():
         )
         
         if tipo == 'entrada' and cliente_fornecedor_id:
-            novo_lanc.cliente_id = cliente_fornecedor_id
+            novo_lanc.cliente_id = int(cliente_fornecedor_id)
         elif tipo == 'saida' and cliente_fornecedor_id:
-            novo_lanc.fornecedor_id = cliente_fornecedor_id
+            novo_lanc.fornecedor_id = int(cliente_fornecedor_id)
 
         db.session.add(novo_lanc)
         
@@ -3473,16 +3529,16 @@ def novo_lancamento():
                         fornecedores_local = []
                         produtos_local = []
                         servicos_local = []
-                        categorias_receita_local = []
-                        categorias_despesa_local = []
+                        categorias_entrada_local = []
+                        categorias_saida_local = []
                 except Exception:
                     db.session.rollback()
                     clientes_local = []
                     fornecedores_local = []
                     produtos_local = []
                     servicos_local = []
-                    categorias_receita_local = []
-                    categorias_despesa_local = []
+                    categorias_entrada_local = []
+                    categorias_saida_local = []
                 return render_template('novo_lancamento.html', usuario=usuario, contas_caixa=contas_caixa_local, clientes=clientes_local, fornecedores=fornecedores_local, produtos=produtos_local, servicos=servicos_local, categorias_entrada=categorias_entrada_local, categorias_saida=categorias_saida_local, form_data=form_data, errors=errors or {})
             descricao = request.form.get('descricao', '').strip()
             if not descricao:
@@ -3753,13 +3809,14 @@ def novo_lancamento():
                     return render_form({'conta_caixa_id': 'Conta caixa inválida'})
             
             # Campos de cliente/fornecedor
+            empresa_id_correta_val = obter_empresa_id_sessao(session, usuario)
             cliente_id = request.form.get('cliente_id', '').strip()
             cliente_id_obj = None
             if cliente_id:
                 try:
                     cliente_id_obj = int(cliente_id)
                     cliente = db.session.get(Cliente, cliente_id_obj)
-                    if not cliente or cliente.usuario_id != usuario.id:
+                    if not cliente or cliente.empresa_id != empresa_id_correta_val:
                         return render_form({'cliente_fornecedor': 'Cliente inválido'})
                 except ValueError:
                     return render_form({'cliente_fornecedor': 'ID do cliente inválido'})
@@ -3770,7 +3827,7 @@ def novo_lancamento():
                 try:
                     fornecedor_id_obj = int(fornecedor_id)
                     fornecedor = db.session.get(Fornecedor, fornecedor_id_obj)
-                    if not fornecedor or fornecedor.usuario_id != usuario.id:
+                    if not fornecedor or fornecedor.empresa_id != empresa_id_correta_val:
                         return render_form({'cliente_fornecedor': 'Fornecedor inválido'})
                 except ValueError:
                     return render_form({'cliente_fornecedor': 'ID do fornecedor inválido'})
@@ -4561,10 +4618,10 @@ def editar_lancamento(lancamento_id):
     # Buscar contas caixa ativas de todos os usuários da empresa
     contas_caixa = ContaCaixa.query.filter(ContaCaixa.usuario_id.in_(usuarios_ids), ContaCaixa.ativo==True).order_by(ContaCaixa.nome).all()
     
-    # Buscar clientes e fornecedores do usuário
+    # Buscar clientes e fornecedores da empresa (todos os membros da empresa)
     try:
-        clientes = Cliente.query.filter_by(usuario_id=usuario.id).order_by(Cliente.nome).all()
-        fornecedores = Fornecedor.query.filter_by(usuario_id=usuario.id).order_by(Fornecedor.nome).all()
+        clientes = Cliente.query.filter_by(empresa_id=empresa_id_correta).order_by(Cliente.nome).all()
+        fornecedores = Fornecedor.query.filter_by(empresa_id=empresa_id_correta).order_by(Fornecedor.nome).all()
     except Exception as e:
         app.logger.error(f"Erro ao buscar clientes/fornecedores: {str(e)}")
         clientes = []
@@ -6361,7 +6418,18 @@ def nova_venda():
         tipo_pagamento = request.form.get('tipo_pagamento', 'a_vista')
         numero_parcelas = int(request.form.get('numero_parcelas', 1))
         desconto_geral = float(request.form.get('desconto', 0))  # Desconto geral (além dos descontos por item)
-        
+
+        # Montar itens_carrinho JSON com TODOS os itens (para lançamento e relatórios)
+        import json as _json
+        itens_carrinho_json = _json.dumps([{
+            'nome': item['nome'],
+            'preco': item['preco'],
+            'qtd': item['qtd'],
+            'desconto': item.get('desconto', 0),
+            'total': item['total'],
+            'tipo': item.get('tipo', 'produto')
+        } for item in itens_validos], ensure_ascii=False)
+
         # Buscar todos os usuários da mesma empresa
         empresa_id = obter_empresa_id_sessao(session, usuario)
 
@@ -6385,21 +6453,23 @@ def nova_venda():
 
         nota_fiscal = request.form.get('nota_fiscal', '').strip() or None
         
+        from datetime import date as _date_cls_v
         nova_venda = Venda(
             cliente_id=cliente_id,
             produto=produto,
-            valor=valor,  # Preço unitário do primeiro item (mantido para compatibilidade)
-            quantidade=quantidade,  # Quantidade do primeiro item (mantido para compatibilidade)
+            valor=valor,
+            quantidade=quantidade,
             tipo_venda=tipo_venda,
             data_prevista=data_prevista,
             data_realizada=data_realizada,
+            realizado=bool(data_realizada and data_realizada <= _date_cls_v.today()),
             observacoes=observacoes,
             usuario_id=usuario.id,
             empresa_id=empresa_id,
             tipo_pagamento=tipo_pagamento,
             numero_parcelas=numero_parcelas,
             valor_parcela=valor_parcela,
-            desconto=desconto_geral,  # Desconto geral aplicado
+            desconto=desconto_geral,
             valor_final=valor_final,
             nota_fiscal=nota_fiscal
         )
@@ -6413,7 +6483,7 @@ def nova_venda():
             
             # Criar parcelas se for pagamento parcelado
             if nova_venda.tipo_pagamento == 'parcelado' and nova_venda.numero_parcelas > 1:
-                sucesso_parcelas, mensagem_parcelas = criar_parcelas_automaticas(nova_venda, 'venda', usuario.id)
+                sucesso_parcelas, mensagem_parcelas = criar_parcelas_automaticas(nova_venda, 'venda', usuario.id, itens_carrinho_json=itens_carrinho_json)
                 if sucesso_parcelas:
                     app.logger.info(f"✅ Parcelas criadas para venda {nova_venda.id}: {mensagem_parcelas}")
                     flash(f'Venda registrada com sucesso! {mensagem_parcelas}', 'success')
@@ -6423,7 +6493,7 @@ def nova_venda():
             else:
                 # Criar lançamento financeiro único se for à vista
                 if not nova_venda.lancamento_financeiro:
-                    lancamento_criado = criar_lancamento_financeiro_automatico(nova_venda, 'venda', usuario.id)
+                    lancamento_criado = criar_lancamento_financeiro_automatico(nova_venda, 'venda', usuario.id, itens_carrinho_json=itens_carrinho_json)
                     if lancamento_criado:
                         nova_venda.lancamento_financeiro = lancamento_criado
                         app.logger.info(f"✅ Lançamento financeiro criado para venda {nova_venda.id}")
@@ -7075,8 +7145,11 @@ def nova_compra():
                 flash('Adicione pelo menos um item válido ao carrinho.', 'error')
                 return redirect(url_for('nova_compra'))
             
-            # Usar primeiro item para compatibilidade (mantido para código legado)
-            produto = itens_validos[0]['nome']
+            # Se múltiplos itens, guardar nomes separados por vírgula (template detecta vírgula → "Produtos Diversos")
+            if len(itens_validos) > 1:
+                produto = ', '.join(item['nome'] for item in itens_validos)
+            else:
+                produto = itens_validos[0]['nome']
             
             # Calcular valor total do carrinho usando itens válidos
             try:
@@ -7140,7 +7213,20 @@ def nova_compra():
             
             observacoes = request.form.get('observacoes', '').strip()
             tipo_pagamento = request.form.get('tipo_pagamento', 'a_vista')
-            
+
+            # Parsing da data realizada (opcional)
+            data_realizada_str = request.form.get('data_realizada', '').strip()
+            data_realizada = None
+            if data_realizada_str:
+                try:
+                    try:
+                        data_realizada = datetime.strptime(data_realizada_str, '%d/%m/%Y').date()
+                    except ValueError:
+                        data_realizada = datetime.strptime(data_realizada_str, '%Y-%m-%d').date()
+                except (ValueError, TypeError):
+                    flash('Data de realização inválida.', 'error')
+                    return redirect(url_for('nova_compra'))
+
             try:
                 numero_parcelas = int(request.form.get('numero_parcelas', 1))
                 if numero_parcelas <= 0:
@@ -7149,7 +7235,18 @@ def nova_compra():
             except (ValueError, TypeError):
                 flash('Número de parcelas inválido.', 'error')
                 return redirect(url_for('nova_compra'))
-            
+
+            # Montar itens_carrinho JSON com TODOS os itens (para estoque e lançamento)
+            import json as _json
+            itens_carrinho_json = _json.dumps([{
+                'nome': item['nome'],
+                'preco': item['preco'],
+                'qtd': item['qtd'],
+                'desconto': item.get('desconto', 0),
+                'total': item['total'],
+                'tipo': item.get('tipo', 'mercadoria')
+            } for item in itens_validos], ensure_ascii=False)
+
             app.logger.info(f"Validação de dados bem-sucedida para compra: {produto}")
             
         except Exception as e:
@@ -7181,6 +7278,7 @@ def nova_compra():
 
         nota_fiscal = request.form.get('nota_fiscal', '').strip() or None
         
+        from datetime import date as _date_cls
         nova_compra = Compra(
             fornecedor_id=fornecedor_id,
             produto=produto,
@@ -7189,6 +7287,8 @@ def nova_compra():
             preco_custo=preco_custo,
             tipo_compra=tipo_compra,
             data_prevista=data_prevista,
+            data_realizada=data_realizada,
+            realizado=bool(data_realizada and data_realizada <= _date_cls.today()),
             observacoes=observacoes,
             usuario_id=usuario.id,
             empresa_id=empresa_id,
@@ -7215,7 +7315,7 @@ def nova_compra():
             try:
                 # Criar parcelas se for pagamento parcelado
                 if nova_compra.tipo_pagamento == 'parcelado' and nova_compra.numero_parcelas > 1:
-                    sucesso_parcelas, mensagem_parcelas = criar_parcelas_automaticas(nova_compra, 'compra', usuario.id)
+                    sucesso_parcelas, mensagem_parcelas = criar_parcelas_automaticas(nova_compra, 'compra', usuario.id, itens_carrinho_json=itens_carrinho_json)
                     if sucesso_parcelas:
                         app.logger.info(f"✅ Parcelas criadas para compra {nova_compra.id}: {mensagem_parcelas}")
                         flash(f'Compra registrada com sucesso! {mensagem_parcelas}', 'success')
@@ -7225,7 +7325,7 @@ def nova_compra():
                 else:
                     # Criar lançamento financeiro único se for à vista
                     if not nova_compra.lancamento_financeiro:
-                        lancamento_criado = criar_lancamento_financeiro_automatico(nova_compra, 'compra', usuario.id)
+                        lancamento_criado = criar_lancamento_financeiro_automatico(nova_compra, 'compra', usuario.id, itens_carrinho_json=itens_carrinho_json)
                         if lancamento_criado:
                             nova_compra.lancamento_financeiro = lancamento_criado
                             app.logger.info(f"✅ Lançamento financeiro criado para compra {nova_compra.id}")
@@ -7654,28 +7754,48 @@ def calcular_preco_medio_produto(nome_produto, usuario_id):
     
     app.logger.info(f"Calculando preço médio para produto {nome_produto} - Usuários da empresa: {usuarios_ids}")
     
-    # ATUALIZAÇÃO: Buscar todas as compras para este produto (independente do status realizado)
+    # Buscar todas as compras para este produto pelo campo produto (item principal)
     compras_todas = Compra.query.filter(
         Compra.produto == nome_produto,
         Compra.empresa_id == empresa_id,
         Compra.tipo_compra == 'mercadoria'
     ).all()
-    
-    if not compras_todas:
-        app.logger.info(f"Nenhuma compra encontrada para produto {nome_produto}")
-        return 0
-    
-    # Calcular preço médio ponderado (todas as compras)
+    compras_ids_contadas = {c.id for c in compras_todas}
+
+    # Calcular preço médio ponderado (compras via campo produto principal)
     valor_total = 0
     quantidade_total = 0
-    
+
     for compra in compras_todas:
         valor_total += compra.quantidade * compra.preco_custo
         quantidade_total += compra.quantidade
-    
+
+    # Também contabilizar itens secundários de carrinho multi-item
+    import json as _json_preco
+    nome_norm = normalizar_nome_produto(nome_produto)
+    lancamentos_multi = Lancamento.query.filter(
+        Lancamento.empresa_id == empresa_id,
+        Lancamento.compra_id.isnot(None),
+        Lancamento.itens_carrinho.isnot(None)
+    ).all()
+    for lanc in lancamentos_multi:
+        if lanc.compra_id in compras_ids_contadas:
+            continue
+        try:
+            itens = _json_preco.loads(lanc.itens_carrinho)
+            for item in itens:
+                if normalizar_nome_produto(item.get('nome', '')) == nome_norm:
+                    qtd_item = float(item.get('qtd', 1))
+                    preco_item = float(item.get('preco', 0))
+                    valor_total += qtd_item * preco_item
+                    quantidade_total += qtd_item
+                    compras_ids_contadas.add(lanc.compra_id)
+        except Exception:
+            pass
+
     if quantidade_total > 0:
         preco_medio = valor_total / quantidade_total
-        app.logger.info(f"Preço médio calculado para {nome_produto}: R$ {preco_medio:.2f} (baseado em {len(compras_todas)} compras)")
+        app.logger.info(f"Preço médio calculado para {nome_produto}: R$ {preco_medio:.2f} (baseado em {len(compras_ids_contadas)} compras)")
         return preco_medio
     else:
         app.logger.info(f"Nenhuma compra encontrada para produto {nome_produto}")
@@ -7703,8 +7823,10 @@ def calcular_estoque_produto(nome_produto, usuario_id):
     nomes_produto = [n.strip() for n in nome_produto.split(',')]
     nome_produto_base = nomes_produto[0] if nomes_produto else nome_produto
 
-    # ATUALIZAÇÃO: Buscar todas as compras para este produto (independente do status realizado)
-    # Busca por nome exato apenas (não usa fuzzy match para evitar conflitos entre produtos similares)
+    # Normalizar nome base para comparação
+    nome_produto_normalizado = normalizar_nome_produto(nome_produto_base)
+
+    # Buscar todas as compras para este produto pelo campo produto (item principal)
     compras_todas = Compra.query.filter(
         db.or_(
             Compra.produto == nome_produto,
@@ -7713,9 +7835,9 @@ def calcular_estoque_produto(nome_produto, usuario_id):
         Compra.empresa_id == empresa_id,
         Compra.tipo_compra == 'mercadoria'
     ).all()
+    compras_ids_contadas = {c.id for c in compras_todas}
 
-    # ATUALIZAÇÃO: Buscar todas as vendas para este produto (independente do status realizado)
-    # Busca por nome exato apenas (não usa fuzzy match para evitar conflitos entre produtos similares)
+    # Buscar todas as vendas para este produto pelo campo produto (item principal)
     vendas_todas = Venda.query.filter(
         db.or_(
             Venda.produto == nome_produto,
@@ -7724,16 +7846,40 @@ def calcular_estoque_produto(nome_produto, usuario_id):
         Venda.empresa_id == empresa_id,
         Venda.tipo_venda == 'produto'
     ).all()
-    
-    # Calcular quantidade total comprada (todas as compras)
+    vendas_ids_contadas = {v.id for v in vendas_todas}
+
+    # Calcular quantidade total comprada (compras via campo produto principal)
     quantidade_comprada = 0
     for compra in compras_todas:
         quantidade_comprada += compra.quantidade
-    
-    # Calcular quantidade total vendida (todas as vendas)
+
+    # Calcular quantidade total vendida (vendas via campo produto principal)
     quantidade_vendida = 0
     for venda in vendas_todas:
         quantidade_vendida += venda.quantidade
+
+    # Adicionar quantidades de itens secundários de carrinho (multi-item compras/vendas)
+    import json as _json_estoque
+    lancamentos_multi = Lancamento.query.filter(
+        Lancamento.empresa_id == empresa_id,
+        Lancamento.itens_carrinho.isnot(None)
+    ).all()
+    for lanc in lancamentos_multi:
+        try:
+            itens = _json_estoque.loads(lanc.itens_carrinho)
+            for item in itens:
+                item_nome_norm = normalizar_nome_produto(item.get('nome', ''))
+                if item_nome_norm != nome_produto_normalizado:
+                    continue
+                qtd_item = float(item.get('qtd', 1))
+                if lanc.compra_id and lanc.compra_id not in compras_ids_contadas:
+                    quantidade_comprada += qtd_item
+                    compras_ids_contadas.add(lanc.compra_id)
+                elif lanc.venda_id and lanc.venda_id not in vendas_ids_contadas:
+                    quantidade_vendida += qtd_item
+                    vendas_ids_contadas.add(lanc.venda_id)
+        except Exception:
+            pass
     
     # Estoque = Compras - Vendas
     estoque_calculado = quantidade_comprada - quantidade_vendida
@@ -12187,11 +12333,18 @@ def editar_compra(compra_id):
                         app.logger.info(f"✅ Lançamento parcela {i}/{num_lancamentos} (ID {lanc.id}) atualizado para compra {compra.id}")
 
             db.session.commit()
-            
+
+            # Recalcular estoque com os itens atualizados
+            try:
+                if compra.tipo_compra == 'mercadoria':
+                    atualizar_estoque_compra(compra, usuario.id)
+            except Exception as est_err:
+                app.logger.warning(f"⚠️ Erro ao recalcular estoque após editar compra {compra_id}: {est_err}")
+
             app.logger.info(f'Compra {compra_id} atualizada com sucesso!')
             flash('Compra atualizada com sucesso!', 'success')
             return redirect(url_for('compras'))
-            
+
         except Exception as e:
             app.logger.error(f'Erro ao editar compra {compra_id}: {str(e)}')
             flash(f'Erro ao atualizar compra: {str(e)}', 'error')
@@ -12949,15 +13102,285 @@ def api_marcar_status_lote():
 
 @app.route('/importacao')
 def importacao():
-    """Página de importação de dados"""
+    """Página chooser de importação de dados"""
     if 'usuario_id' not in session:
         return redirect(url_for('login'))
-    
+
     usuario = db.session.get(Usuario, session['usuario_id'])
     if usuario.tipo == 'admin':
         return redirect(url_for('admin_dashboard'))
-    
+
     return render_template('importacao.html', usuario=usuario)
+
+
+@app.route('/importacao/excel')
+def importacao_excel():
+    """Página de importação via planilha Excel"""
+    if 'usuario_id' not in session:
+        return redirect(url_for('login'))
+
+    usuario = db.session.get(Usuario, session['usuario_id'])
+    if usuario.tipo == 'admin':
+        return redirect(url_for('admin_dashboard'))
+
+    return render_template('importacao_excel.html', usuario=usuario)
+
+
+@app.route('/importacao/ofx', methods=['GET', 'POST'])
+def importacao_ofx():
+    """Importação de lançamentos via extrato bancário OFX (cria lançamentos novos)"""
+    valido, session_user, _ = validar_sessao_ativa()
+    if not valido:
+        return redirect(url_for('login'))
+
+    if session_user.tipo == 'admin':
+        return redirect(url_for('admin_dashboard'))
+
+    empresa_id = obter_empresa_id_sessao(session, session_user)
+
+    # Dados para dropdowns (usados tanto no GET quanto no POST)
+    uids = [u.id for u in Usuario.query.filter_by(empresa_id=empresa_id).all()]
+    contas_caixa = ContaCaixa.query.filter(
+        ContaCaixa.usuario_id.in_(uids), ContaCaixa.ativo == True
+    ).order_by(ContaCaixa.nome).all()
+    categorias = PlanoConta.query.filter_by(
+        empresa_id=empresa_id, ativo=True, natureza='analitica'
+    ).order_by(PlanoConta.nome).all()
+    clientes = Cliente.query.filter_by(empresa_id=empresa_id).order_by(Cliente.nome).all()
+    fornecedores = Fornecedor.query.filter_by(empresa_id=empresa_id).order_by(Fornecedor.nome).all()
+
+    if request.method == 'GET':
+        return render_template('importacao_ofx.html',
+                               ofx_items=None,
+                               contas_caixa=contas_caixa,
+                               categorias=categorias,
+                               clientes=clientes,
+                               fornecedores=fornecedores,
+                               conta_caixa_id_selecionada=None)
+
+    # ===== POST: parsear OFX =====
+    if 'arquivo_ofx' not in request.files:
+        flash('Nenhum arquivo enviado.', 'error')
+        return redirect(request.url)
+
+    file = request.files['arquivo_ofx']
+    if file.filename == '':
+        flash('Nenhum arquivo selecionado.', 'error')
+        return redirect(request.url)
+
+    if not file.filename.lower().endswith('.ofx'):
+        flash('Por favor, envie um arquivo no formato .ofx', 'error')
+        return redirect(request.url)
+
+    if OfxParser is None:
+        flash('Erro no sistema: biblioteca ofxparse não está instalada.', 'error')
+        return redirect(request.url)
+
+    conta_caixa_id_selecionada = request.form.get('conta_caixa_id', type=int)
+
+    try:
+        ofx = OfxParser.parse(file)
+        statement = ofx.account.statement
+
+        # Carregar regras de conciliação para sugestão automática
+        regras_empresa = []
+        try:
+            regras_empresa = ConciliacaoRegra.query.filter_by(empresa_id=empresa_id).all()
+        except Exception:
+            db.session.rollback()
+
+        # Dicionário rápido categoria_id → nome para evitar queries em loop
+        cat_nomes = {str(cat.id): cat.nome for cat in categorias}
+
+        ofx_items = []
+        for tx in statement.transactions:
+            tx_amount = float(tx.amount)
+            tipo = 'entrada' if tx_amount >= 0 else 'saida'
+            valor = abs(tx_amount)
+            data = tx.date.date() if hasattr(tx.date, 'date') else tx.date
+            if isinstance(data, datetime):
+                data = data.date()
+            memo = tx.memo or ''
+            fitid = tx.id or ''
+
+            # Sugestão automática via ConciliacaoRegra
+            regra_sugerida = None
+            if regras_empresa and memo:
+                best_score = 0
+                best_regra = None
+                for regra in regras_empresa:
+                    s = regra.score_match(memo)
+                    if s > best_score:
+                        best_score = s
+                        best_regra = regra
+                if best_score >= 30:
+                    regra_sugerida = best_regra
+
+            ofx_items.append({
+                'fitid': fitid,
+                'data': data.isoformat(),
+                'data_br': data.strftime('%d/%m/%Y'),
+                'memo': memo,
+                'valor': valor,
+                'tipo': tipo,
+                'regra_sugerida': {
+                    'categoria_id': regra_sugerida.categoria_id,
+                    'categoria_nome': cat_nomes.get(str(regra_sugerida.categoria_id), ''),
+                    'cliente_id': regra_sugerida.cliente_id,
+                    'fornecedor_id': regra_sugerida.fornecedor_id,
+                } if regra_sugerida else None
+            })
+
+        flash(f'Arquivo OFX processado: {len(ofx_items)} transação(ões) encontrada(s).', 'success')
+
+        return render_template('importacao_ofx.html',
+                               ofx_items=ofx_items,
+                               contas_caixa=contas_caixa,
+                               categorias=categorias,
+                               clientes=clientes,
+                               fornecedores=fornecedores,
+                               conta_caixa_id_selecionada=conta_caixa_id_selecionada)
+
+    except Exception as e:
+        import traceback
+        db.session.rollback()
+        app.logger.error(f'Erro ao processar OFX (importação): {str(e)}\n{traceback.format_exc()}')
+        flash(f'Erro ao ler arquivo OFX: {str(e)}', 'error')
+        return redirect(request.url)
+
+
+@app.route('/importacao/ofx/gerar', methods=['POST'])
+def importacao_ofx_gerar():
+    """Cria lançamentos em massa a partir de transações OFX mapeadas"""
+    valido, session_user, _ = validar_sessao_ativa()
+    if not valido:
+        return jsonify({'success': False, 'message': 'Sessão inválida'}), 401
+
+    empresa_id = obter_empresa_id_sessao(session, session_user)
+
+    try:
+        import json as _json_ofx
+        data = request.get_json()
+        conta_caixa_id = data.get('conta_caixa_id')
+        lancamentos_data = data.get('lancamentos', [])
+
+        if not lancamentos_data:
+            return jsonify({'success': False, 'message': 'Nenhum lançamento para gerar'}), 400
+
+        criados = []
+        erros = []
+
+        for item in lancamentos_data:
+            try:
+                dt = datetime.strptime(item['data'], '%Y-%m-%d').date()
+                valor = float(item['valor'])
+                tipo = item['tipo']
+                descricao = item.get('descricao') or item.get('memo', '')
+                categoria_id = item.get('categoria_id')
+                cliente_id = item.get('cliente_id')
+                fornecedor_id = item.get('fornecedor_id')
+                memo_original = item.get('memo', descricao)
+
+                plano = PlanoConta.query.filter_by(
+                    id=int(categoria_id), empresa_id=empresa_id
+                ).first() if categoria_id else None
+                categoria_nome = plano.nome if plano else 'Importação OFX'
+
+                novo_lanc = Lancamento(
+                    usuario_id=session_user.id,
+                    empresa_id=empresa_id,
+                    descricao=descricao,
+                    tipo=tipo,
+                    valor=valor,
+                    data_prevista=dt,
+                    realizado=True,
+                    data_realizada=dt,
+                    categoria=categoria_nome,
+                    plano_conta_id=int(categoria_id) if categoria_id else None,
+                    conta_caixa_id=int(conta_caixa_id) if conta_caixa_id else None,
+                    cliente_id=int(cliente_id) if tipo == 'entrada' and cliente_id else None,
+                    fornecedor_id=int(fornecedor_id) if tipo == 'saida' and fornecedor_id else None,
+                    usuario_criacao_id=session_user.id
+                )
+                db.session.add(novo_lanc)
+
+                # Salvar/atualizar ConciliacaoRegra para aprendizado
+                try:
+                    keywords = ConciliacaoRegra.keywords_from_memo(memo_original)
+                    if keywords and categoria_id:
+                        regra_existente = ConciliacaoRegra.query.filter_by(
+                            empresa_id=empresa_id, tipo=tipo, memo_keywords=keywords
+                        ).first()
+                        if regra_existente:
+                            regra_existente.uso_count = (regra_existente.uso_count or 0) + 1
+                            regra_existente.ultimo_uso = datetime.utcnow()
+                            regra_existente.categoria_id = int(categoria_id)
+                            if tipo == 'entrada' and cliente_id:
+                                regra_existente.cliente_id = int(cliente_id)
+                            elif tipo == 'saida' and fornecedor_id:
+                                regra_existente.fornecedor_id = int(fornecedor_id)
+                        else:
+                            nova_regra = ConciliacaoRegra(
+                                empresa_id=empresa_id,
+                                memo_keywords=keywords,
+                                memo_original=memo_original[:500],
+                                tipo=tipo,
+                                categoria_id=int(categoria_id),
+                                cliente_id=int(cliente_id) if tipo == 'entrada' and cliente_id else None,
+                                fornecedor_id=int(fornecedor_id) if tipo == 'saida' and fornecedor_id else None
+                            )
+                            db.session.add(nova_regra)
+                except Exception:
+                    pass
+
+                db.session.flush()
+                criados.append(novo_lanc.id)
+
+            except Exception as item_err:
+                erros.append(f"Transação {item.get('fitid', '?')}: {str(item_err)}")
+
+        # Registrar no histórico de importações
+        if criados:
+            try:
+                total_entradas = sum(
+                    float(it['valor']) for it in lancamentos_data
+                    if it.get('tipo') == 'entrada' and lancamentos_data.index(it) < len(criados)
+                )
+                total_saidas = sum(
+                    float(it['valor']) for it in lancamentos_data
+                    if it.get('tipo') == 'saida' and lancamentos_data.index(it) < len(criados)
+                )
+                nova_importacao = Importacao(
+                    usuario_id=session_user.id,
+                    nome_arquivo='extrato_bancario.ofx',
+                    total_lancamentos=len(criados),
+                    total_entradas=total_entradas,
+                    total_saidas=total_saidas,
+                    sucessos=len(criados),
+                    erros=len(erros),
+                    lancamentos_ids=_json_ofx.dumps(criados),
+                    status='concluida'
+                )
+                db.session.add(nova_importacao)
+            except Exception as imp_err:
+                app.logger.warning(f'[OFX Import] Erro ao salvar histórico (não crítico): {imp_err}')
+
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'sucesso': len(criados),
+            'erros': len(erros),
+            'erros_detalhes': erros,
+            'ids': criados,
+            'message': f'{len(criados)} lançamento(s) criado(s) com sucesso!'
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f'Erro ao gerar lançamentos OFX (importação): {str(e)}')
+        return jsonify({'success': False, 'message': str(e)}), 500
+
 
 @app.route('/api/backup/exportar-geral', methods=['GET'])
 def api_exportar_backup_geral():
@@ -14339,6 +14762,7 @@ def api_importar_dados():
                 
                 cliente_id = None
                 fornecedor_id = None
+                conta_caixa_id = None  # Inicializar explicitamente para evitar uso de locals()
                 
                 # Vinculação inteligente baseada no tipo cliente/fornecedor da planilha
                 if tipo_cliente_fornecedor and nome_cliente_fornecedor:
@@ -14384,8 +14808,8 @@ def api_importar_dados():
                     # Buscar fornecedor com busca inteligente
                     fornecedor_id = buscar_fornecedor(row_data[8] if len(row_data) > 8 else None, fornecedores_cache)
 
-                # Buscar conta caixa (se não foi processada no fallback)
-                if 'conta_caixa_id' not in locals():
+                # Buscar conta caixa via coluna CONTA_CAIXA se ainda não definida pelo fallback
+                if conta_caixa_id is None:
                     conta_caixa_id = buscar_ou_criar_conta_caixa(dados.get('CONTA_CAIXA'), contas_caixa_cache, usuario.id, empresa_id)
                 
                 # Calcular status automaticamente baseado na data de realização
@@ -14402,24 +14826,32 @@ def api_importar_dados():
                 else:
                     realizado = False  # Sem data = pendente
                 
-                # Criar itens_carrinho a partir de dados da planilha (se produto/serviço informado)
+                # Criar itens_carrinho a partir de dados da planilha
+                # Usa produto_servico_final OU quantidade/valor_unitario para gerar o carrinho
                 itens_carrinho_importacao = None
-                if produto_servico_final and tipo_produto_servico:
+                _tem_qtd_preco = dados.get('QUANTIDADE') or dados.get('VALOR_UNITARIO')
+                if produto_servico_final or _tem_qtd_preco:
                     try:
                         qtd_raw = dados.get('QUANTIDADE')
                         qtd = float(str(qtd_raw).replace(',', '.')) if qtd_raw else 1.0
                         preco_raw = dados.get('VALOR_UNITARIO')
                         preco = float(str(preco_raw).replace(',', '.')) if preco_raw else float(valor or 0)
-                        
+
                         # Pegar desconto da planilha
                         desconto_raw = dados.get('DESCONTO')
                         desconto = float(str(desconto_raw).replace(',', '.')) if desconto_raw else 0.0
-                        
+
                         total_item = round(preco * qtd - desconto, 2)
-                        tipo_item = 'servico' if str(tipo_produto_servico).lower() in ['serviço', 'servico', 'service'] else 'produto'
+                        # Determinar tipo: usa coluna TIPO_PRODUTO_SERVICO se informada, senão padrão 'produto'
+                        if tipo_produto_servico and str(tipo_produto_servico).lower() in ['serviço', 'servico', 'service']:
+                            tipo_item = 'servico'
+                        else:
+                            tipo_item = 'produto'
+
+                        nome_item = produto_servico_final or descricao or 'Item importado'
                         itens_carrinho_importacao = json.dumps([{
                             'tipo': tipo_item,
-                            'nome': produto_servico_final,
+                            'nome': nome_item,
                             'preco': preco,
                             'qtd': qtd,
                             'desconto': desconto,
@@ -16040,7 +16472,7 @@ def buscar_plano_conta_automatico(usuario_id, tipo_lancamento, categoria_nome):
         
     return pc
 
-def criar_lancamento_financeiro_automatico(venda_ou_compra, tipo, usuario_id):
+def criar_lancamento_financeiro_automatico(venda_ou_compra, tipo, usuario_id, itens_carrinho_json=None):
     """
     Cria automaticamente um lançamento financeiro para uma venda ou compra
     """
@@ -16108,15 +16540,16 @@ def criar_lancamento_financeiro_automatico(venda_ou_compra, tipo, usuario_id):
             categoria=categoria,
             plano_conta_id=plano_conta_id,
             data_prevista=venda_ou_compra.data_prevista,
-            data_realizada=venda_ou_compra.data_realizada if venda_ou_compra.realizado else None,
+            data_realizada=venda_ou_compra.data_realizada,  # sempre salva (permite agendamento futuro)
             realizado=venda_ou_compra.realizado,
             usuario_id=usuario_id,
-            empresa_id=empresa_id_correta,  # Usar empresa_id correta da sessão
+            empresa_id=empresa_id_correta,
             venda_id=venda_id,
             compra_id=compra_id,
             cliente_id=venda_ou_compra.cliente_id if tipo == 'venda' else None,
             fornecedor_id=venda_ou_compra.fornecedor_id if tipo == 'compra' else None,
-            usuario_criacao_id=usuario_id  # Registrar quem criou
+            itens_carrinho=itens_carrinho_json,
+            usuario_criacao_id=usuario_id
         )
         
         db.session.add(novo_lancamento)
