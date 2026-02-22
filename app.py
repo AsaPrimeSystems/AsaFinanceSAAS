@@ -1236,8 +1236,11 @@ def verificar_acesso_modulo(modulo, acao):
     if tipo == 'sub_contador':
         sub_id = session.get('sub_usuario_id')
         sub = db.session.get(SubUsuarioContador, sub_id) if sub_id else None
-        if not sub or not sub.categoria_id:
+        if not sub:
             return False, MSG
+        # Sem categoria = "Sem restrições" → acesso total
+        if not sub.categoria_id:
+            return True, ''
         perm = PermissaoCategoria.query.filter_by(
             categoria_id=sub.categoria_id, modulo=modulo, acao=acao, ativo=True
         ).first()

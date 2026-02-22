@@ -406,14 +406,25 @@
                         </div>
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">Categoria de Acesso</label>
+                                <label class="form-label d-flex justify-content-between align-items-center">
+                                    Categoria de Acesso
+                                    <a href="{{ url_for('categorias_usuarios') }}" class="btn btn-outline-secondary btn-sm py-0" style="font-size:0.75rem;">
+                                        <i class="fas fa-cog me-1"></i>Gerenciar Categorias
+                                    </a>
+                                </label>
                                 <select class="form-select" name="categoria_id">
                                     <option value="">Sem restrições (Acesso Total)</option>
                                     {% for categoria in categorias %}
                                     <option value="{{ categoria.id }}">{{ categoria.nome }}</option>
                                     {% endfor %}
                                 </select>
-                                <small class="text-muted">Define as permissões do sub-usuário</small>
+                                <small class="text-muted">
+                                    {% if not categorias %}
+                                    <span class="text-warning"><i class="fas fa-info-circle me-1"></i>Nenhuma categoria criada. Clique em "Gerenciar Categorias" para criar.</span>
+                                    {% else %}
+                                    Define as permissões do sub-usuário
+                                    {% endif %}
+                                </small>
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Email</label>
