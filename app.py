@@ -1229,7 +1229,19 @@ def verificar_acesso_modulo(modulo, acao):
         return True, ''
 
     if session.get('acesso_contador'):
-        return True, ''
+        # Sub-usuário do contador acessando empresa vinculada: ainda verifica a categoria de permissão
+        sub_id_orig = session.get('sub_usuario_id_original')
+        if sub_id_orig:
+            sub = db.session.get(SubUsuarioContador, sub_id_orig)
+            if not sub:
+                return False, 'Você não tem permissão para acessar este módulo. Entre em contato com o usuário master.'
+            if not sub.categoria_id:
+                return True, ''  # Sem restrições = acesso total
+            perm = PermissaoCategoria.query.filter_by(
+                categoria_id=sub.categoria_id, modulo=modulo, acao=acao, ativo=True
+            ).first()
+            return (perm is not None), ('' if perm else 'Você não tem permissão para acessar este módulo. Entre em contato com o usuário master.')
+        return True, ''  # Contador master = acesso total
 
     MSG = 'Você não tem permissão para acessar este módulo. Entre em contato com o usuário master.'
 
@@ -1719,7 +1731,10 @@ def check_subscription_status():
     if 'usuario_id' in session and session.get('tipo_conta') != 'admin':
         # Rotas ignoradas do bloqueio (estáticas, de saída e a própria página de bloqueio/renovação)
         endpoint = request.endpoint
-        if not endpoint or endpoint.startswith('static') or endpoint in ('login', 'logout', 'assinatura_suspensa', 'gateway_webhook', 'registro'):
+        if not endpoint or endpoint.startswith('static') or endpoint in (
+            'login', 'logout', 'assinatura_suspensa', 'gateway_webhook', 'registro',
+            'precos', 'checkout',
+        ):
             return
             
         empresa_id = session.get('empresa_id')
@@ -11626,7 +11641,7 @@ def gerenciar_permissoes_usuario(user_id):
     if request.method == 'POST':
         # Processar permissões enviadas
         permissoes_dict = {}
-        modulos = ['lancamentos', 'clientes', 'fornecedores', 'estoque', 'vendas', 'compras', 'relatorios', 'configuracoes']
+        modulos = ['lancamentos', 'clientes', 'fornecedores', 'estoque', 'vendas', 'compras', 'relatorios', 'importacao', 'conciliacao', 'plano_contas', 'configuracoes']
         acoes = ['visualizar', 'criar', 'editar', 'deletar']
         
         for modulo in modulos:
@@ -11702,7 +11717,7 @@ def nova_categoria_usuario():
         db.session.commit()
         
         # Processar permissões
-        modulos = ['lancamentos', 'clientes', 'fornecedores', 'estoque', 'vendas', 'compras', 'relatorios', 'configuracoes']
+        modulos = ['lancamentos', 'clientes', 'fornecedores', 'estoque', 'vendas', 'compras', 'relatorios', 'importacao', 'conciliacao', 'plano_contas', 'configuracoes']
         acoes = ['visualizar', 'criar', 'editar', 'deletar']
         
         for modulo in modulos:
@@ -11768,7 +11783,7 @@ def editar_categoria_usuario(categoria_id):
         PermissaoCategoria.query.filter_by(categoria_id=categoria.id).delete()
         
         # Adicionar novas permissões
-        modulos = ['lancamentos', 'clientes', 'fornecedores', 'estoque', 'vendas', 'compras', 'relatorios', 'configuracoes']
+        modulos = ['lancamentos', 'clientes', 'fornecedores', 'estoque', 'vendas', 'compras', 'relatorios', 'importacao', 'conciliacao', 'plano_contas', 'configuracoes']
         acoes = ['visualizar', 'criar', 'editar', 'deletar']
         
         for modulo in modulos:
